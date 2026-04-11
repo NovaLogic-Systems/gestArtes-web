@@ -42,7 +42,7 @@ npm install
 1. Copiar [.env.example](.env.example) para `.env` e ajustar a base URL da API:
 
 ```env
-VITE_API_BASE_URL=http://localhost:3001
+VITE_API_URL=http://localhost:3001
 ```
 
 ## Scripts
