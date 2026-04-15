@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
+import LoginPage from './pages/LoginPage'
 
 function PlaceholderPage({ title }) {
   return (
@@ -9,7 +10,6 @@ function PlaceholderPage({ title }) {
   )
 }
 
-const LoginPage = () => <PlaceholderPage title="Login" />
 const ForgotPasswordPage = () => <PlaceholderPage title="Forgot Password" />
 const UnauthorizedPage = () => <PlaceholderPage title="Unauthorized" />
 
