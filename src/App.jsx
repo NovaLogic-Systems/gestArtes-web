@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
+import ValidationsPage from './pages/admin/ValidationsPage'
 
 function PlaceholderPage({ title }) {
   return (
@@ -40,6 +41,7 @@ function App() {
 
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/validations" element={<ValidationsPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />
