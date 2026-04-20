@@ -1,24 +1,89 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
+import { useAuth } from './hooks/useAuth'
+import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import LoginPage from './pages/LoginPage'
 
 function PlaceholderPage({ title }) {
   return (
-    <main style={{ padding: '2rem' }}>
-      <h1>{title}</h1>
+    <section style={{ padding: '1rem 0' }}>
+      <p style={{ color: '#555', margin: 0 }}>
+        Pagina em construcao: {title}.
+      </p>
+    </section>
+  )
+}
+
+function UnauthorizedPage() {
+  return (
+    <main style={{ display: 'grid', minHeight: '100vh', placeItems: 'center', padding: '2rem' }}>
+      <section style={{ maxWidth: 420, textAlign: 'center' }}>
+        <h1 style={{ marginBottom: '0.5rem' }}>Acesso negado</h1>
+        <p style={{ color: '#555', marginTop: 0 }}>Nao tens permissao para aceder a esta pagina.</p>
+        <Link to="/login">Voltar para login</Link>
+      </section>
     </main>
   )
 }
 
-const ForgotPasswordPage = () => <PlaceholderPage title="Forgot Password" />
-const UnauthorizedPage = () => <PlaceholderPage title="Unauthorized" />
+function ProtectedPlaceholderPage({ title }) {
+  const navigate = useNavigate()
+  const { logout, role, user } = useAuth()
 
-const StudentDashboard = () => <PlaceholderPage title="Student Dashboard" />
-const CoachingPage = () => <PlaceholderPage title="Coaching" />
+  const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'Utilizador'
 
-const TeacherDashboard = () => <PlaceholderPage title="Teacher Dashboard" />
+  async function handleLogout() {
+    await logout()
+    navigate('/login?reason=logged-out', { replace: true })
+  }
 
-const AdminDashboard = () => <PlaceholderPage title="Admin Dashboard" />
+  return (
+    <main style={{ minHeight: '100vh', padding: '2rem' }}>
+      <header
+        style={{
+          alignItems: 'center',
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          justifyContent: 'space-between',
+          marginBottom: '1.5rem',
+        }}
+      >
+        <div>
+          <p style={{ color: '#666', margin: 0 }}>
+            {displayName} · {String(role || '').toUpperCase()}
+          </p>
+          <h1 style={{ margin: 0 }}>{title}</h1>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          style={{
+            background: '#fff',
+            border: '1px solid #ddd',
+            borderRadius: '999px',
+            cursor: 'pointer',
+            font: 'inherit',
+            fontWeight: 600,
+            padding: '0.55rem 0.95rem',
+          }}
+        >
+          Terminar sessao
+        </button>
+      </header>
+
+      <PlaceholderPage title={title} />
+    </main>
+  )
+}
+
+const StudentDashboard = () => <ProtectedPlaceholderPage title="Student Dashboard" />
+const CoachingPage = () => <ProtectedPlaceholderPage title="Coaching" />
+
+const TeacherDashboard = () => <ProtectedPlaceholderPage title="Teacher Dashboard" />
+
+const AdminDashboard = () => <ProtectedPlaceholderPage title="Admin Dashboard" />
 
 function App() {
   return (

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import './auth.css'
 
 function getDashboardPath(currentRole) {
   if (currentRole === 'admin') {
@@ -14,14 +15,41 @@ function getDashboardPath(currentRole) {
   return '/student/dashboard'
 }
 
+function getLoginNotice(search) {
+  const params = new URLSearchParams(search)
+  const reason = params.get('reason')
+
+  if (reason === 'session-expired') {
+    return 'A tua sessão expirou. Inicia sessão novamente.'
+  }
+
+  if (reason === 'logged-out') {
+    return 'Sessão terminada com sucesso.'
+  }
+
+  return ''
+}
+
+function normalizeReturnPath(value) {
+  if (typeof value !== 'string') {
+    return ''
+  }
+
+  return value.startsWith('/') ? value : ''
+}
+
 export default function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { login, isAuthenticated, role, loading } = useAuth()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+
+  const loginNotice = useMemo(() => getLoginNotice(location.search), [location.search])
+  const returnPath = normalizeReturnPath(location.state?.from)
 
   const canSubmit = useMemo(
     () => !submitting && email.trim().length > 0 && password.length > 0,
@@ -30,9 +58,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      navigate(getDashboardPath(role), { replace: true })
+      navigate(returnPath || getDashboardPath(role), { replace: true })
     }
-  }, [isAuthenticated, loading, navigate, role])
+  }, [isAuthenticated, loading, navigate, returnPath, role])
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -51,9 +79,13 @@ export default function LoginPage() {
       })
 
       const nextRole = currentUser?.role || role
-      navigate(getDashboardPath(nextRole), { replace: true })
+      navigate(returnPath || getDashboardPath(nextRole), { replace: true })
     } catch (requestError) {
-      const message = requestError?.response?.data?.error || 'Credenciais inválidas'
+      const backendMessage = requestError?.response?.data?.error
+      const message =
+        backendMessage === 'Invalid credentials'
+          ? 'Credenciais inválidas.'
+          : backendMessage || 'Não foi possível autenticar.'
       setError(message)
     } finally {
       setSubmitting(false)
@@ -61,43 +93,69 @@ export default function LoginPage() {
   }
 
   return (
-    <main style={{ display: 'grid', minHeight: '100vh', placeItems: 'center', padding: '1.5rem' }}>
-      <section style={{ width: '100%', maxWidth: 420, border: '1px solid #ddd', borderRadius: 12, padding: '1.5rem', background: '#fff' }}>
-        <h1 style={{ marginTop: 0 }}>Entrar</h1>
-        <p style={{ marginTop: 0, color: '#555' }}>Autentica-te para aceder ao gestArtes.</p>
+    <main className="auth-shell">
+      <div aria-hidden="true" className="auth-orb auth-orb-a" />
+      <div aria-hidden="true" className="auth-orb auth-orb-b" />
 
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '0.75rem' }}>
-          <label htmlFor="email">Email</label>
-          <input
-            id="email"
-            type="email"
-            autoComplete="username"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-          />
+      <section className="auth-card auth-card-login" aria-labelledby="login-title">
+        <div className="auth-login-brand">
+          <h1 id="login-title" className="auth-title">
+            gestArtes
+          </h1>
+          <p className="auth-copy">Plataforma de gestão escolar</p>
+        </div>
 
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-            minLength={8}
-          />
+        <div className="auth-login-form">
+          {loginNotice ? (
+            <p className="auth-status auth-status-info" role="status" aria-live="polite">
+              {loginNotice}
+            </p>
+          ) : null}
+          {error ? (
+            <p className="auth-status auth-status-error" role="alert">
+              {error}
+            </p>
+          ) : null}
 
-          {error ? <p style={{ margin: 0, color: '#b00020' }}>{error}</p> : null}
+          <form className="auth-form" onSubmit={handleSubmit}>
+            <label className="auth-label" htmlFor="email">
+              Email
+            </label>
+            <input
+              className="auth-input"
+              id="email"
+              type="email"
+              autoComplete="username"
+              placeholder="nome@entartes.pt"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+            />
 
-          <button type="submit" disabled={!canSubmit}>
-            {submitting ? 'A entrar...' : 'Entrar'}
-          </button>
-        </form>
+            <label className="auth-label" htmlFor="password">
+              Palavra-passe
+            </label>
+            <input
+              className="auth-input"
+              id="password"
+              type="password"
+              autoComplete="current-password"
+              placeholder="********"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              minLength={8}
+            />
 
-        <p style={{ marginBottom: 0, marginTop: '1rem' }}>
-          <Link to="/forgot-password">Recuperar password</Link>
-        </p>
+            <button className="auth-button" type="submit" disabled={!canSubmit}>
+              {submitting ? 'A entrar...' : 'Entrar'}
+            </button>
+          </form>
+
+          <p className="auth-footer-link">
+            <Link to="/forgot-password">Recuperar palavra-passe</Link>
+          </p>
+        </div>
       </section>
     </main>
   )
