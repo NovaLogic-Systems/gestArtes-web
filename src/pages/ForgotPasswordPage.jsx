@@ -1,7 +1,16 @@
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import './auth.css'
 
 export default function ForgotPasswordPage() {
+  useEffect(() => {
+    document.body.classList.add('auth-page')
+
+    return () => {
+      document.body.classList.remove('auth-page')
+    }
+  }, [])
+
   return (
     <main className="auth-shell">
       <div aria-hidden="true" className="auth-orb auth-orb-a" />

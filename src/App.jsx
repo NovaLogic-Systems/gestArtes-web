@@ -8,7 +8,7 @@ function PlaceholderPage({ title }) {
   return (
     <section style={{ padding: '1rem 0' }}>
       <p style={{ color: '#555', margin: 0 }}>
-        Pagina em construcao: {title}.
+        Página em construção: {title}.
       </p>
     </section>
   )
@@ -19,7 +19,7 @@ function UnauthorizedPage() {
     <main style={{ display: 'grid', minHeight: '100vh', placeItems: 'center', padding: '2rem' }}>
       <section style={{ maxWidth: 420, textAlign: 'center' }}>
         <h1 style={{ marginBottom: '0.5rem' }}>Acesso negado</h1>
-        <p style={{ color: '#555', marginTop: 0 }}>Nao tens permissao para aceder a esta pagina.</p>
+        <p style={{ color: '#555', marginTop: 0 }}>Não tens permissão para aceder a esta página.</p>
         <Link to="/login">Voltar para login</Link>
       </section>
     </main>
@@ -69,7 +69,7 @@ function ProtectedPlaceholderPage({ title }) {
             padding: '0.55rem 0.95rem',
           }}
         >
-          Terminar sessao
+          Terminar sessão
         </button>
       </header>
 

@@ -3,6 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import './auth.css'
 
+const allowedReturnPrefixes = ['/student/', '/teacher/', '/admin/']
+
 function getDashboardPath(currentRole) {
   if (currentRole === 'admin') {
     return '/admin/dashboard'
@@ -35,7 +37,32 @@ function normalizeReturnPath(value) {
     return ''
   }
 
-  return value.startsWith('/') ? value : ''
+  const candidate = value.trim()
+
+  if (
+    !candidate.startsWith('/') ||
+    candidate.startsWith('//') ||
+    candidate.includes('://') ||
+    candidate.includes('\\')
+  ) {
+    return ''
+  }
+
+  try {
+    const parsed = new URL(candidate, window.location.origin)
+
+    if (parsed.origin !== window.location.origin) {
+      return ''
+    }
+
+    if (!allowedReturnPrefixes.some((prefix) => parsed.pathname.startsWith(prefix))) {
+      return ''
+    }
+
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`
+  } catch {
+    return ''
+  }
 }
 
 export default function LoginPage() {
@@ -50,6 +77,14 @@ export default function LoginPage() {
 
   const loginNotice = useMemo(() => getLoginNotice(location.search), [location.search])
   const returnPath = normalizeReturnPath(location.state?.from)
+
+  useEffect(() => {
+    document.body.classList.add('auth-page')
+
+    return () => {
+      document.body.classList.remove('auth-page')
+    }
+  }, [])
 
   const canSubmit = useMemo(
     () => !submitting && email.trim().length > 0 && password.length > 0,

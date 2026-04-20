@@ -6,7 +6,7 @@ export default function ProtectedRoute({ allowedRoles }) {
   const { loading, isAuthenticated, role } = useAuth()
 
   if (loading) {
-    return <div style={{ padding: '2rem' }}>A validar sessao...</div>
+    return <div style={{ padding: '2rem' }}>A validar sessão...</div>
   }
 
   if (!isAuthenticated) {
