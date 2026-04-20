@@ -22,6 +22,7 @@ body.auth-page {
 
 body.auth-page #root {
   border-inline: 0;
+  display: block;
   margin: 0;
   max-width: none;
   min-height: 100svh;
@@ -34,8 +35,8 @@ body.auth-page #root {
   display: grid;
   font-family: 'Plus Jakarta Sans', sans-serif;
   min-height: 100svh;
-  overflow: hidden;
-  padding: clamp(1rem, 2vw, 2rem);
+  overflow: auto;
+  padding: clamp(1.25rem, 4vh, 2.5rem) clamp(1rem, 2vw, 2rem);
   position: relative;
   isolation: isolate;
   place-items: center;
@@ -106,9 +107,9 @@ body.auth-page #root {
 .auth-card-login {
   align-content: center;
   gap: 1.3rem;
-  min-height: min(84svh, 760px);
-  padding: clamp(1.5rem, 3vw, 3rem);
-  width: min(720px, 100%);
+  min-height: auto;
+  padding: clamp(1.45rem, 2.6vw, 2.5rem);
+  width: min(640px, 100%);
 }
 
 .auth-card-recovery {
@@ -203,19 +204,28 @@ body.auth-page #root {
   background: var(--auth-surface-strong);
   border: 1px solid rgba(215, 204, 223, 0.96);
   border-radius: 16px;
+  box-sizing: border-box;
   color: var(--auth-ink);
   font: inherit;
-  padding: 0.92rem 1rem;
+  padding: 0.92rem 2.6rem 0.92rem 1rem;
   transition:
     border-color 150ms ease,
     box-shadow 150ms ease,
     transform 150ms ease,
     background 150ms ease;
   width: 100%;
+  justify-self: stretch;
 }
 
 .auth-input::placeholder {
   color: #9a91ab;
+}
+
+.auth-input::-webkit-credentials-auto-fill-button,
+.auth-input::-webkit-contacts-auto-fill-button,
+.auth-input::-webkit-textfield-decoration-container,
+.auth-input::-webkit-clear-button {
+  display: none !important;
 }
 
 .auth-input:hover {
