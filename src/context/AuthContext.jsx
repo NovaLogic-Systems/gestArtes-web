@@ -32,7 +32,25 @@ export function AuthProvider({ children }) {
     }
   }, [clearSession])
 
-  const logout = useCallback(() => {
+  const login = useCallback(async ({ email, password }) => {
+    const response = await api.post('/auth/login', { email, password })
+    const currentUser = response.data?.user ?? null
+    const currentRole = response.data?.role ?? currentUser?.role ?? null
+
+    setUser(currentUser)
+    setRole(currentRole)
+    setIsAuthenticated(Boolean(currentUser && currentRole))
+
+    return currentUser
+  }, [])
+
+  const logout = useCallback(async () => {
+    try {
+      await api.post('/auth/logout')
+    } catch {
+      // Even if the backend session is already invalid, clear local auth state.
+    }
+
     clearSession()
   }, [clearSession])
 
@@ -61,10 +79,11 @@ export function AuthProvider({ children }) {
       role,
       isAuthenticated,
       loading,
+      login,
       logout,
       reloadSession: loadSession,
     }),
-    [user, role, isAuthenticated, loading, logout, loadSession],
+    [user, role, isAuthenticated, loading, login, logout, loadSession],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
