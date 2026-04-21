@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import './auth.css'
+
+const allowedReturnPrefixes = ['/student/', '/teacher/', '/admin/']
 
 function getDashboardPath(currentRole) {
   if (currentRole === 'admin') {
@@ -14,8 +17,57 @@ function getDashboardPath(currentRole) {
   return '/student/dashboard'
 }
 
+function getLoginNotice(search) {
+  const params = new URLSearchParams(search)
+  const reason = params.get('reason')
+
+  if (reason === 'session-expired') {
+    return 'A tua sessão expirou. Inicia sessão novamente.'
+  }
+
+  if (reason === 'logged-out') {
+    return 'Sessão terminada com sucesso.'
+  }
+
+  return ''
+}
+
+function normalizeReturnPath(value) {
+  if (typeof value !== 'string') {
+    return ''
+  }
+
+  const candidate = value.trim()
+
+  if (
+    !candidate.startsWith('/') ||
+    candidate.startsWith('//') ||
+    candidate.includes('://') ||
+    candidate.includes('\\')
+  ) {
+    return ''
+  }
+
+  try {
+    const parsed = new URL(candidate, window.location.origin)
+
+    if (parsed.origin !== window.location.origin) {
+      return ''
+    }
+
+    if (!allowedReturnPrefixes.some((prefix) => parsed.pathname.startsWith(prefix))) {
+      return ''
+    }
+
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`
+  } catch {
+    return ''
+  }
+}
+
 export default function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { login, isAuthenticated, role, loading } = useAuth()
 
   const [email, setEmail] = useState('')
@@ -24,6 +76,17 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
+  const loginNotice = useMemo(() => getLoginNotice(location.search), [location.search])
+  const returnPath = normalizeReturnPath(location.state?.from)
+
+  useEffect(() => {
+    document.body.classList.add('auth-page')
+
+    return () => {
+      document.body.classList.remove('auth-page')
+    }
+  }, [])
+
   const canSubmit = useMemo(
     () => !submitting && email.trim().length > 0 && password.length > 0,
     [email, password, submitting],
@@ -31,9 +94,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      navigate(getDashboardPath(role), { replace: true })
+      navigate(returnPath || getDashboardPath(role), { replace: true })
     }
-  }, [isAuthenticated, loading, navigate, role])
+  }, [isAuthenticated, loading, navigate, returnPath, role])
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -52,9 +115,13 @@ export default function LoginPage() {
       })
 
       const nextRole = currentUser?.role || role
-      navigate(getDashboardPath(nextRole), { replace: true })
+      navigate(returnPath || getDashboardPath(nextRole), { replace: true })
     } catch (requestError) {
-      const message = requestError?.response?.data?.error || 'Credenciais inválidas'
+      const backendMessage = requestError?.response?.data?.error
+      const message =
+        backendMessage === 'Invalid credentials'
+          ? 'Credenciais inválidas.'
+          : backendMessage || 'Não foi possível autenticar.'
       setError(message)
     } finally {
       setSubmitting(false)
