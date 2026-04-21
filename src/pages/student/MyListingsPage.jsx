@@ -12,6 +12,7 @@ import {
   getMyMarketplaceListings,
   updateMarketplaceListing,
 } from '../../services/marketplace'
+import './DashboardPage.css'
 import './marketplace.css'
 
 const NAV_ITEMS = [
@@ -194,6 +195,7 @@ export default function MyListingsPage() {
         }}
         title="Editar anuncio"
         description="Atualiza o conteudo do teu anuncio"
+        size="xl"
       >
         <ListingForm
           initialValues={editingListing}
