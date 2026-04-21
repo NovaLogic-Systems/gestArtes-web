@@ -79,7 +79,6 @@ function ProtectedPlaceholderPage({ title }) {
 }
 
 const StudentSectionPage = ({ title }) => <PlaceholderPage title={title} />
-const StudentDashboard = () => <ProtectedPlaceholderPage title="Student Dashboard" />
 const CoachingPage = () => <ProtectedPlaceholderPage title="Coaching" />
 
 const TeacherDashboard = () => <ProtectedPlaceholderPage title="Teacher Dashboard" />
