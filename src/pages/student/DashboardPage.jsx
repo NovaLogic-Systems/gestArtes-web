@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
+import KPICard from '../../components/KPICard'
+import QuickActions from '../../components/QuickActions'
 import './DashboardPage.css'
 
 const NAV_ITEMS = [
@@ -79,6 +81,8 @@ export default function DashboardPage() {
   const studentName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Aluno'
 
   const [dashboard, setDashboard] = useState(null)
+  const [schedulePreview, setSchedulePreview] = useState([])
+  const [notificationPreview, setNotificationPreview] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
@@ -105,8 +109,15 @@ export default function DashboardPage() {
     try {
       setLoading(true)
       setError('')
-      const response = await api.get('/student/dashboard')
-      setDashboard(response.data ?? null)
+      const [dashboardResponse, scheduleResponse, notificationsResponse] = await Promise.all([
+        api.get('/student/dashboard'),
+        api.get('/student/schedule/upcoming'),
+        api.get('/notifications?preview=true'),
+      ])
+
+      setDashboard(dashboardResponse.data ?? null)
+      setSchedulePreview(scheduleResponse.data?.schedule ?? [])
+      setNotificationPreview(Array.isArray(notificationsResponse.data) ? notificationsResponse.data : [])
     } catch (requestError) {
       setError(requestError?.response?.data?.error || 'Não foi possível carregar o painel do aluno.')
     } finally {
@@ -121,7 +132,7 @@ export default function DashboardPage() {
   const unreadNotifications = dashboard?.notifications?.filter((item) => !item.read)?.length ?? 0
 
   const scheduleRows = useMemo(() => {
-    const rows = dashboard?.schedule ?? []
+    const rows = schedulePreview
     const term = searchTerm.trim().toLowerCase()
 
     if (!term) {
@@ -132,16 +143,35 @@ export default function DashboardPage() {
       const text = [row.teacher, row.studio, row.status, row.date, row.time].join(' ').toLowerCase()
       return text.includes(term)
     })
-  }, [dashboard?.schedule, searchTerm])
+  }, [schedulePreview, searchTerm])
 
   const communicationRows = useMemo(() => {
-    return (dashboard?.notifications ?? []).slice(0, 3)
-  }, [dashboard?.notifications])
+    return notificationPreview.slice(0, 3)
+  }, [notificationPreview])
 
   const quickActions = [
-    { label: 'Nova marcação', to: '/student/coaching' },
-    { label: 'Confirmar execução', to: '/student/coaching#confirmacao' },
-    { label: 'Gerir cancelamentos', to: '/student/coaching', secondary: true },
+    {
+      label: 'Abrir coaching',
+      to: '/student/coaching',
+      description: 'Consultar sessões e gerir marcações',
+    },
+    {
+      label: 'Inventário da escola',
+      to: '/student/inventory',
+      description: 'Ver artigos disponíveis para aluguer',
+      variant: 'ctaSecondary',
+    },
+    {
+      label: 'Marketplace',
+      to: '/student/marketplace',
+      description: 'Explorar e gerir compras e vendas',
+    },
+    {
+      label: 'Notificações',
+      to: '/student/notifications',
+      description: 'Ver alertas e mensagens recentes',
+      variant: 'secondary',
+    },
   ]
 
   return (
@@ -234,22 +264,9 @@ export default function DashboardPage() {
             ) : null}
 
             <div className="kpi-grid">
-              <article className="kpi">
-                <h3>Sessões agendadas</h3>
-                <strong>{dashboard?.upcomingSessions ?? 0}</strong>
-              </article>
-              <article className="kpi">
-                <h3>Validações pendentes</h3>
-                <strong>{dashboard?.pendingValidations ?? 0}</strong>
-              </article>
-              <article className="kpi">
-                <h3>Pedidos em análise</h3>
-                <strong>{dashboard?.reviewRequests ?? 0}</strong>
-              </article>
-              <article className="kpi">
-                <h3>Pagamentos externos em curso</h3>
-                <strong>{dashboard?.externalPaymentsInProgress ?? 0}</strong>
-              </article>
+              <KPICard title="Sessões agendadas" value={dashboard?.upcomingSessions ?? 0} />
+              <KPICard title="Validações pendentes" value={dashboard?.pendingValidations ?? 0} />
+              <KPICard title="Pedidos em análise" value={dashboard?.reviewRequests ?? 0} />
             </div>
 
             <div className="split">
@@ -290,13 +307,7 @@ export default function DashboardPage() {
 
               <article className="panel">
                 <h3>Ações rápidas</h3>
-                <div className="quick-actions">
-                  {quickActions.map((action) => (
-                    <Link key={action.label} className={`cta${action.secondary ? ' secondary' : ''}`} to={action.to}>
-                      {action.label}
-                    </Link>
-                  ))}
-                </div>
+                <QuickActions actions={quickActions} />
 
                 <h3>Comunicações recentes</h3>
                 {communicationRows.length === 0 ? (
@@ -305,7 +316,7 @@ export default function DashboardPage() {
                   <ul className="list">
                     {communicationRows.map((notification) => (
                       <li key={notification.id}>
-                        {notification.title}: {notification.message || 'Sem detalhe adicional.'}
+                        {notification.title || 'Notificação'}: {notification.message || 'Sem detalhe adicional.'}
                       </li>
                     ))}
                   </ul>
