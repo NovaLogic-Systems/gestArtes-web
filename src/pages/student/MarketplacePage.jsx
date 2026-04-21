@@ -11,6 +11,7 @@ import {
 } from '../../services/marketplace'
 import ListingForm from '../../components/ListingForm'
 import Modal from '../../components/ui/Modal'
+import './DashboardPage.css'
 import './marketplace.css'
 
 const SEARCH_HISTORY_KEY = 'marketplace.search.history'
@@ -83,14 +84,25 @@ export default function MarketplacePage() {
       setLoading(true)
       setError('')
 
-      const [fetchedListings, options] = await Promise.all([
+      const [listingsResult, optionsResult] = await Promise.allSettled([
         listMarketplaceListings(),
         getMarketplaceOptions(),
       ])
 
-      setListings(fetchedListings)
-      setCategories(options.categories ?? [])
-      setConditions(options.conditions ?? [])
+      if (listingsResult.status === 'fulfilled') {
+        setListings(listingsResult.value)
+      } else {
+        setListings([])
+        setError(listingsResult.reason?.response?.data?.error || 'Nao foi possivel carregar o marketplace.')
+      }
+
+      if (optionsResult.status === 'fulfilled') {
+        setCategories(optionsResult.value.categories ?? [])
+        setConditions(optionsResult.value.conditions ?? [])
+      } else {
+        setCategories([])
+        setConditions([])
+      }
     } catch (requestError) {
       setError(requestError?.response?.data?.error || 'Nao foi possivel carregar o marketplace.')
     } finally {
@@ -263,7 +275,7 @@ export default function MarketplacePage() {
                   onChange={(event) => updateFilter('search', event.target.value)}
                   onBlur={(event) => storeSearchInHistory(event.target.value)}
                 />
-                <button type="button" className="pill" onClick={() => storeSearchInHistory(filters.search)}>
+                <button type="button" className="market-search-save" onClick={() => storeSearchInHistory(filters.search)}>
                   Guardar pesquisa
                 </button>
               </div>
@@ -343,7 +355,14 @@ export default function MarketplacePage() {
             </article>
 
             <article className="panel">
-              <h3>Feed de anuncios</h3>
+              <div className="market-feed-header">
+                <h3>Feed de anuncios</h3>
+                {!loading && listings.length > 0 ? (
+                  <p className="market-count-info">
+                    {filteredListings.length} de {listings.length} anuncio{listings.length !== 1 ? 's' : ''}
+                  </p>
+                ) : null}
+              </div>
 
               {error ? <p className="error-banner">{error}</p> : null}
               {loading ? <p className="panel-subtle">A carregar anuncios...</p> : null}
@@ -376,6 +395,7 @@ export default function MarketplacePage() {
         onClose={() => setIsCreateOpen(false)}
         title="Criar anuncio"
         description="Publica um artigo no marketplace da comunidade"
+        size="xl"
       >
         <ListingForm
           categories={categories}
