@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import api from '../../services/api'
+import notificationPreviewService from '../../services/notificationPreviewService'
 import { useAuth } from '../../hooks/useAuth'
 import KPICard from '../../components/KPICard'
 import QuickActions from '../../components/QuickActions'
@@ -82,7 +83,7 @@ export default function DashboardPage() {
 
   const [dashboard, setDashboard] = useState(null)
   const [schedulePreview, setSchedulePreview] = useState([])
-  const [notificationPreview, setNotificationPreview] = useState([])
+  const [notificationPreview, setNotificationPreview] = useState({ items: [], unreadCount: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
@@ -109,15 +110,37 @@ export default function DashboardPage() {
     try {
       setLoading(true)
       setError('')
-      const [dashboardResponse, scheduleResponse, notificationsResponse] = await Promise.all([
+
+      const dashboardResult = await Promise.allSettled([
         api.get('/student/dashboard'),
         api.get('/student/schedule/upcoming'),
-        api.get('/notifications?preview=true'),
+        notificationPreviewService.getPreview({ limit: 5, includeUnreadCount: true }),
       ])
 
-      setDashboard(dashboardResponse.data ?? null)
-      setSchedulePreview(scheduleResponse.data?.schedule ?? [])
-      setNotificationPreview(Array.isArray(notificationsResponse.data) ? notificationsResponse.data : [])
+      const [dashboardPromise, schedulePromise, notificationsPromise] = dashboardResult
+
+      if (dashboardPromise.status === 'fulfilled') {
+        setDashboard(dashboardPromise.value.data ?? null)
+      } else {
+        setDashboard(null)
+      }
+
+      if (schedulePromise.status === 'fulfilled') {
+        setSchedulePreview(schedulePromise.value.data?.schedule ?? [])
+      } else {
+        setSchedulePreview([])
+      }
+
+      if (notificationsPromise.status === 'fulfilled') {
+        setNotificationPreview(notificationsPromise.value)
+      } else {
+        setNotificationPreview({ items: [], unreadCount: 0 })
+      }
+
+      const anyFailed = dashboardResult.some((result) => result.status === 'rejected')
+      if (anyFailed) {
+        setError('Alguns dados do painel não puderam ser carregados. Tente novamente.')
+      }
     } catch (requestError) {
       setError(requestError?.response?.data?.error || 'Não foi possível carregar o painel do aluno.')
     } finally {
@@ -129,7 +152,7 @@ export default function DashboardPage() {
     loadDashboard()
   }, [loadDashboard])
 
-  const unreadNotifications = dashboard?.notifications?.filter((item) => !item.read)?.length ?? 0
+  const unreadNotifications = notificationPreview?.unreadCount ?? 0
 
   const scheduleRows = useMemo(() => {
     const rows = schedulePreview
@@ -146,7 +169,7 @@ export default function DashboardPage() {
   }, [schedulePreview, searchTerm])
 
   const communicationRows = useMemo(() => {
-    return notificationPreview.slice(0, 3)
+    return notificationPreview?.items?.slice(0, 3) ?? []
   }, [notificationPreview])
 
   const quickActions = [
@@ -267,6 +290,7 @@ export default function DashboardPage() {
               <KPICard title="Sessões agendadas" value={dashboard?.upcomingSessions ?? 0} />
               <KPICard title="Validações pendentes" value={dashboard?.pendingValidations ?? 0} />
               <KPICard title="Pedidos em análise" value={dashboard?.reviewRequests ?? 0} />
+              <KPICard title="Pagamentos externos em curso" value={dashboard?.externalPaymentsInProgress ?? 0} />
             </div>
 
             <div className="split">
