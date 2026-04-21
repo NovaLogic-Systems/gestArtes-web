@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { AuthContext } from './auth-context'
 import api, { setUnauthorizedHandler } from '../services/api'
 
 export function AuthProvider({ children }) {
+  const navigate = useNavigate()
+  const location = useLocation()
+
   const [user, setUser] = useState(null)
   const [role, setRole] = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -33,7 +37,11 @@ export function AuthProvider({ children }) {
   }, [clearSession])
 
   const login = useCallback(async ({ email, password }) => {
-    const response = await api.post('/auth/login', { email, password })
+    const response = await api.post(
+      '/auth/login',
+      { email, password },
+      { skipAuthHandler: true },
+    )
     const currentUser = response.data?.user ?? null
     const currentRole = response.data?.role ?? currentUser?.role ?? null
 
@@ -46,9 +54,9 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(async () => {
     try {
-      await api.post('/auth/logout')
-    } catch {
-      // Even if the backend session is already invalid, clear local auth state.
+      await api.post('/auth/logout', null, { skipAuthHandler: true })
+    } catch (error) {
+      void error
     }
 
     clearSession()
@@ -61,8 +69,14 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const onUnauthorized = () => {
       clearSession()
-      if (window.location.pathname !== '/login') {
-        window.location.assign('/login')
+
+      if (location.pathname !== '/login') {
+        const from = `${location.pathname}${location.search}${location.hash}`
+
+        navigate('/login?reason=session-expired', {
+          replace: true,
+          state: { from },
+        })
       }
     }
 
@@ -71,7 +85,7 @@ export function AuthProvider({ children }) {
     return () => {
       setUnauthorizedHandler(null)
     }
-  }, [clearSession])
+  }, [clearSession, location.hash, location.pathname, location.search, navigate])
 
   const value = useMemo(
     () => ({
