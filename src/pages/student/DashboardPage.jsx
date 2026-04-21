@@ -181,7 +181,7 @@ export default function DashboardPage() {
               type="button"
               onClick={async () => {
                 await logout()
-                navigate('/login?reason=logged-out', { replace: true })
+                navigate('/login', { replace: true })
               }}
             >
               Terminar Sessão
