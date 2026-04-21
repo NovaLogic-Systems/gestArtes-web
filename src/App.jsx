@@ -35,7 +35,7 @@ function ProtectedPlaceholderPage({ title, actionLink }) {
 
   async function handleLogout() {
     await logout()
-    navigate('/login?reason=logged-out', { replace: true })
+    navigate('/login', { replace: true })
   }
 
   return (

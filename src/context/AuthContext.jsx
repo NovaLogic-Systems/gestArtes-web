@@ -33,7 +33,7 @@ export function AuthProvider({ children }) {
   }, [clearSession])
 
   const login = useCallback(async ({ email, password }) => {
-    const response = await api.post('/auth/login', { email, password })
+    const response = await api.post('/auth/login', { email, password }, { skipAuthHandler: true })
     const currentUser = response.data?.user ?? null
     const currentRole = response.data?.role ?? currentUser?.role ?? null
 
@@ -46,7 +46,7 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(async () => {
     try {
-      await api.post('/auth/logout')
+      await api.post('/auth/logout', null, { skipAuthHandler: true })
     } catch {
       // Even if the backend session is already invalid, clear local auth state.
     }

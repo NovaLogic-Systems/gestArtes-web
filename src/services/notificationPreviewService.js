@@ -11,20 +11,38 @@ function mapNotification(item) {
 }
 
 const notificationPreviewService = {
-  async getPreview(limit = 4) {
+  async getPreview({ limit = 4, includeUnreadCount = true } = {}) {
     try {
-      const response = await api.get('/notifications')
-      const notifications = Array.isArray(response.data)
-        ? response.data.map(mapNotification)
-        : []
+      const response = await api.get('/notifications', {
+        params: {
+          limit,
+          includeUnreadCount,
+        },
+      })
 
-      const unreadCount = notifications.reduce(
+      const rawNotifications = Array.isArray(response.data)
+        ? response.data
+        : Array.isArray(response.data?.notifications)
+          ? response.data.notifications
+          : Array.isArray(response.data?.items)
+            ? response.data.items
+            : []
+
+      const notifications = rawNotifications.map(mapNotification)
+      const mappedUnreadCount = notifications.reduce(
         (total, current) => total + (current.isRead ? 0 : 1),
         0,
       )
 
+      const responseUnreadCount = Number(response.data?.unreadCount)
+      const unreadCount = Number.isFinite(responseUnreadCount) && responseUnreadCount >= 0
+        ? responseUnreadCount
+        : mappedUnreadCount
+
+      const items = Number.isInteger(limit) && limit >= 0 ? notifications.slice(0, limit) : notifications
+
       return {
-        items: notifications.slice(0, limit),
+        items,
         unreadCount,
       }
     } catch {

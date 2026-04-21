@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import notificationPreviewService from '../../services/notificationPreviewService'
 import studioManagementService from '../../services/studioManagementService'
+import { uniqueNames } from '../../utils/strings'
 import '../admin-studios.css'
 
 const navigationItems = [
@@ -22,24 +23,6 @@ const emptyForm = {
   capacity: '',
   formats: [],
   modalities: [],
-}
-
-function uniqueNames(values) {
-  const map = new Map()
-
-  values.forEach((value) => {
-    const normalized = String(value || '').trim()
-    if (!normalized) {
-      return
-    }
-
-    const key = normalized.toLowerCase()
-    if (!map.has(key)) {
-      map.set(key, normalized)
-    }
-  })
-
-  return Array.from(map.values()).sort((a, b) => a.localeCompare(b))
 }
 
 function formatNotificationDate(value) {
@@ -249,7 +232,7 @@ function StudioManagementPage() {
   }, [])
 
   const refreshNotificationSummary = useCallback(async () => {
-    const preview = await notificationPreviewService.getPreview(4)
+    const preview = await notificationPreviewService.getPreview({ limit: 0, includeUnreadCount: true })
     setNotificationUnreadCount(preview.unreadCount)
   }, [])
 
@@ -258,7 +241,7 @@ function StudioManagementPage() {
     setNotificationsError('')
 
     try {
-      const preview = await notificationPreviewService.getPreview(4)
+      const preview = await notificationPreviewService.getPreview({ limit: 4, includeUnreadCount: true })
       setNotifications(preview.items)
       setNotificationUnreadCount(preview.unreadCount)
       setNotificationsLoaded(true)
@@ -490,9 +473,9 @@ function StudioManagementPage() {
 
     try {
       await logout()
-      navigate('/login?reason=logged-out', { replace: true })
+      navigate('/login', { replace: true })
     } catch {
-      navigate('/login?reason=logged-out', { replace: true })
+      navigate('/login', { replace: true })
     }
   }
 

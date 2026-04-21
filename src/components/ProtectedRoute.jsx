@@ -5,7 +5,7 @@ export default function ProtectedRoute({ allowedRoles }) {
   const { loading, isAuthenticated, role } = useAuth()
 
   if (loading) {
-    return <div>A carregar sessao...</div>
+    return <div>A carregar sessão...</div>
   }
 
   if (!isAuthenticated) {

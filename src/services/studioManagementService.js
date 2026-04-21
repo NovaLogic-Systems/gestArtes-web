@@ -1,4 +1,5 @@
 import api from './api'
+import { uniqueNames } from '../utils/strings'
 
 const LOCAL_STUDIOS_KEY = 'gestartes:studios:local-draft'
 const LOCAL_OPTIONS_KEY = 'gestartes:studios:local-options'
@@ -14,24 +15,6 @@ function normalizeList(value) {
     .split(',')
     .map((entry) => entry.trim())
     .filter(Boolean)
-}
-
-function uniqueNames(values) {
-  const map = new Map()
-
-  values.forEach((entry) => {
-    const name = String(entry || '').trim()
-    if (!name) {
-      return
-    }
-
-    const key = name.toLowerCase()
-    if (!map.has(key)) {
-      map.set(key, name)
-    }
-  })
-
-  return Array.from(map.values()).sort((a, b) => a.localeCompare(b))
 }
 
 function formatOptionValues(values) {
