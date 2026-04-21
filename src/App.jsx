@@ -7,9 +7,11 @@ import StudioManagementPage from './pages/admin/StudioManagementPage'
 
 function PlaceholderPage({ title }) {
   return (
-    <main style={{ padding: '2rem' }}>
-      <h1>{title}</h1>
-    </main>
+    <section style={{ padding: '1rem 0' }}>
+      <p style={{ color: '#555', margin: 0 }}>
+        Página em construção: {title}.
+      </p>
+    </section>
   )
 }
 

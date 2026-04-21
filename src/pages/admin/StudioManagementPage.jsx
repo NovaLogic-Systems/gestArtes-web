@@ -1,552 +1,766 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import Sidebar from '../../components/layout/Sidebar'
-import Topbar from '../../components/layout/Topbar'
-import Table from '../../components/ui/Table'
-import Modal from '../../components/ui/Modal'
-import Button from '../../components/ui/Button'
-import Input from '../../components/ui/Input'
-import '../studio-management.css'
+import notificationPreviewService from '../../services/notificationPreviewService'
+import studioManagementService from '../../services/studioManagementService'
+import '../admin-studios.css'
 
-const formatOptions = [
-  { value: 'O', label: 'O' },
-  { value: 'Z', label: 'Z' },
-  { value: '2O', label: '2O' },
-]
-
-const modalityOptions = [
-  'Ballet Clássico',
-  'Contemporâneo',
-  'Jazz',
-  'Hip Hop',
-  'Danças Urbanas',
-  'Sapateado',
-  'Flamenco',
-  'Barra no Chão',
-  'Acrobática',
-]
-
-const danceStyleOptions = [
-  'Clássico',
-  'Contemporâneo',
-  'Urbano',
-  'Latino',
-  'Acrobático',
-  'Performance',
-  'Experimental',
-]
-
-const initialStudios = [
-  {
-    id: 'E2',
-    name: 'Estúdio Musical',
-    capacity: 12,
-    format: 'O',
-    modalities: ['Jazz', 'Contemporâneo', 'Barra no Chão'],
-    styles: ['Contemporâneo', 'Performance'],
-  },
-  {
-    id: 'E7',
-    name: 'Estúdio Acrobática',
-    capacity: 10,
-    format: 'Z',
-    modalities: ['Acrobática', 'Hip Hop', 'Danças Urbanas'],
-    styles: ['Urbano', 'Acrobático'],
-  },
-  {
-    id: 'E6',
-    name: 'Estúdio Ballet',
-    capacity: 14,
-    format: '2O',
-    modalities: ['Ballet Clássico', 'Flamenco', 'Sapateado'],
-    styles: ['Clássico', 'Latino'],
-  },
+const navigationItems = [
+  { href: '/admin', label: 'Painel' },
+  { href: '/admin/validations', label: 'Validações' },
+  { href: '/admin/studios', label: 'Estúdios' },
+  { href: '/admin/users', label: 'Utilizadores' },
+  { href: '/admin/lostfound', label: 'Perdidos e Achados' },
+  { href: '/admin/inventory', label: 'Inventário da Escola' },
+  { href: '/admin/marketplace', label: 'Marketplace' },
+  { href: '/admin/finance', label: 'Finanças' },
+  { href: '/admin/audit', label: 'Auditoria' },
 ]
 
 const emptyForm = {
   name: '',
   capacity: '',
-  format: 'O',
+  formats: [],
   modalities: [],
-  styles: [],
 }
 
-function createNextStudioId(studios) {
-  const highestNumber = studios.reduce((currentHighest, studio) => {
-    const numericValue = Number(String(studio.id).replace(/\D/g, ''))
-    return Number.isFinite(numericValue) && numericValue > currentHighest ? numericValue : currentHighest
-  }, 0)
+function uniqueNames(values) {
+  const map = new Map()
 
-  return `E${String(highestNumber + 1).padStart(2, '0')}`
+  values.forEach((value) => {
+    const normalized = String(value || '').trim()
+    if (!normalized) {
+      return
+    }
+
+    const key = normalized.toLowerCase()
+    if (!map.has(key)) {
+      map.set(key, normalized)
+    }
+  })
+
+  return Array.from(map.values()).sort((a, b) => a.localeCompare(b))
 }
 
-function formatCheckboxLabel(value) {
-  return value
+function formatNotificationDate(value) {
+  if (!value) {
+    return ''
+  }
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) {
+    return ''
+  }
+
+  return parsed.toLocaleString('pt-PT', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  })
 }
 
-function ChipList({ items }) {
-  if (!items.length) {
-    return <span className="studio-muted">Sem associações</span>
+function MultiSelectDropdown({
+  id,
+  label,
+  placeholder,
+  options,
+  selectedValues,
+  onToggle,
+  onCreate,
+  createPlaceholder,
+}) {
+  const [open, setOpen] = useState(false)
+  const [newOptionName, setNewOptionName] = useState('')
+  const [creatingOption, setCreatingOption] = useState(false)
+  const rootRef = useRef(null)
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (rootRef.current && !rootRef.current.contains(event.target)) {
+        setOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [])
+
+  const summary = selectedValues.length
+    ? selectedValues.join(', ')
+    : placeholder
+
+  const handleCreate = async () => {
+    const candidate = newOptionName.trim()
+    if (!candidate || creatingOption) {
+      return
+    }
+
+    setCreatingOption(true)
+
+    try {
+      await onCreate(candidate)
+      setNewOptionName('')
+    } finally {
+      setCreatingOption(false)
+    }
   }
 
   return (
-    <div className="studio-chip-row">
-      {items.map((item) => (
-        <span key={item} className="studio-chip">
-          {item}
-        </span>
-      ))}
+    <div className="multi-select-field" ref={rootRef}>
+      <span className="multi-select-label">{label}</span>
+
+      <button
+        type="button"
+        id={id}
+        className={`multi-select-trigger${open ? ' open' : ''}`}
+        onClick={() => setOpen((currentValue) => !currentValue)}
+        aria-expanded={open}
+        aria-controls={`${id}-menu`}
+      >
+        <span>{summary}</span>
+        <span className="multi-select-caret" aria-hidden="true">▾</span>
+      </button>
+
+      {open ? (
+        <div className="multi-select-menu" id={`${id}-menu`}>
+          <div className="multi-select-options">
+            {options.length ? (
+              options.map((option) => {
+                const checked = selectedValues.includes(option)
+
+                return (
+                  <label key={option} className="multi-select-option">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => onToggle(option)}
+                    />
+                    <span>{option}</span>
+                  </label>
+                )
+              })
+            ) : (
+              <p className="multi-select-empty">Sem opções carregadas do backend.</p>
+            )}
+          </div>
+
+          <div className="multi-select-create">
+            <input
+              type="text"
+              value={newOptionName}
+              onChange={(event) => setNewOptionName(event.target.value)}
+              placeholder={createPlaceholder}
+              autoComplete="off"
+            />
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={handleCreate}
+              aria-label={`Adicionar opção em ${label}`}
+              disabled={creatingOption}
+            >
+              +
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
 
-function CheckboxGroup({ title, helperText, options, selectedValues, onToggle }) {
-  return (
-    <fieldset className="studio-fieldset">
-      <legend>
-        {title}
-        {helperText ? <span className="studio-helper">{helperText}</span> : null}
-      </legend>
-
-      <div className="studio-checkbox-grid">
-        {options.map((option) => {
-          const checked = selectedValues.includes(option)
-
-          return (
-            <label key={option} className="studio-checkbox-card">
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={() => onToggle(option)}
-              />
-              <span>
-                <strong>{formatCheckboxLabel(option)}</strong>
-              </span>
-            </label>
-          )
-        })}
-      </div>
-    </fieldset>
-  )
-}
-
-export default function StudioManagementPage() {
+function StudioManagementPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, logout } = useAuth()
-  const formRef = useRef(null)
+  const { logout, user } = useAuth()
 
   const [isMobile, setIsMobile] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [studios, setStudios] = useState(initialStudios)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [studios, setStudios] = useState([])
+  const [formatOptions, setFormatOptions] = useState([])
+  const [modalityOptions, setModalityOptions] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [loadingError, setLoadingError] = useState('')
   const [editingStudioId, setEditingStudioId] = useState(null)
-  const [activeStudio, setActiveStudio] = useState(null)
+  const [isStudioFormVisible, setIsStudioFormVisible] = useState(false)
   const [form, setForm] = useState(emptyForm)
-  const [notice, setNotice] = useState('Escolhe um estúdio para editar ou cria um novo abaixo.')
+  const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [notificationsLoaded, setNotificationsLoaded] = useState(false)
+  const [notificationsLoading, setNotificationsLoading] = useState(false)
+  const [notificationsError, setNotificationsError] = useState('')
+  const [notifications, setNotifications] = useState([])
+  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0)
 
-  const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'Utilizador'
-  const isEditing = editingStudioId !== null
+  const formRef = useRef(null)
+  const notificationBoxRef = useRef(null)
+
+  const displayName = user?.fullName || user?.name || user?.email || 'Utilizador'
+
+  const currentEditingStudio = useMemo(() => {
+    if (!editingStudioId) {
+      return null
+    }
+
+    return studios.find((studio) => String(studio.id) === String(editingStudioId)) ?? null
+  }, [editingStudioId, studios])
+
+  const sidebarActivePath = location.pathname
+  const sidebarHidden = isMobile || sidebarCollapsed
+  const appShellClassName = ['app-shell', sidebarHidden ? 'sidebar-hidden' : '']
+    .filter(Boolean)
+    .join(' ')
+
+  const sidebarClassName = ['sidebar', isMobile && mobileOpen ? 'open' : '']
+    .filter(Boolean)
+    .join(' ')
+
+  const sidebarToggleSymbol = isMobile
+    ? mobileOpen ? '✕' : '☰'
+    : sidebarCollapsed ? '▶' : '◀'
+
+  const sidebarToggleLabel = isMobile
+    ? mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'
+    : sidebarCollapsed ? 'Mostrar barra lateral' : 'Esconder barra lateral'
+
+  const loadStudios = useCallback(async () => {
+    setLoading(true)
+    setLoadingError('')
+
+    try {
+      const payload = await studioManagementService.listStudios()
+      setStudios(Array.isArray(payload) ? payload : [])
+    } catch {
+      setLoadingError('Não foi possível carregar os estúdios.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const loadOptions = useCallback(async () => {
+    try {
+      const options = await studioManagementService.listStudioOptions()
+      setFormatOptions(Array.isArray(options?.formats) ? options.formats : [])
+      setModalityOptions(Array.isArray(options?.modalities) ? options.modalities : [])
+    } catch {
+      setFormatOptions([])
+      setModalityOptions([])
+    }
+  }, [])
+
+  const refreshNotificationSummary = useCallback(async () => {
+    const preview = await notificationPreviewService.getPreview(4)
+    setNotificationUnreadCount(preview.unreadCount)
+  }, [])
+
+  const loadNotificationPreview = useCallback(async () => {
+    setNotificationsLoading(true)
+    setNotificationsError('')
+
+    try {
+      const preview = await notificationPreviewService.getPreview(4)
+      setNotifications(preview.items)
+      setNotificationUnreadCount(preview.unreadCount)
+      setNotificationsLoaded(true)
+    } catch {
+      setNotificationsError('Não foi possível carregar as notificações.')
+    } finally {
+      setNotificationsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void (async () => {
+      await Promise.all([
+        loadStudios(),
+        loadOptions(),
+        refreshNotificationSummary(),
+      ])
+    })()
+  }, [loadOptions, loadStudios, refreshNotificationSummary])
+
   useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 1024px)')
 
-    const updateIsMobile = () => {
+    const updateLayout = () => {
       setIsMobile(mediaQuery.matches)
+
       if (!mediaQuery.matches) {
         setMobileOpen(false)
       }
     }
 
-    updateIsMobile()
-    mediaQuery.addEventListener?.('change', updateIsMobile)
+    updateLayout()
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', updateLayout)
+      return () => mediaQuery.removeEventListener('change', updateLayout)
+    }
+
+    mediaQuery.addListener(updateLayout)
+    return () => mediaQuery.removeListener(updateLayout)
+  }, [])
+
+  useEffect(() => {
+    document.body.classList.add('studio-page')
 
     return () => {
-      mediaQuery.removeEventListener?.('change', updateIsMobile)
+      document.body.classList.remove('studio-page')
     }
   }, [])
 
-  const summaryCards = useMemo(() => {
-    const totalCapacity = studios.reduce((sum, studio) => sum + Number(studio.capacity || 0), 0)
-    const uniqueModalities = new Set(studios.flatMap((studio) => studio.modalities))
-    const uniqueStyles = new Set(studios.flatMap((studio) => studio.styles))
+  useEffect(() => {
+    if (!notificationsOpen) {
+      return undefined
+    }
 
-    return [
-      { label: 'Estúdios', value: studios.length },
-      { label: 'Capacidade total', value: totalCapacity },
-      { label: 'Modalidades compatíveis', value: uniqueModalities.size },
-      { label: 'Estilos de dança', value: uniqueStyles.size },
-    ]
-  }, [studios])
+    const handleOutsideClick = (event) => {
+      if (notificationBoxRef.current && !notificationBoxRef.current.contains(event.target)) {
+        setNotificationsOpen(false)
+      }
+    }
 
-  const navItems = useMemo(
-    () => [
-      { label: 'Painel', href: '/admin/dashboard' },
-      { label: 'Estúdios', href: '/admin/studios', active: location.pathname === '/admin/studios' },
-      { label: 'Validações', href: '#', disabled: true },
-      { label: 'Utilizadores', href: '#', disabled: true },
-      { label: 'Perdidos e Achados', href: '#', disabled: true },
-      { label: 'Inventário', href: '#', disabled: true },
-      { label: 'Marketplace', href: '#', disabled: true },
-      { label: 'Finanças', href: '#', disabled: true },
-      { label: 'Auditoria', href: '#', disabled: true },
-    ],
-    [location.pathname],
-  )
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [notificationsOpen])
 
-  function resetForm(nextNotice = 'Formulario limpo. Podes criar um novo estúdio.') {
+  const handleSidebarToggle = () => {
+    if (isMobile) {
+      setMobileOpen((currentValue) => !currentValue)
+      return
+    }
+
+    setSidebarCollapsed((currentValue) => !currentValue)
+  }
+
+  const handleMobileNavClick = () => {
+    if (isMobile) {
+      setMobileOpen(false)
+    }
+  }
+
+  const resetForm = () => {
     setEditingStudioId(null)
     setForm(emptyForm)
     setError('')
-    setNotice(nextNotice)
   }
 
-  function startCreateStudio() {
-    resetForm('A criar um novo estúdio.')
+  const startCreateStudio = () => {
+    resetForm()
+    setIsStudioFormVisible(true)
+    setNotice('')
     formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  function startEditStudio(studio) {
+  const startEditStudio = (studio) => {
     setEditingStudioId(studio.id)
+    setIsStudioFormVisible(true)
     setForm({
       name: studio.name,
       capacity: String(studio.capacity),
-      format: studio.format,
-      modalities: studio.modalities,
-      styles: studio.styles,
+      formats: uniqueNames(studio.formats || []),
+      modalities: uniqueNames(studio.modalities || []),
     })
     setError('')
     setNotice(`A editar ${studio.name}.`)
     formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  function updateSelection(field, option) {
-    setForm((currentForm) => {
-      const selected = currentForm[field]
-      const nextValues = selected.includes(option)
-        ? selected.filter((value) => value !== option)
-        : [...selected, option]
+  const toggleFormSelection = (field, value) => {
+    setForm((current) => {
+      const currentValues = Array.isArray(current[field]) ? current[field] : []
+
+      if (currentValues.includes(value)) {
+        return {
+          ...current,
+          [field]: currentValues.filter((item) => item !== value),
+        }
+      }
 
       return {
-        ...currentForm,
-        [field]: nextValues,
+        ...current,
+        [field]: uniqueNames([...currentValues, value]),
       }
     })
   }
 
-  function handleSubmit(event) {
+  const handleCreateOption = async (field, value) => {
+    const type = field === 'formats' ? 'formats' : 'modalities'
+
+    try {
+      const createdName = await studioManagementService.createStudioOption({ type, name: value })
+
+      if (field === 'formats') {
+        setFormatOptions((current) => uniqueNames([...current, createdName]))
+      } else {
+        setModalityOptions((current) => uniqueNames([...current, createdName]))
+      }
+
+      toggleFormSelection(field, createdName)
+      setError('')
+      setNotice(`Opção "${createdName}" adicionada.`)
+    } catch (requestError) {
+      const message = requestError?.message || 'Não foi possível criar a opção.'
+      setError(message)
+    }
+  }
+
+  const handleDeleteStudio = async (studio) => {
+    const confirmed = window.confirm(`Apagar o estúdio ${studio.name}?`)
+
+    if (!confirmed) {
+      return
+    }
+
+    try {
+      await studioManagementService.deleteStudio(studio.id)
+      await Promise.all([loadStudios(), loadOptions()])
+      setNotice(`Estúdio ${studio.name} removido com sucesso.`)
+      setError('')
+
+      if (String(editingStudioId) === String(studio.id)) {
+        resetForm()
+        setIsStudioFormVisible(false)
+      }
+    } catch {
+      setError('Não foi possível apagar o estúdio.')
+    }
+  }
+
+  const handleSubmit = async (event) => {
     event.preventDefault()
 
-    const trimmedName = form.name.trim()
-    const numericCapacity = Number(form.capacity)
+    const studioName = form.name.trim()
+    const capacity = Number(form.capacity)
+    const formats = uniqueNames(form.formats)
+    const modalities = uniqueNames(form.modalities)
 
-    if (!trimmedName) {
+    if (!studioName) {
       setError('Indica o nome do estúdio.')
       return
     }
 
-    if (!Number.isFinite(numericCapacity) || numericCapacity < 1) {
-      setError('A capacidade tem de ser um número maior do que zero.')
+    if (!Number.isInteger(capacity) || capacity < 1) {
+      setError('Indica uma capacidade válida.')
       return
     }
 
-    const nextRecord = {
-      id: editingStudioId ?? createNextStudioId(studios),
-      name: trimmedName,
-      capacity: numericCapacity,
-      format: form.format,
-      modalities: form.modalities,
-      styles: form.styles,
+    const payload = {
+      studioName,
+      capacity,
+      formats,
+      modalities,
+      modalityNames: modalities,
     }
 
-    setStudios((currentStudios) => {
-      if (editingStudioId) {
-        return currentStudios.map((studio) => (studio.id === editingStudioId ? nextRecord : studio))
+    const isEditing = Boolean(editingStudioId)
+
+    try {
+      if (isEditing) {
+        await studioManagementService.updateStudio(editingStudioId, payload)
+      } else {
+        await studioManagementService.createStudio(payload)
       }
 
-      return [nextRecord, ...currentStudios]
-    })
-
-    setError('')
-    setNotice(editingStudioId ? `Estúdio ${trimmedName} atualizado com sucesso.` : `Estúdio ${trimmedName} criado com sucesso.`)
-    setEditingStudioId(null)
-    setForm(emptyForm)
+      await Promise.all([loadStudios(), loadOptions()])
+      setError('')
+      setNotice(
+        isEditing
+          ? `Estúdio ${studioName} atualizado com sucesso.`
+          : `Estúdio ${studioName} criado com sucesso.`,
+      )
+      resetForm()
+      setIsStudioFormVisible(false)
+    } catch {
+      setError('Não foi possível guardar o estúdio.')
+    }
   }
 
-  function handleDeleteStudio(studio) {
-    const shouldDelete = window.confirm(`Apagar ${studio.name}?`)
+  const handleNotificationsClick = () => {
+    const nextState = !notificationsOpen
+    setNotificationsOpen(nextState)
 
-    if (!shouldDelete) {
-      return
+    if (nextState && !notificationsLoaded) {
+      void loadNotificationPreview()
     }
-
-    setStudios((currentStudios) => currentStudios.filter((entry) => entry.id !== studio.id))
-
-    if (editingStudioId === studio.id) {
-      resetForm('O estúdio em edição foi apagado.')
-    }
-
-    if (activeStudio?.id === studio.id) {
-      setActiveStudio(null)
-    }
-
-    setNotice(`Estúdio ${studio.name} apagado.`)
   }
 
-  function handleLogout() {
-    logout()
-    navigate('/login?reason=logged-out', { replace: true })
-  }
+  const handleLogout = async (event) => {
+    event.preventDefault()
 
-  const columns = [
-    { key: 'id', header: 'ID', width: '5rem' },
-    { key: 'name', header: 'Nome' },
-    { key: 'capacity', header: 'Capacidade', align: 'center', width: '7rem' },
-    {
-      key: 'format',
-      header: 'Formato',
-      width: '7rem',
-      render: (studio) => <span className="studio-format-pill">{studio.format}</span>,
-    },
-    {
-      key: 'modalities',
-      header: 'Modalidades compatíveis',
-      render: (studio) => <ChipList items={studio.modalities} />,
-    },
-    {
-      key: 'styles',
-      header: 'Estilos de dança',
-      render: (studio) => <ChipList items={studio.styles} />,
-    },
-  ]
+    try {
+      await logout()
+      navigate('/login?reason=logged-out', { replace: true })
+    } catch {
+      navigate('/login?reason=logged-out', { replace: true })
+    }
+  }
 
   return (
-    <div className="studio-shell">
-      <Sidebar
-        brand={{ title: 'gestArtes', subtitle: 'Direção / Gestão' }}
-        groups={[
-          {
-            label: 'Gestão',
-            items: navItems.map((item) => ({
-              ...item,
-              active: item.active,
-            })),
-          },
-        ]}
-        footer={
-          <Button variant="secondary" size="sm" block onClick={handleLogout}>
-            Terminar sessão
-          </Button>
-        }
-        isMobile={isMobile}
-        mobileOpen={mobileOpen}
-        onClose={() => setMobileOpen(false)}
-        onItemClick={({ item, event }) => {
-          event.preventDefault()
-          navigate(item.href)
-          if (isMobile) {
-            setMobileOpen(false)
-          }
-        }}
-      />
-
-      <main className="studio-main">
-        <Topbar
-          title="Gestão de Estúdios"
-          subtitle="Configuração de capacidade, formato, modalidades compatíveis e catálogo de estilos"
-          onMenuToggle={isMobile ? () => setMobileOpen((current) => !current) : undefined}
-          menuLabel={mobileOpen ? 'Fechar' : 'Menu'}
-          actions={[
-            {
-              id: 'new-studio',
-              label: 'Novo estúdio',
-              variant: 'cta',
-              onClick: startCreateStudio,
-            },
-          ]}
-          endContent={
-            <span className="studio-topbar-badge">
-              {studios.length} estúdios · {displayName}
-            </span>
-          }
-          sticky
+    <div className={appShellClassName}>
+      {isMobile && mobileOpen ? (
+        <button
+          type="button"
+          className="sidebar-overlay"
+          aria-label="Fechar navegação lateral"
+          onClick={() => setMobileOpen(false)}
         />
+      ) : null}
 
-        <section className="studio-summary-grid" aria-label="Resumo da gestão de estúdios">
-          {summaryCards.map((card) => (
-            <article key={card.label} className="studio-summary-card">
-              <span>{card.label}</span>
-              <strong>{card.value}</strong>
-            </article>
+      <aside className={sidebarClassName} id="sidebar">
+        <div className="brand">
+          <span className="brand-dot" />
+          <div>
+            <h1>gestArtes</h1>
+            <p>{displayName}</p>
+          </div>
+        </div>
+
+        <div className="nav-group">
+          <h2>Gestão</h2>
+
+          {navigationItems.map((item) => (
+            <Link
+              key={item.href}
+              className={`nav-link${sidebarActivePath === item.href ? ' active' : ''}`}
+              to={item.href}
+              onClick={handleMobileNavClick}
+            >
+              {item.label}
+            </Link>
           ))}
-        </section>
 
-        {notice ? <div className="studio-banner studio-banner-info">{notice}</div> : null}
-        {error ? <div className="studio-banner studio-banner-error">{error}</div> : null}
+          <a className="nav-link" href="/login" title={`Terminar sessão de ${displayName}`} onClick={handleLogout}>
+            Terminar Sessão
+          </a>
+        </div>
+      </aside>
 
-        <section className="studio-layout">
-          <article className="studio-card studio-table-card">
-            <header className="studio-card-head">
-              <div>
-                <h3>Estúdios ativos</h3>
-                <p>Lista com edição, remoção e detalhes rápidos para validação da compatibilidade.</p>
-              </div>
-              <Button variant="secondary" size="sm" onClick={startCreateStudio}>
-                Limpar formulário
-              </Button>
-            </header>
+      <main className="main">
+        <header className="topbar">
+          <div className="topbar-left">
+            <div className="topbar-heading">
+              <button
+                type="button"
+                className="sidebar-toggle-btn"
+                aria-label={sidebarToggleLabel}
+                onClick={handleSidebarToggle}
+              >
+                {sidebarToggleSymbol}
+              </button>
+              <h2>Gestão de Estúdios</h2>
+            </div>
+            <p>Configuração de capacidade, formatos, modalidades e ocupação</p>
+          </div>
 
-            <Table
-              columns={columns}
-              rows={studios}
-              getRowKey={(studio) => studio.id}
-              emptyState="Ainda não existem estúdios nesta lista."
-              renderRowActions={(studio) => (
-                <div className="studio-row-actions">
-                  <Button variant="ghost" size="sm" onClick={() => setActiveStudio(studio)}>
-                    Detalhes
-                  </Button>
-                  <Button variant="secondary" size="sm" onClick={() => startEditStudio(studio)}>
-                    Editar
-                  </Button>
-                  <Button variant="danger" size="sm" onClick={() => handleDeleteStudio(studio)}>
-                    Apagar
-                  </Button>
+          <div className="topbar-right" ref={notificationBoxRef}>
+            <button type="button" className="pill notifications-pill" onClick={handleNotificationsClick}>
+              Notificações {notificationUnreadCount}
+            </button>
+
+            {notificationsOpen ? (
+              <div className="notifications-popover">
+                <div className="notifications-popover-header">
+                  <strong>Notificações</strong>
                 </div>
-              )}
-            />
-          </article>
 
-          <article ref={formRef} className="studio-card studio-form-card">
-            <header className="studio-card-head">
-              <div>
-                <h3>{isEditing ? 'Editar estúdio' : 'Novo estúdio'}</h3>
-                <p>
-                  Formato, capacidade e compatibilidades ligadas ao catálogo de modalidades e estilos.
-                </p>
+                {notificationsLoading ? (
+                  <p className="notifications-state">A carregar...</p>
+                ) : null}
+
+                {!notificationsLoading && notificationsError ? (
+                  <p className="notifications-state error">{notificationsError}</p>
+                ) : null}
+
+                {!notificationsLoading && !notificationsError && notifications.length === 0 ? (
+                  <p className="notifications-state">Sem notificações.</p>
+                ) : null}
+
+                {!notificationsLoading && notifications.length > 0 ? (
+                  <ul className="notifications-list">
+                    {notifications.map((notification) => (
+                      <li key={notification.id} className="notifications-item">
+                        <strong>{notification.title}</strong>
+                        {notification.message ? <p>{notification.message}</p> : null}
+                        <small>{formatNotificationDate(notification.createdAt)}</small>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+
+                <Link
+                  to="/notifications"
+                  className="notifications-more-link"
+                  onClick={() => setNotificationsOpen(false)}
+                >
+                  Ver Mais
+                </Link>
               </div>
-            </header>
-
-            <form className="studio-form" onSubmit={handleSubmit}>
-              <Input
-                label="Nome"
-                id="studio-name"
-                value={form.name}
-                onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-                placeholder="Estúdio Musical"
-              />
-
-              <Input
-                label="Capacidade"
-                id="studio-capacity"
-                type="number"
-                min="1"
-                value={form.capacity}
-                onChange={(event) => setForm((current) => ({ ...current, capacity: event.target.value }))}
-                placeholder="12"
-              />
-
-              <section className="studio-form-section">
-                <div className="studio-section-head">
-                  <h4>Formato</h4>
-                  <p>O / Z / 2O</p>
-                </div>
-                <div className="studio-format-grid">
-                  {formatOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      className={form.format === option.value ? 'studio-format-option is-selected' : 'studio-format-option'}
-                      onClick={() => setForm((current) => ({ ...current, format: option.value }))}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              </section>
-
-              <CheckboxGroup
-                title="Modalidades compatíveis"
-                helperText="Ligação direta à tabela StudioModality."
-                options={modalityOptions}
-                selectedValues={form.modalities}
-                onToggle={(option) => updateSelection('modalities', option)}
-              />
-
-              <CheckboxGroup
-                title="Estilos de dança"
-                helperText="Catálogo UI para organização pedagógica da sala."
-                options={danceStyleOptions}
-                selectedValues={form.styles}
-                onToggle={(option) => updateSelection('styles', option)}
-              />
-
-              <div className="studio-form-actions">
-                <Button variant="secondary" type="button" onClick={() => resetForm()}>
-                  Limpar
-                </Button>
-                <Button variant="cta" type="submit">
-                  {isEditing ? 'Guardar alterações' : 'Guardar estúdio'}
-                </Button>
-              </div>
-            </form>
-          </article>
-        </section>
-      </main>
-
-      <Modal
-        open={Boolean(activeStudio)}
-        size="lg"
-        title={activeStudio?.name}
-        description="Detalhes do estúdio e respetivas compatibilidades."
-        onClose={() => setActiveStudio(null)}
-        footer={
-          <div className="studio-modal-actions">
-            <Button variant="secondary" onClick={() => setActiveStudio(null)}>
-              Fechar
-            </Button>
-            {activeStudio ? (
-              <Button variant="cta" onClick={() => {
-                setActiveStudio(null)
-                startEditStudio(activeStudio)
-              }}>
-                Editar estúdio
-              </Button>
             ) : null}
           </div>
-        }
-      >
-        {activeStudio ? (
-          <div className="studio-modal-grid">
-            <div className="studio-stat-card">
-              <span>ID</span>
-              <strong>{activeStudio.id}</strong>
+        </header>
+
+        <section className="content-grid">
+          {notice ? (
+            <div className="soft-box" role="status" aria-live="polite">
+              {notice}
             </div>
-            <div className="studio-stat-card">
-              <span>Capacidade</span>
-              <strong>{activeStudio.capacity}</strong>
+          ) : null}
+
+          {loadingError ? (
+            <div className="soft-box error" role="alert">
+              {loadingError}
             </div>
-            <div className="studio-stat-card">
-              <span>Formato</span>
-              <strong>{activeStudio.format}</strong>
+          ) : null}
+
+          {error ? (
+            <div className="soft-box error" role="alert">
+              {error}
             </div>
-            <div className="studio-stat-card">
-              <span>Modalidades</span>
-              <strong>{activeStudio.modalities.length}</strong>
+          ) : null}
+
+          <article className="panel studios-panel">
+            <div className="panel-header">
+              <h3>Estúdios ativos</h3>
+              <button type="button" className="ghost-btn" onClick={startCreateStudio}>
+                Novo estúdio
+              </button>
             </div>
 
-            <section className="studio-modal-section">
-              <h4>Modalidades compatíveis</h4>
-              <ChipList items={activeStudio.modalities} />
-            </section>
+            {loading ? (
+              <div className="soft-box">A carregar estúdios...</div>
+            ) : (
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Nome</th>
+                      <th>Capacidade</th>
+                      <th>Formatos</th>
+                      <th>Modalidades</th>
+                      <th>Ação</th>
+                    </tr>
+                  </thead>
 
-            <section className="studio-modal-section">
-              <h4>Estilos de dança</h4>
-              <ChipList items={activeStudio.styles} />
-            </section>
-          </div>
-        ) : null}
-      </Modal>
+                  <tbody>
+                    {studios.length ? (
+                      studios.map((studio) => (
+                        <tr key={studio.id}>
+                          <td>{studio.id}</td>
+                          <td>{studio.name}</td>
+                          <td>{studio.capacity}</td>
+                          <td>{studio.formatsText || 'Sem formatos definidos'}</td>
+                          <td>{studio.modalitiesText || 'Sem modalidades definidas'}</td>
+                          <td>
+                            <div className="card-actions">
+                              <button type="button" className="ghost-btn" onClick={() => startEditStudio(studio)}>
+                                Editar
+                              </button>
+                              <button type="button" className="danger-btn" onClick={() => handleDeleteStudio(studio)}>
+                                Apagar
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6}>Sem dados de estúdios do backend.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className="quick-actions">
+              <Link className="cta secondary" to="/admin/studio-occupancy">
+                Abrir gestão detalhada de ocupação
+              </Link>
+            </div>
+          </article>
+
+          {isStudioFormVisible ? (
+            <article ref={formRef} className="panel">
+              <div className="panel-header">
+                <h3 style={{ margin: 0 }}>{editingStudioId ? 'Editar estúdio' : 'Novo estúdio'}</h3>
+                <button
+                  type="button"
+                  className="ghost-btn"
+                  onClick={() => {
+                    setIsStudioFormVisible(false)
+                    resetForm()
+                  }}
+                >
+                  Fechar
+                </button>
+              </div>
+
+              <p>
+                {editingStudioId && currentEditingStudio
+                  ? `A editar ${currentEditingStudio.name}.`
+                  : 'Cria um novo estúdio com opções vindas da base de dados.'}
+              </p>
+
+              <form className="form-grid two" onSubmit={handleSubmit}>
+                <label>
+                  Nome
+                  <input
+                    type="text"
+                    value={form.name}
+                    onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+                    autoComplete="off"
+                  />
+                </label>
+
+                <label>
+                  Capacidade
+                  <input
+                    type="number"
+                    min="1"
+                    value={form.capacity}
+                    onChange={(event) => setForm((current) => ({ ...current, capacity: event.target.value }))}
+                  />
+                </label>
+
+                <MultiSelectDropdown
+                  id="studio-formats"
+                  label="Formatos compatíveis"
+                  placeholder="Selecionar formatos"
+                  options={formatOptions}
+                  selectedValues={form.formats}
+                  onToggle={(value) => toggleFormSelection('formats', value)}
+                  onCreate={(value) => handleCreateOption('formats', value)}
+                  createPlaceholder="Novo formato"
+                />
+
+                <MultiSelectDropdown
+                  id="studio-modalities"
+                  label="Modalidades compatíveis"
+                  placeholder="Selecionar modalidades"
+                  options={modalityOptions}
+                  selectedValues={form.modalities}
+                  onToggle={(value) => toggleFormSelection('modalities', value)}
+                  onCreate={(value) => handleCreateOption('modalities', value)}
+                  createPlaceholder="Nova modalidade"
+                />
+
+                <div className="card-actions form-actions">
+                  <button className="cta" type="submit">
+                    {editingStudioId ? 'Guardar alterações' : 'Guardar estúdio'}
+                  </button>
+                  <button className="ghost-btn" type="button" onClick={resetForm}>
+                    Limpar
+                  </button>
+                </div>
+              </form>
+            </article>
+          ) : null}
+        </section>
+      </main>
     </div>
   )
 }
+
+export default StudioManagementPage
