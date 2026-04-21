@@ -196,6 +196,9 @@ export default function DashboardPage() {
                 className="menu-toggle"
                 id="menuToggle"
                 type="button"
+                aria-controls="sidebar"
+                aria-expanded={mobileOpen}
+                aria-label={mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'}
                 onClick={() => setMobileOpen((current) => !current)}
               >
                 ☰ Menu
@@ -245,7 +248,7 @@ export default function DashboardPage() {
               </article>
               <article className="kpi">
                 <h3>Pagamentos externos em curso</h3>
-                <strong>{Math.max(1, Math.ceil((dashboard?.reviewRequests ?? 0) / 2))}</strong>
+                <strong>{dashboard?.externalPaymentsInProgress ?? 0}</strong>
               </article>
             </div>
 
