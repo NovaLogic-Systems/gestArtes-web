@@ -8,7 +8,7 @@ function Table({
 	emptyState = 'Sem registos para apresentar.',
 	striped = true,
 	compact = false,
-	headBackground = '#f8f1fc',
+	headBackground = 'var(--table-head-bg)',
 	cellPadding,
 	className,
 	style,

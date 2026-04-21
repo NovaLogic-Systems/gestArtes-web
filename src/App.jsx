@@ -4,6 +4,7 @@ import { useAuth } from './hooks/useAuth'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/student/DashboardPage'
+import TeacherDashboardPage from './pages/teacher/DashboardPage'
 
 function PlaceholderPage({ title }) {
   return (
@@ -81,7 +82,7 @@ function ProtectedPlaceholderPage({ title }) {
 const StudentSectionPage = ({ title }) => <PlaceholderPage title={title} />
 const CoachingPage = () => <ProtectedPlaceholderPage title="Coaching" />
 
-const TeacherDashboard = () => <ProtectedPlaceholderPage title="Teacher Dashboard" />
+const TeacherDashboard = TeacherDashboardPage
 
 const AdminDashboard = () => <ProtectedPlaceholderPage title="Admin Dashboard" />
 
