@@ -3,6 +3,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import { useAuth } from './hooks/useAuth'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import LoginPage from './pages/LoginPage'
+import StudioManagementPage from './pages/admin/StudioManagementPage'
 import DashboardPage from './pages/student/DashboardPage'
 import MarketplacePage from './pages/student/MarketplacePage'
 import MyListingsPage from './pages/student/MyListingsPage'
@@ -29,14 +30,14 @@ function UnauthorizedPage() {
   )
 }
 
-function ProtectedPlaceholderPage({ title }) {
+function ProtectedPlaceholderPage({ title, actionLink }) {
   const navigate = useNavigate()
   const { logout, role, user } = useAuth()
   const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'Utilizador'
 
   async function handleLogout() {
     await logout()
-    navigate('/login?reason=logged-out', { replace: true })
+    navigate('/login', { replace: true })
   }
 
   return (
@@ -75,6 +76,26 @@ function ProtectedPlaceholderPage({ title }) {
         </button>
       </header>
 
+      {actionLink ? (
+        <div style={{ marginBottom: '1rem' }}>
+          <Link
+            to={actionLink.to}
+            style={{
+              background: '#fff',
+              border: '1px solid #ddd',
+              borderRadius: '999px',
+              color: '#08060d',
+              display: 'inline-flex',
+              fontWeight: 600,
+              padding: '0.55rem 0.95rem',
+              textDecoration: 'none',
+            }}
+          >
+            {actionLink.label}
+          </Link>
+        </div>
+      ) : null}
+
       <PlaceholderPage title={title} />
     </main>
   )
@@ -82,10 +103,13 @@ function ProtectedPlaceholderPage({ title }) {
 
 const StudentSectionPage = ({ title }) => <PlaceholderPage title={title} />
 const CoachingPage = () => <ProtectedPlaceholderPage title="Coaching" />
-
 const TeacherDashboard = () => <ProtectedPlaceholderPage title="Teacher Dashboard" />
-
-const AdminDashboard = () => <ProtectedPlaceholderPage title="Admin Dashboard" />
+const AdminDashboard = () => (
+  <ProtectedPlaceholderPage
+    title="Admin Dashboard"
+    actionLink={{ to: '/admin/studios', label: 'Gestão de estúdios' }}
+  />
+)
 
 function App() {
   return (
@@ -114,6 +138,7 @@ function App() {
 
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/studios" element={<StudioManagementPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />
