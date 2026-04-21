@@ -3,6 +3,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import { useAuth } from './hooks/useAuth'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import LoginPage from './pages/LoginPage'
+import DashboardPage from './pages/student/DashboardPage'
 
 function PlaceholderPage({ title }) {
   return (
@@ -29,7 +30,6 @@ function UnauthorizedPage() {
 function ProtectedPlaceholderPage({ title }) {
   const navigate = useNavigate()
   const { logout, role, user } = useAuth()
-
   const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'Utilizador'
 
   async function handleLogout() {
@@ -78,7 +78,7 @@ function ProtectedPlaceholderPage({ title }) {
   )
 }
 
-const StudentDashboard = () => <ProtectedPlaceholderPage title="Student Dashboard" />
+const StudentSectionPage = ({ title }) => <PlaceholderPage title={title} />
 const CoachingPage = () => <ProtectedPlaceholderPage title="Coaching" />
 
 const TeacherDashboard = () => <ProtectedPlaceholderPage title="Teacher Dashboard" />
@@ -95,8 +95,14 @@ function App() {
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
       <Route element={<ProtectedRoute allowedRoles={['student']} />}>
-        <Route path="/student/dashboard" element={<StudentDashboard />} />
+        <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
+        <Route path="/student/dashboard" element={<DashboardPage />} />
         <Route path="/student/coaching" element={<CoachingPage />} />
+        <Route path="/student/inventory" element={<StudentSectionPage title="Inventário da Escola" />} />
+        <Route path="/student/marketplace" element={<StudentSectionPage title="Marketplace" />} />
+        <Route path="/student/notifications" element={<StudentSectionPage title="Notificações" />} />
+        <Route path="/student/lostfound" element={<StudentSectionPage title="Perdidos e Achados" />} />
+        <Route path="/student/account" element={<StudentSectionPage title="Minha Conta" />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['teacher']} />}>
