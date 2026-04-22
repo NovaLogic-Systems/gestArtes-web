@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import api from '../../services/api'
+import notificationPreviewService from '../../services/notificationPreviewService'
 import { useAuth } from '../../hooks/useAuth'
+import KPICard from '../../components/KPICard'
+import QuickActions from '../../components/QuickActions'
 import './DashboardPage.css'
 
 const NAV_ITEMS = [
@@ -79,6 +82,8 @@ export default function DashboardPage() {
   const studentName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Aluno'
 
   const [dashboard, setDashboard] = useState(null)
+  const [schedulePreview, setSchedulePreview] = useState([])
+  const [notificationPreview, setNotificationPreview] = useState({ items: [], unreadCount: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
@@ -105,8 +110,37 @@ export default function DashboardPage() {
     try {
       setLoading(true)
       setError('')
-      const response = await api.get('/student/dashboard')
-      setDashboard(response.data ?? null)
+
+      const dashboardResult = await Promise.allSettled([
+        api.get('/student/dashboard'),
+        api.get('/student/schedule/upcoming'),
+        notificationPreviewService.getPreview({ limit: 5, includeUnreadCount: true }),
+      ])
+
+      const [dashboardPromise, schedulePromise, notificationsPromise] = dashboardResult
+
+      if (dashboardPromise.status === 'fulfilled') {
+        setDashboard(dashboardPromise.value.data ?? null)
+      } else {
+        setDashboard(null)
+      }
+
+      if (schedulePromise.status === 'fulfilled') {
+        setSchedulePreview(schedulePromise.value.data?.schedule ?? [])
+      } else {
+        setSchedulePreview([])
+      }
+
+      if (notificationsPromise.status === 'fulfilled') {
+        setNotificationPreview(notificationsPromise.value)
+      } else {
+        setNotificationPreview({ items: [], unreadCount: 0 })
+      }
+
+      const anyFailed = dashboardResult.some((result) => result.status === 'rejected')
+      if (anyFailed) {
+        setError('Alguns dados do painel não puderam ser carregados. Tente novamente.')
+      }
     } catch (requestError) {
       setError(requestError?.response?.data?.error || 'Não foi possível carregar o painel do aluno.')
     } finally {
@@ -118,10 +152,10 @@ export default function DashboardPage() {
     loadDashboard()
   }, [loadDashboard])
 
-  const unreadNotifications = dashboard?.notifications?.filter((item) => !item.read)?.length ?? 0
+  const unreadNotifications = notificationPreview?.unreadCount ?? 0
 
   const scheduleRows = useMemo(() => {
-    const rows = dashboard?.schedule ?? []
+    const rows = schedulePreview
     const term = searchTerm.trim().toLowerCase()
 
     if (!term) {
@@ -132,16 +166,35 @@ export default function DashboardPage() {
       const text = [row.teacher, row.studio, row.status, row.date, row.time].join(' ').toLowerCase()
       return text.includes(term)
     })
-  }, [dashboard?.schedule, searchTerm])
+  }, [schedulePreview, searchTerm])
 
   const communicationRows = useMemo(() => {
-    return (dashboard?.notifications ?? []).slice(0, 3)
-  }, [dashboard?.notifications])
+    return notificationPreview?.items?.slice(0, 3) ?? []
+  }, [notificationPreview])
 
   const quickActions = [
-    { label: 'Nova marcação', to: '/student/coaching' },
-    { label: 'Confirmar execução', to: '/student/coaching#confirmacao' },
-    { label: 'Gerir cancelamentos', to: '/student/coaching', secondary: true },
+    {
+      label: 'Abrir coaching',
+      to: '/student/coaching',
+      description: 'Consultar sessões e gerir marcações',
+    },
+    {
+      label: 'Inventário da escola',
+      to: '/student/inventory',
+      description: 'Ver artigos disponíveis para aluguer',
+      variant: 'ctaSecondary',
+    },
+    {
+      label: 'Marketplace',
+      to: '/student/marketplace',
+      description: 'Explorar e gerir compras e vendas',
+    },
+    {
+      label: 'Notificações',
+      to: '/student/notifications',
+      description: 'Ver alertas e mensagens recentes',
+      variant: 'secondary',
+    },
   ]
 
   return (
@@ -234,22 +287,10 @@ export default function DashboardPage() {
             ) : null}
 
             <div className="kpi-grid">
-              <article className="kpi">
-                <h3>Sessões agendadas</h3>
-                <strong>{dashboard?.upcomingSessions ?? 0}</strong>
-              </article>
-              <article className="kpi">
-                <h3>Validações pendentes</h3>
-                <strong>{dashboard?.pendingValidations ?? 0}</strong>
-              </article>
-              <article className="kpi">
-                <h3>Pedidos em análise</h3>
-                <strong>{dashboard?.reviewRequests ?? 0}</strong>
-              </article>
-              <article className="kpi">
-                <h3>Pagamentos externos em curso</h3>
-                <strong>{dashboard?.externalPaymentsInProgress ?? 0}</strong>
-              </article>
+              <KPICard title="Sessões agendadas" value={dashboard?.upcomingSessions ?? 0} />
+              <KPICard title="Validações pendentes" value={dashboard?.pendingValidations ?? 0} />
+              <KPICard title="Pedidos em análise" value={dashboard?.reviewRequests ?? 0} />
+              <KPICard title="Pagamentos externos em curso" value={dashboard?.externalPaymentsInProgress ?? 0} />
             </div>
 
             <div className="split">
@@ -290,13 +331,7 @@ export default function DashboardPage() {
 
               <article className="panel">
                 <h3>Ações rápidas</h3>
-                <div className="quick-actions">
-                  {quickActions.map((action) => (
-                    <Link key={action.label} className={`cta${action.secondary ? ' secondary' : ''}`} to={action.to}>
-                      {action.label}
-                    </Link>
-                  ))}
-                </div>
+                <QuickActions actions={quickActions} />
 
                 <h3>Comunicações recentes</h3>
                 {communicationRows.length === 0 ? (
@@ -305,7 +340,7 @@ export default function DashboardPage() {
                   <ul className="list">
                     {communicationRows.map((notification) => (
                       <li key={notification.id}>
-                        {notification.title}: {notification.message || 'Sem detalhe adicional.'}
+                        {notification.title || 'Notificação'}: {notification.message || 'Sem detalhe adicional.'}
                       </li>
                     ))}
                   </ul>
