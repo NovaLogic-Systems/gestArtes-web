@@ -4,6 +4,8 @@ import { useAuth } from './hooks/useAuth'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import LoginPage from './pages/LoginPage'
 import StudioManagementPage from './pages/admin/StudioManagementPage'
+import FinancialDashboardPage from './pages/admin/FinancialDashboardPage'
+import AuditPage from './pages/admin/AuditPage'
 import DashboardPage from './pages/student/DashboardPage'
 import MarketplacePage from './pages/student/MarketplacePage'
 import MyListingsPage from './pages/student/MyListingsPage'
@@ -139,6 +141,8 @@ function App() {
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/studios" element={<StudioManagementPage />} />
+        <Route path="/admin/finance" element={<FinancialDashboardPage />} />
+        <Route path="/admin/audit" element={<AuditPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />
