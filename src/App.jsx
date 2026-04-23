@@ -6,6 +6,9 @@ import LoginPage from './pages/LoginPage'
 import StudioManagementPage from './pages/admin/StudioManagementPage'
 import DashboardPage from './pages/student/DashboardPage'
 import AdmissionRequestsPage from './pages/teacher/AdmissionRequestsPage'
+import InventoryPage from './pages/student/InventoryPage'
+import RentalCheckoutPage from './pages/student/RentalCheckoutPage'
+import RentalRequestsPage from './pages/student/RentalRequestsPage'
 import MarketplacePage from './pages/student/MarketplacePage'
 import MyListingsPage from './pages/student/MyListingsPage'
 
@@ -130,7 +133,9 @@ function App() {
         <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
         <Route path="/student/dashboard" element={<DashboardPage />} />
         <Route path="/student/coaching" element={<CoachingPage />} />
-        <Route path="/student/inventory" element={<StudentSectionPage title="Inventário da Escola" />} />
+        <Route path="/student/inventory" element={<InventoryPage />} />
+        <Route path="/student/inventory/checkout/:itemId" element={<RentalCheckoutPage />} />
+        <Route path="/student/inventory/rentals" element={<RentalRequestsPage />} />
         <Route path="/student/marketplace" element={<MarketplacePage />} />
         <Route path="/student/marketplace/my-listings" element={<MyListingsPage />} />
         <Route path="/student/notifications" element={<StudentSectionPage title="Notificações" />} />
