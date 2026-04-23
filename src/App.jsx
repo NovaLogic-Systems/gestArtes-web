@@ -5,6 +5,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import LoginPage from './pages/LoginPage'
 import StudioManagementPage from './pages/admin/StudioManagementPage'
 import DashboardPage from './pages/student/DashboardPage'
+import AdmissionRequestsPage from './pages/teacher/AdmissionRequestsPage'
 import MarketplacePage from './pages/student/MarketplacePage'
 import MyListingsPage from './pages/student/MyListingsPage'
 
@@ -103,7 +104,12 @@ function ProtectedPlaceholderPage({ title, actionLink }) {
 
 const StudentSectionPage = ({ title }) => <PlaceholderPage title={title} />
 const CoachingPage = () => <ProtectedPlaceholderPage title="Coaching" />
-const TeacherDashboard = () => <ProtectedPlaceholderPage title="Teacher Dashboard" />
+const TeacherDashboard = () => (
+  <ProtectedPlaceholderPage
+    title="Teacher Dashboard"
+    actionLink={{ to: '/teacher/admission-requests', label: 'Pedidos de admissão' }}
+  />
+)
 const AdminDashboard = () => (
   <ProtectedPlaceholderPage
     title="Admin Dashboard"
@@ -133,7 +139,9 @@ function App() {
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['teacher']} />}>
+        <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
         <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
+        <Route path="/teacher/admission-requests" element={<AdmissionRequestsPage />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
