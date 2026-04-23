@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage'
 import StudioManagementPage from './pages/admin/StudioManagementPage'
 import DashboardPage from './pages/student/DashboardPage'
 import AdmissionRequestsPage from './pages/teacher/AdmissionRequestsPage'
+import TeacherInventoryPage from './pages/teacher/InventoryPage'
 import MarketplacePage from './pages/student/MarketplacePage'
 import MyListingsPage from './pages/student/MyListingsPage'
 
@@ -142,6 +143,7 @@ function App() {
         <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
         <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
         <Route path="/teacher/admission-requests" element={<AdmissionRequestsPage />} />
+        <Route path="/teacher/inventory" element={<TeacherInventoryPage />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
