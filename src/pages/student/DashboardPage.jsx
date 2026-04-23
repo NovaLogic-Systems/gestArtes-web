@@ -1,10 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import api from '../../services/api'
-import notificationPreviewService from '../../services/notificationPreviewService'
 import { useAuth } from '../../hooks/useAuth'
-import KPICard from '../../components/KPICard'
-import QuickActions from '../../components/QuickActions'
+import notificationPreviewService from '../../services/notificationPreviewService'
 import './DashboardPage.css'
 
 const NAV_ITEMS = [
@@ -74,6 +72,23 @@ function resolveBadgeClass(status) {
   return 'badge ok'
 }
 
+
+function formatNotificationDate(value) {
+  if (!value) {
+    return ''
+  }
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) {
+    return ''
+  }
+
+  return parsed.toLocaleString('pt-PT', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  })
+}
+
 export default function DashboardPage() {
   const { logout, user } = useAuth()
   const location = useLocation()
@@ -82,13 +97,51 @@ export default function DashboardPage() {
   const studentName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Aluno'
 
   const [dashboard, setDashboard] = useState(null)
-  const [schedulePreview, setSchedulePreview] = useState([])
-  const [notificationPreview, setNotificationPreview] = useState({ items: [], unreadCount: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false))
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [notificationsLoaded, setNotificationsLoaded] = useState(false)
+  const [notificationsLoading, setNotificationsLoading] = useState(false)
+  const [notificationsError, setNotificationsError] = useState('')
+  const [notifications, setNotifications] = useState([])
+
+  const notificationBoxRef = useRef(null)
+
+  const sidebarHidden = isMobile || sidebarCollapsed
+
+  const appShellClassName = ['app-shell', sidebarHidden ? 'sidebar-hidden' : '']
+    .filter(Boolean)
+    .join(' ')
+
+  const sidebarClassName = ['sidebar', isMobile && mobileOpen ? 'open' : '']
+    .filter(Boolean)
+    .join(' ')
+
+  const sidebarToggleSymbol = isMobile
+    ? (mobileOpen ? '✕' : '☰')
+    : (sidebarCollapsed ? '▶' : '◀')
+
+  const sidebarToggleLabel = isMobile
+    ? (mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral')
+    : (sidebarCollapsed ? 'Mostrar barra lateral' : 'Esconder barra lateral')
+
+  const handleSidebarToggle = useCallback(() => {
+    if (isMobile) {
+      setMobileOpen((value) => !value)
+      return
+    }
+    setSidebarCollapsed((value) => !value)
+  }, [isMobile])
+
+  const handleMobileNavClick = useCallback(() => {
+    if (isMobile) {
+      setMobileOpen(false)
+    }
+  }, [isMobile])
 
   useEffect(() => {
     const onResize = () => {
@@ -110,37 +163,8 @@ export default function DashboardPage() {
     try {
       setLoading(true)
       setError('')
-
-      const dashboardResult = await Promise.allSettled([
-        api.get('/student/dashboard'),
-        api.get('/student/schedule/upcoming'),
-        notificationPreviewService.getPreview({ limit: 5, includeUnreadCount: true }),
-      ])
-
-      const [dashboardPromise, schedulePromise, notificationsPromise] = dashboardResult
-
-      if (dashboardPromise.status === 'fulfilled') {
-        setDashboard(dashboardPromise.value.data ?? null)
-      } else {
-        setDashboard(null)
-      }
-
-      if (schedulePromise.status === 'fulfilled') {
-        setSchedulePreview(schedulePromise.value.data?.schedule ?? [])
-      } else {
-        setSchedulePreview([])
-      }
-
-      if (notificationsPromise.status === 'fulfilled') {
-        setNotificationPreview(notificationsPromise.value)
-      } else {
-        setNotificationPreview({ items: [], unreadCount: 0 })
-      }
-
-      const anyFailed = dashboardResult.some((result) => result.status === 'rejected')
-      if (anyFailed) {
-        setError('Alguns dados do painel não puderam ser carregados. Tente novamente.')
-      }
+      const response = await api.get('/student/dashboard')
+      setDashboard(response.data ?? null)
     } catch (requestError) {
       setError(requestError?.response?.data?.error || 'Não foi possível carregar o painel do aluno.')
     } finally {
@@ -152,10 +176,49 @@ export default function DashboardPage() {
     loadDashboard()
   }, [loadDashboard])
 
-  const unreadNotifications = notificationPreview?.unreadCount ?? 0
+  const loadNotificationPreview = useCallback(async () => {
+    setNotificationsLoading(true)
+    setNotificationsError('')
+
+    try {
+      const preview = await notificationPreviewService.getPreview({ limit: 4, includeUnreadCount: true })
+      setNotifications(preview.items)
+      setNotificationsLoaded(true)
+    } catch {
+      setNotificationsError('Não foi possível carregar as notificações.')
+    } finally {
+      setNotificationsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!notificationsOpen) {
+      return undefined
+    }
+
+    const handleOutsideClick = (event) => {
+      if (notificationBoxRef.current && !notificationBoxRef.current.contains(event.target)) {
+        setNotificationsOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [notificationsOpen])
+
+  const handleNotificationsClick = () => {
+    const nextState = !notificationsOpen
+    setNotificationsOpen(nextState)
+
+    if (nextState && !notificationsLoaded) {
+      void loadNotificationPreview()
+    }
+  }
+
+  const unreadNotifications = dashboard?.notifications?.filter((item) => !item.read)?.length ?? 0
 
   const scheduleRows = useMemo(() => {
-    const rows = schedulePreview
+    const rows = dashboard?.schedule ?? []
     const term = searchTerm.trim().toLowerCase()
 
     if (!term) {
@@ -166,41 +229,30 @@ export default function DashboardPage() {
       const text = [row.teacher, row.studio, row.status, row.date, row.time].join(' ').toLowerCase()
       return text.includes(term)
     })
-  }, [schedulePreview, searchTerm])
+  }, [dashboard?.schedule, searchTerm])
 
   const communicationRows = useMemo(() => {
-    return notificationPreview?.items?.slice(0, 3) ?? []
-  }, [notificationPreview])
+    return (dashboard?.notifications ?? []).slice(0, 3)
+  }, [dashboard?.notifications])
 
   const quickActions = [
-    {
-      label: 'Abrir coaching',
-      to: '/student/coaching',
-      description: 'Consultar sessões e gerir marcações',
-    },
-    {
-      label: 'Inventário da escola',
-      to: '/student/inventory',
-      description: 'Ver artigos disponíveis para aluguer',
-      variant: 'ctaSecondary',
-    },
-    {
-      label: 'Marketplace',
-      to: '/student/marketplace',
-      description: 'Explorar e gerir compras e vendas',
-    },
-    {
-      label: 'Notificações',
-      to: '/student/notifications',
-      description: 'Ver alertas e mensagens recentes',
-      variant: 'secondary',
-    },
+    { label: 'Nova marcação', to: '/student/coaching' },
+    { label: 'Confirmar execução', to: '/student/coaching#confirmacao' },
+    { label: 'Gerir cancelamentos', to: '/student/coaching', secondary: true },
   ]
 
   return (
     <div className="student-dashboard">
-      <div className="app-shell">
-        <aside className={`sidebar${mobileOpen ? ' open' : ''}`} id="sidebar">
+      <div className={appShellClassName}>
+        {isMobile && mobileOpen ? (
+          <button
+            type="button"
+            className="sidebar-overlay"
+            aria-label="Fechar navegação lateral"
+            onClick={() => setMobileOpen(false)}
+          />
+        ) : null}
+        <aside className={sidebarClassName} id="sidebar">
           <div className="brand">
             <span className="brand-dot" />
             <div>
@@ -219,11 +271,7 @@ export default function DashboardPage() {
                   key={item.href}
                   className={`nav-link${isActive ? ' active' : ''}`}
                   to={item.href}
-                  onClick={() => {
-                    if (isMobile) {
-                      setMobileOpen(false)
-                    }
-                  }}
+                  onClick={handleMobileNavClick}
                 >
                   {item.label}
                 </Link>
@@ -234,7 +282,7 @@ export default function DashboardPage() {
               type="button"
               onClick={async () => {
                 await logout()
-                navigate('/login', { replace: true })
+                navigate('/login?reason=logged-out', { replace: true })
               }}
             >
               Terminar Sessão
@@ -246,20 +294,20 @@ export default function DashboardPage() {
           <header className="topbar">
             <div className="topbar-left">
               <button
-                className="menu-toggle"
-                id="menuToggle"
                 type="button"
-                aria-controls="sidebar"
-                aria-expanded={mobileOpen}
-                aria-label={mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'}
-                onClick={() => setMobileOpen((current) => !current)}
+                className="sidebar-toggle-btn"
+                aria-label={sidebarToggleLabel}
+                onClick={handleSidebarToggle}
               >
+                {sidebarToggleSymbol}
+              </button>
+              <button className="menu-toggle" id="menuToggle" type="button" aria-controls="sidebar" aria-expanded={mobileOpen} aria-label={mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'} onClick={() => setMobileOpen((current) => !current)}>
                 ☰ Menu
               </button>
               <h2>Painel Aluno</h2>
               <p>Visão geral de marcações, validações e comunicações da escola</p>
             </div>
-            <div className="topbar-right">
+            <div className="topbar-right" ref={notificationBoxRef}>
               <input
                 className="search"
                 type="text"
@@ -270,9 +318,49 @@ export default function DashboardPage() {
               <Link className="pill" to="/student/account">
                 Minha Conta
               </Link>
-              <Link className="pill" to="/student/notifications">
+              <button type="button" className="pill notifications-pill" onClick={handleNotificationsClick}>
                 Notificações {unreadNotifications}
-              </Link>
+              </button>
+
+              {notificationsOpen ? (
+                <div className="notifications-popover">
+                  <div className="notifications-popover-header">
+                    <strong>Notificações</strong>
+                  </div>
+
+                  {notificationsLoading ? (
+                    <p className="notifications-state">A carregar...</p>
+                  ) : null}
+
+                  {!notificationsLoading && notificationsError ? (
+                    <p className="notifications-state error">{notificationsError}</p>
+                  ) : null}
+
+                  {!notificationsLoading && !notificationsError && notifications.length === 0 ? (
+                    <p className="notifications-state">Sem notificações.</p>
+                  ) : null}
+
+                  {!notificationsLoading && notifications.length > 0 ? (
+                    <ul className="notifications-list">
+                      {notifications.map((notification) => (
+                        <li key={notification.id} className="notifications-item">
+                          <strong>{notification.title}</strong>
+                          {notification.message ? <p>{notification.message}</p> : null}
+                          <small>{formatNotificationDate(notification.createdAt)}</small>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+
+                  <Link
+                    to="/student/notifications"
+                    className="notifications-more-link"
+                    onClick={() => setNotificationsOpen(false)}
+                  >
+                    Ver Mais
+                  </Link>
+                </div>
+              ) : null}
             </div>
           </header>
 
@@ -287,10 +375,22 @@ export default function DashboardPage() {
             ) : null}
 
             <div className="kpi-grid">
-              <KPICard title="Sessões agendadas" value={dashboard?.upcomingSessions ?? 0} />
-              <KPICard title="Validações pendentes" value={dashboard?.pendingValidations ?? 0} />
-              <KPICard title="Pedidos em análise" value={dashboard?.reviewRequests ?? 0} />
-              <KPICard title="Pagamentos externos em curso" value={dashboard?.externalPaymentsInProgress ?? 0} />
+              <article className="kpi">
+                <h3>Sessões agendadas</h3>
+                <strong>{dashboard?.upcomingSessions ?? 0}</strong>
+              </article>
+              <article className="kpi">
+                <h3>Validações pendentes</h3>
+                <strong>{dashboard?.pendingValidations ?? 0}</strong>
+              </article>
+              <article className="kpi">
+                <h3>Pedidos em análise</h3>
+                <strong>{dashboard?.reviewRequests ?? 0}</strong>
+              </article>
+              <article className="kpi">
+                <h3>Pagamentos externos em curso</h3>
+                <strong>{dashboard?.externalPaymentsInProgress ?? 0}</strong>
+              </article>
             </div>
 
             <div className="split">
@@ -331,7 +431,13 @@ export default function DashboardPage() {
 
               <article className="panel">
                 <h3>Ações rápidas</h3>
-                <QuickActions actions={quickActions} />
+                <div className="quick-actions">
+                  {quickActions.map((action) => (
+                    <Link key={action.label} className={`cta${action.secondary ? ' secondary' : ''}`} to={action.to}>
+                      {action.label}
+                    </Link>
+                  ))}
+                </div>
 
                 <h3>Comunicações recentes</h3>
                 {communicationRows.length === 0 ? (
@@ -340,7 +446,7 @@ export default function DashboardPage() {
                   <ul className="list">
                     {communicationRows.map((notification) => (
                       <li key={notification.id}>
-                        {notification.title || 'Notificação'}: {notification.message || 'Sem detalhe adicional.'}
+                        {notification.title}: {notification.message || 'Sem detalhe adicional.'}
                       </li>
                     ))}
                   </ul>
