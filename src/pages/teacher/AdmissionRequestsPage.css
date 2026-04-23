@@ -15,13 +15,15 @@
   font-family: 'Space Grotesk', sans-serif;
   min-height: 100svh;
   width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
   background: linear-gradient(150deg, #fdf7f5 0%, #f7f0fb 45%, #effaf8 100%);
 }
 
 .teacher-admission-requests .app-shell {
   min-height: 100svh;
   display: grid;
-  grid-template-columns: 290px 1fr;
+  grid-template-columns: 290px minmax(0, 1fr);
 }
 
 .teacher-admission-requests .sidebar {
@@ -93,6 +95,8 @@
 
 .teacher-admission-requests .main {
   padding: 18px 20px 24px;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .teacher-admission-requests .topbar {
@@ -105,6 +109,12 @@
 
 .teacher-admission-requests .topbar-left {
   min-width: 0;
+}
+
+.teacher-admission-requests .topbar-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .teacher-admission-requests .topbar-left h2 {
@@ -125,20 +135,29 @@
   position: relative;
 }
 
-.teacher-admission-requests .menu-toggle {
-  display: none;
+.teacher-admission-requests .sidebar-toggle-btn {
+  width: 34px;
+  height: 34px;
   border: 1px solid #d7ccdf;
+  border-radius: 10px;
   background: #fff;
   color: #3f3558;
-  border-radius: 10px;
-  padding: 8px 10px;
-  font: inherit;
-  font-size: 0.86rem;
   cursor: pointer;
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.teacher-admission-requests .sidebar-toggle-btn:hover {
+  background: var(--lavender);
 }
 
 .teacher-admission-requests .search {
-  width: 260px;
+  width: 100%;
+  max-width: 260px;
   border-radius: 999px;
   border: 1px solid #d7ccdf;
   padding: 9px 12px;
@@ -251,12 +270,14 @@
 .teacher-admission-requests .content-grid {
   display: grid;
   gap: 14px;
+  min-width: 0;
 }
 
 .teacher-admission-requests .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 10px;
+  min-width: 0;
 }
 
 .teacher-admission-requests .kpi {
@@ -281,8 +302,9 @@
 
 .teacher-admission-requests .split {
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
+  grid-template-columns: 1.2fr minmax(0, 0.8fr);
   gap: 14px;
+  min-width: 0;
 }
 
 .teacher-admission-requests .panel {
@@ -291,6 +313,8 @@
   border-radius: var(--radius);
   box-shadow: var(--soft-shadow);
   padding: 16px;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .teacher-admission-requests .ui-table-wrapper {
@@ -393,6 +417,7 @@
 
 .teacher-admission-requests .request-link strong {
   color: #1f1c2e;
+  font-size: clamp(0.8rem, 0.85vw, 1rem);
 }
 
 .teacher-admission-requests .request-link span,
@@ -402,7 +427,7 @@
 .teacher-admission-requests .request-capacity span,
 .teacher-admission-requests .request-deadline {
   color: var(--muted);
-  font-size: 0.84rem;
+  font-size: clamp(0.7rem, 0.75vw, 0.84rem);
 }
 
 .teacher-admission-requests .request-student,
@@ -418,6 +443,7 @@
 .teacher-admission-requests .request-session strong,
 .teacher-admission-requests .request-student strong {
   color: #1f1c2e;
+  font-size: clamp(0.8rem, 0.85vw, 1rem);
 }
 
 .teacher-admission-requests .request-capacity {
@@ -593,29 +619,55 @@
   font-size: 0.9rem;
 }
 
+/* ----- sidebar collapse (desktop) ----- */
+.teacher-admission-requests .app-shell.sidebar-hidden {
+  grid-template-columns: 1fr;
+}
+
+.teacher-admission-requests .app-shell.sidebar-hidden .sidebar {
+  display: none;
+}
+
+.teacher-admission-requests .sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 6, 13, 0.4);
+  border: 0;
+  z-index: 30;
+  cursor: default;
+}
+
+/* ----- table wrapper: constrain height, scroll inside ----- */
+.teacher-admission-requests .ui-table-wrapper {
+  max-height: 55vh;
+  overflow: auto !important;
+}
+
+/* ----- responsive: mobile ----- */
 @media (max-width: 1024px) {
   .teacher-admission-requests .app-shell {
     grid-template-columns: 1fr;
   }
 
+  .teacher-admission-requests .app-shell.sidebar-hidden .sidebar {
+    display: block;
+  }
+
   .teacher-admission-requests .sidebar {
     display: none;
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 290px;
+    height: 100vh;
+    z-index: 40;
+    transform: translateX(-104%);
+    transition: transform 0.2s ease;
   }
 
   .teacher-admission-requests .sidebar.open {
     display: block;
-    position: fixed;
-    inset: 0 auto 0 0;
-    width: min(86vw, 320px);
-    z-index: 40;
-    box-shadow: 0 18px 40px rgba(30, 22, 43, 0.2);
-  }
-
-  .teacher-admission-requests .menu-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    margin-bottom: 0.4rem;
+    transform: translateX(0);
   }
 
   .teacher-admission-requests .topbar {
@@ -628,7 +680,7 @@
   }
 
   .teacher-admission-requests .search {
-    width: 100%;
+    max-width: none;
   }
 
   .teacher-admission-requests .split {
@@ -637,6 +689,10 @@
 
   .teacher-admission-modal .request-meta-grid {
     grid-template-columns: 1fr;
+  }
+
+  .teacher-admission-requests .ui-table-wrapper {
+    max-height: 40vh;
   }
 }
 
@@ -667,3 +723,14 @@
   text-align: center !important;
   vertical-align: middle !important;
 }
+
+/* ----- root container override for this page ----- */
+.teacher-admission-requests #root,
+.teacher-admission-requests:only-child {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  min-height: 100svh;
+  box-sizing: border-box;
+}
+

@@ -262,6 +262,7 @@ export default function AdmissionRequestsPage() {
 
   const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false))
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [summary, setSummary] = useState(null)
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
@@ -283,6 +284,38 @@ export default function AdmissionRequestsPage() {
   const notificationBoxRef = useRef(null)
 
   const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'Professor'
+
+  const sidebarHidden = isMobile || sidebarCollapsed
+
+  const appShellClassName = ['app-shell', sidebarHidden ? 'sidebar-hidden' : '']
+    .filter(Boolean)
+    .join(' ')
+
+  const sidebarClassName = ['sidebar', isMobile && mobileOpen ? 'open' : '']
+    .filter(Boolean)
+    .join(' ')
+
+  const sidebarToggleSymbol = isMobile
+    ? (mobileOpen ? '✕' : '☰')
+    : (sidebarCollapsed ? '▶' : '◀')
+
+  const sidebarToggleLabel = isMobile
+    ? (mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral')
+    : (sidebarCollapsed ? 'Mostrar barra lateral' : 'Esconder barra lateral')
+
+  const handleSidebarToggle = useCallback(() => {
+    if (isMobile) {
+      setMobileOpen((value) => !value)
+      return
+    }
+    setSidebarCollapsed((value) => !value)
+  }, [isMobile])
+
+  const handleMobileNavClick = useCallback(() => {
+    if (isMobile) {
+      setMobileOpen(false)
+    }
+  }, [isMobile])
 
   useEffect(() => {
     const onResize = () => {
@@ -551,8 +584,16 @@ export default function AdmissionRequestsPage() {
 
   return (
     <div className="teacher-admission-requests">
-      <div className="app-shell">
-        <aside className={`sidebar${mobileOpen ? ' open' : ''}`} id="sidebar">
+    <div className={appShellClassName}>
+      {isMobile && mobileOpen ? (
+        <button
+          type="button"
+          className="sidebar-overlay"
+          aria-label="Fechar navegação lateral"
+          onClick={() => setMobileOpen(false)}
+        />
+      ) : null}
+      <aside className={sidebarClassName} id="sidebar">
           <div className="brand">
             <span className="brand-dot" />
             <div>
@@ -571,11 +612,7 @@ export default function AdmissionRequestsPage() {
                   key={item.href}
                   className={`nav-link${isActive ? ' active' : ''}`}
                   to={item.href}
-                  onClick={() => {
-                    if (isMobile) {
-                      setMobileOpen(false)
-                    }
-                  }}
+                  onClick={handleMobileNavClick}
                 >
                   {item.label}
                 </Link>
@@ -597,17 +634,17 @@ export default function AdmissionRequestsPage() {
         <main className="main">
           <header className="topbar">
             <div className="topbar-left">
-              <button
-                className="menu-toggle"
-                type="button"
-                aria-controls="sidebar"
-                aria-expanded={mobileOpen}
-                aria-label={mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'}
-                onClick={() => setMobileOpen((current) => !current)}
-              >
-                ☰ Menu
-              </button>
-              <h2>Pedidos de adesão</h2>
+              <div className="topbar-heading">
+                <button
+                  type="button"
+                  className="sidebar-toggle-btn"
+                  aria-label={sidebarToggleLabel}
+                  onClick={handleSidebarToggle}
+                >
+                  {sidebarToggleSymbol}
+                </button>
+                <h2>Pedidos de adesão</h2>
+              </div>
               <p>Validação de pedidos de adesão a sessões privadas</p>
             </div>
 
@@ -873,7 +910,7 @@ export default function AdmissionRequestsPage() {
           title={toast.title}
           description={toast.description}
           onClose={() => setToast(null)}
-          style={{ position: 'fixed', right: '1.25rem', bottom: '1.25rem', zIndex: 60 }}
+          style={{ position: 'fixed', right: '1.25rem', bottom: '1.25rem', zIndex: 60, background: '#ffffff', color: '#1f1c2e' }}
         />
       ) : null}
     </div>
