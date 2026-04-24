@@ -1,4 +1,4 @@
-.student-dashboard {
+.teacher-dashboard {
   --bg: #f8f4fb;
   --ink: #1f1c2e;
   --muted: #6d6480;
@@ -18,13 +18,13 @@
   width: 100%;
 }
 
-.student-dashboard .app-shell {
+.teacher-dashboard .app-shell {
   min-height: 100svh;
   display: grid;
   grid-template-columns: 290px 1fr;
 }
 
-.student-dashboard .sidebar {
+.teacher-dashboard .sidebar {
   border-right: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(6px);
@@ -32,7 +32,7 @@
   text-align: left;
 }
 
-.student-dashboard .brand {
+.teacher-dashboard .brand {
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -40,27 +40,28 @@
   margin-bottom: 18px;
 }
 
-.student-dashboard .brand-dot {
+.teacher-dashboard .brand-dot {
   width: 12px;
   height: 12px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--teal), var(--coral));
+  flex-shrink: 0;
 }
 
-.student-dashboard .brand h1 {
+.teacher-dashboard .brand h1 {
   margin: 0;
   font-size: 1rem;
   color: #000;
 }
 
-.student-dashboard .brand p {
+.teacher-dashboard .brand p {
   margin: 2px 0 0;
   font-size: 0.78rem;
   color: #000;
   font-weight: 500;
 }
 
-.student-dashboard .nav-group h2 {
+.teacher-dashboard .nav-group h2 {
   margin: 12px 0 6px;
   font-size: 0.76rem;
   text-transform: uppercase;
@@ -68,7 +69,7 @@
   color: #5f5480;
 }
 
-.student-dashboard .nav-link {
+.teacher-dashboard .nav-link {
   display: block;
   text-decoration: none;
   border-radius: 10px;
@@ -78,7 +79,7 @@
   text-align: left;
 }
 
-.student-dashboard button.nav-link {
+.teacher-dashboard button.nav-link {
   width: 100%;
   border: 0;
   background: transparent;
@@ -86,45 +87,47 @@
   cursor: pointer;
 }
 
-.student-dashboard .nav-link:hover,
-.student-dashboard .nav-link.active {
+.teacher-dashboard .nav-link:hover,
+.teacher-dashboard .nav-link.active {
   background: var(--lavender);
 }
 
-.student-dashboard .main {
+.teacher-dashboard .main {
   padding: 18px 20px 24px;
 }
 
-.student-dashboard .topbar {
+.teacher-dashboard .topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
   margin-bottom: 14px;
+  position: relative;
 }
 
-.student-dashboard .topbar-left {
+.teacher-dashboard .topbar-left {
   min-width: 0;
 }
 
-.student-dashboard .topbar-left h2 {
+.teacher-dashboard .topbar-left h2 {
   margin: 0;
   font-size: 1.25rem;
 }
 
-.student-dashboard .topbar-left p {
+.teacher-dashboard .topbar-left p {
   margin: 2px 0 0;
   color: var(--muted);
   font-size: 0.86rem;
 }
 
-.student-dashboard .topbar-right {
+.teacher-dashboard .topbar-right {
   display: flex;
   align-items: center;
   gap: 10px;
+  position: relative;
 }
 
-.student-dashboard .menu-toggle {
+.teacher-dashboard .menu-toggle {
   display: none;
   border: 1px solid #d7ccdf;
   background: #fff;
@@ -136,18 +139,7 @@
   cursor: pointer;
 }
 
-.student-dashboard .search {
-  width: 260px;
-  border-radius: 999px;
-  border: 1px solid #d7ccdf;
-  padding: 9px 12px;
-  font: inherit;
-  color-scheme: light;
-  background: #fff;
-  color: #2e2942;
-}
-
-.student-dashboard .pill {
+.teacher-dashboard .pill {
   border: 1px solid #f2c2af;
   border-radius: 999px;
   background: #fff3ee;
@@ -158,12 +150,12 @@
   white-space: nowrap;
 }
 
-.student-dashboard .notifications-pill {
+.teacher-dashboard .notifications-pill {
   cursor: pointer;
   font: inherit;
 }
 
-.student-dashboard .notifications-popover {
+.teacher-dashboard .notifications-popover {
   position: absolute;
   right: 0;
   top: calc(100% + 8px);
@@ -176,23 +168,23 @@
   overflow: hidden;
 }
 
-.student-dashboard .notifications-popover-header {
+.teacher-dashboard .notifications-popover-header {
   padding: 10px 12px;
   border-bottom: 1px solid var(--line);
   color: var(--ink);
 }
 
-.student-dashboard .notifications-state {
+.teacher-dashboard .notifications-state {
   margin: 0;
   padding: 12px;
   color: var(--muted);
 }
 
-.student-dashboard .notifications-state.error {
+.teacher-dashboard .notifications-state.error {
   color: #8b2e39;
 }
 
-.student-dashboard .notifications-list {
+.teacher-dashboard .notifications-list {
   list-style: none;
   margin: 0;
   padding: 8px;
@@ -202,33 +194,33 @@
   overflow-y: auto;
 }
 
-.student-dashboard .notifications-item {
+.teacher-dashboard .notifications-item {
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 8px 10px;
   background: #fff;
 }
 
-.student-dashboard .notifications-item strong {
+.teacher-dashboard .notifications-item strong {
   display: block;
   color: var(--ink);
   margin-bottom: 2px;
 }
 
-.student-dashboard .notifications-item p {
+.teacher-dashboard .notifications-item p {
   margin: 0;
   font-size: 0.86rem;
   color: var(--muted);
 }
 
-.student-dashboard .notifications-item small {
+.teacher-dashboard .notifications-item small {
   display: block;
   margin-top: 6px;
   color: var(--muted);
   font-size: 0.75rem;
 }
 
-.student-dashboard .notifications-more-link {
+.teacher-dashboard .notifications-more-link {
   display: block;
   border-top: 1px solid var(--line);
   text-align: center;
@@ -238,48 +230,48 @@
   padding: 10px;
 }
 
-.student-dashboard .notifications-more-link:hover {
+.teacher-dashboard .notifications-more-link:hover {
   background: var(--lavender);
 }
 
-.student-dashboard .content-grid {
+.teacher-dashboard .content-grid {
   display: grid;
   gap: 14px;
 }
 
-.student-dashboard .kpi-grid {
+.teacher-dashboard .kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 10px;
 }
 
-.student-dashboard .kpi {
+.teacher-dashboard .kpi {
   background: linear-gradient(145deg, #fff8f5, #f1fbf8);
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 12px;
 }
 
-.student-dashboard .kpi h3 {
+.teacher-dashboard .kpi h3 {
   margin: 0;
   font-size: 0.88rem;
   color: #4c4666;
 }
 
-.student-dashboard .kpi strong {
+.teacher-dashboard .kpi strong {
   display: block;
   margin-top: 8px;
   font-size: 1.7rem;
   color: var(--teal-dark);
 }
 
-.student-dashboard .split {
+.teacher-dashboard .split {
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
   gap: 14px;
 }
 
-.student-dashboard .panel {
+.teacher-dashboard .panel {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -287,37 +279,38 @@
   padding: 16px;
 }
 
-.student-dashboard .panel h3 {
+.teacher-dashboard .panel h3 {
   margin-top: 0;
   margin-bottom: 10px;
 }
 
-.student-dashboard .panel-subtle {
+.teacher-dashboard .panel-subtle {
   margin-top: 0;
   color: var(--muted);
 }
 
-.student-dashboard table {
+.teacher-dashboard table {
   width: 100%;
   border-collapse: collapse;
 }
 
-.student-dashboard th,
-.student-dashboard td {
+.teacher-dashboard th,
+.teacher-dashboard td {
   text-align: left;
   padding: 10px 8px;
   border-bottom: 1px solid #efe8f7;
   font-size: 0.9rem;
 }
 
-.student-dashboard th {
+.teacher-dashboard th {
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: #6d6480;
+  background: var(--table-head-bg, #f8f1fc);
 }
 
-.student-dashboard .badge {
+.teacher-dashboard .badge {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
@@ -326,60 +319,33 @@
   font-weight: 600;
 }
 
-.student-dashboard .badge.ok {
+.teacher-dashboard .badge.ok {
   color: #0f6a62;
   background: #e4f8f4;
 }
 
-.student-dashboard .badge.warn {
+.teacher-dashboard .badge.warn {
   color: #7b4a14;
   background: #ffefd8;
 }
 
-.student-dashboard .badge.danger {
+.teacher-dashboard .badge.info {
+  color: #2e4fa3;
+  background: #e8eeff;
+}
+
+.teacher-dashboard .badge.danger {
   color: #8b2e39;
   background: #fde3e8;
 }
 
-.student-dashboard .quick-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-
-.student-dashboard .cta {
-  display: inline-block;
-  border: 0;
-  border-radius: 10px;
-  padding: 10px 13px;
-  text-decoration: none;
-  color: #fff;
-  background: linear-gradient(135deg, var(--teal), #10b2a3);
-  cursor: pointer;
-  font-size: 0.88rem;
-}
-
-.student-dashboard .cta.secondary {
-  background: linear-gradient(135deg, #55436d, #6a5490);
-}
-
-.student-dashboard .list {
-  margin: 0;
-  padding-left: 16px;
-  display: grid;
-  gap: 8px;
-  color: #4e4664;
-  font-size: 0.9rem;
-}
-
-.student-dashboard .empty {
+.teacher-dashboard .empty {
   padding: 16px 8px;
   color: #766d89;
   font-size: 0.9rem;
 }
 
-.student-dashboard .error-banner {
+.teacher-dashboard .error-banner {
   border: 1px solid #f3c6cc;
   background: #fff3f5;
   color: #8b2e39;
@@ -388,8 +354,51 @@
   font-size: 0.9rem;
 }
 
-/* Sidebar toggle button */
-.student-dashboard .sidebar-toggle-btn {
+.teacher-dashboard .join-requests-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.teacher-dashboard .join-request-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: #faf7fd;
+}
+
+.teacher-dashboard .join-request-item strong {
+  font-size: 0.86rem;
+  color: var(--ink);
+}
+
+.teacher-dashboard .join-request-item span {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.teacher-dashboard .join-requests-footer {
+  margin-top: 8px;
+  text-align: right;
+}
+
+.teacher-dashboard .join-requests-footer a {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #0a7a70;
+  text-decoration: none;
+}
+
+.teacher-dashboard .join-requests-footer a:hover {
+  text-decoration: underline;
+}
+
+.teacher-dashboard .sidebar-toggle-btn {
   background: transparent;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -404,26 +413,67 @@
   margin-right: 8px;
 }
 
-.student-dashboard .sidebar-toggle-btn:hover {
+.teacher-dashboard .sidebar-toggle-btn:hover {
   background: var(--lavender);
 }
 
-/* Sidebar hidden state */
-.student-dashboard .app-shell.sidebar-hidden .sidebar {
+.teacher-dashboard .app-shell.sidebar-hidden .sidebar {
   display: none;
 }
 
-/* Sidebar overlay for mobile */
-.student-dashboard .sidebar-overlay {
+.teacher-dashboard .sidebar-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.4);
   z-index: 35;
 }
 
-/* Adjust main content when sidebar is hidden on desktop */
+.teacher-dashboard .toast-wrapper {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 100;
+  max-width: 360px;
+}
+
 @media (min-width: 1025px) {
-  .student-dashboard .app-shell.sidebar-hidden .main {
+  .teacher-dashboard .app-shell.sidebar-hidden .main {
     grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 1024px) {
+  .teacher-dashboard .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .teacher-dashboard .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    z-index: 40;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    overflow-y: auto;
+  }
+
+  .teacher-dashboard .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .teacher-dashboard .menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .teacher-dashboard .sidebar-toggle-btn {
+    display: none;
+  }
+
+  .teacher-dashboard .split {
+    grid-template-columns: 1fr;
   }
 }

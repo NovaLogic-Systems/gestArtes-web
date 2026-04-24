@@ -1,20 +1,23 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { toAppRole } from '../utils/roles'
 
 export default function ProtectedRoute({ allowedRoles }) {
-  const location = useLocation()
   const { loading, isAuthenticated, role } = useAuth()
+  const currentRole = toAppRole(role)
+  const normalizedAllowedRoles = (Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles])
+    .map((entry) => toAppRole(entry))
+    .filter(Boolean)
 
   if (loading) {
-    return <div style={{ padding: '2rem' }}>A validar sessão...</div>
+    return <div>A carregar sessão...</div>
   }
 
   if (!isAuthenticated) {
-    const from = `${location.pathname}${location.search}${location.hash}`
-    return <Navigate to="/login" replace state={{ from }} />
+    return <Navigate to="/login" replace />
   }
 
-  if (allowedRoles?.length && !allowedRoles.includes(role)) {
+  if (normalizedAllowedRoles.length && !normalizedAllowedRoles.includes(currentRole)) {
     return <Navigate to="/unauthorized" replace />
   }
 

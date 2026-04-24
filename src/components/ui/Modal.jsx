@@ -73,6 +73,7 @@ function Modal({
 					boxShadow: 'var(--shadow)',
 					display: 'grid',
 					gap: '1rem',
+					colorScheme: 'light',
 					maxHeight: 'calc(100vh - 2.5rem)',
 					maxWidth: 'calc(100vw - 2.5rem)',
 					overflow: 'auto',

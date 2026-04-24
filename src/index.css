@@ -31,12 +31,18 @@
   }
 }
 
+@media (prefers-color-scheme: dark) {
+  :root {
+    --table-head-bg: #252731;
+  }
+}
 
 body {
   margin: 0;
   min-height: 100svh;
   background: #fff;
   overflow-x: hidden;
+  color-scheme: light;
 }
 
 #root {

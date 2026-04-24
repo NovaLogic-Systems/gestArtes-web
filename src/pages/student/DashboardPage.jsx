@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
+import notificationPreviewService from '../../services/notificationPreviewService'
 import './DashboardPage.css'
 
 const NAV_ITEMS = [
@@ -71,6 +72,23 @@ function resolveBadgeClass(status) {
   return 'badge ok'
 }
 
+
+function formatNotificationDate(value) {
+  if (!value) {
+    return ''
+  }
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) {
+    return ''
+  }
+
+  return parsed.toLocaleString('pt-PT', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  })
+}
+
 export default function DashboardPage() {
   const { logout, user } = useAuth()
   const location = useLocation()
@@ -84,6 +102,46 @@ export default function DashboardPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false))
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [notificationsLoaded, setNotificationsLoaded] = useState(false)
+  const [notificationsLoading, setNotificationsLoading] = useState(false)
+  const [notificationsError, setNotificationsError] = useState('')
+  const [notifications, setNotifications] = useState([])
+
+  const notificationBoxRef = useRef(null)
+
+  const sidebarHidden = isMobile || sidebarCollapsed
+
+  const appShellClassName = ['app-shell', sidebarHidden ? 'sidebar-hidden' : '']
+    .filter(Boolean)
+    .join(' ')
+
+  const sidebarClassName = ['sidebar', isMobile && mobileOpen ? 'open' : '']
+    .filter(Boolean)
+    .join(' ')
+
+  const sidebarToggleSymbol = isMobile
+    ? (mobileOpen ? '✕' : '☰')
+    : (sidebarCollapsed ? '▶' : '◀')
+
+  const sidebarToggleLabel = isMobile
+    ? (mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral')
+    : (sidebarCollapsed ? 'Mostrar barra lateral' : 'Esconder barra lateral')
+
+  const handleSidebarToggle = useCallback(() => {
+    if (isMobile) {
+      setMobileOpen((value) => !value)
+      return
+    }
+    setSidebarCollapsed((value) => !value)
+  }, [isMobile])
+
+  const handleMobileNavClick = useCallback(() => {
+    if (isMobile) {
+      setMobileOpen(false)
+    }
+  }, [isMobile])
 
   useEffect(() => {
     const onResize = () => {
@@ -118,6 +176,45 @@ export default function DashboardPage() {
     loadDashboard()
   }, [loadDashboard])
 
+  const loadNotificationPreview = useCallback(async () => {
+    setNotificationsLoading(true)
+    setNotificationsError('')
+
+    try {
+      const preview = await notificationPreviewService.getPreview({ limit: 4, includeUnreadCount: true })
+      setNotifications(preview.items)
+      setNotificationsLoaded(true)
+    } catch {
+      setNotificationsError('Não foi possível carregar as notificações.')
+    } finally {
+      setNotificationsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!notificationsOpen) {
+      return undefined
+    }
+
+    const handleOutsideClick = (event) => {
+      if (notificationBoxRef.current && !notificationBoxRef.current.contains(event.target)) {
+        setNotificationsOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [notificationsOpen])
+
+  const handleNotificationsClick = () => {
+    const nextState = !notificationsOpen
+    setNotificationsOpen(nextState)
+
+    if (nextState && !notificationsLoaded) {
+      void loadNotificationPreview()
+    }
+  }
+
   const unreadNotifications = dashboard?.notifications?.filter((item) => !item.read)?.length ?? 0
 
   const scheduleRows = useMemo(() => {
@@ -146,8 +243,16 @@ export default function DashboardPage() {
 
   return (
     <div className="student-dashboard">
-      <div className="app-shell">
-        <aside className={`sidebar${mobileOpen ? ' open' : ''}`} id="sidebar">
+      <div className={appShellClassName}>
+        {isMobile && mobileOpen ? (
+          <button
+            type="button"
+            className="sidebar-overlay"
+            aria-label="Fechar navegação lateral"
+            onClick={() => setMobileOpen(false)}
+          />
+        ) : null}
+        <aside className={sidebarClassName} id="sidebar">
           <div className="brand">
             <span className="brand-dot" />
             <div>
@@ -166,11 +271,7 @@ export default function DashboardPage() {
                   key={item.href}
                   className={`nav-link${isActive ? ' active' : ''}`}
                   to={item.href}
-                  onClick={() => {
-                    if (isMobile) {
-                      setMobileOpen(false)
-                    }
-                  }}
+                  onClick={handleMobileNavClick}
                 >
                   {item.label}
                 </Link>
@@ -193,20 +294,20 @@ export default function DashboardPage() {
           <header className="topbar">
             <div className="topbar-left">
               <button
-                className="menu-toggle"
-                id="menuToggle"
                 type="button"
-                aria-controls="sidebar"
-                aria-expanded={mobileOpen}
-                aria-label={mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'}
-                onClick={() => setMobileOpen((current) => !current)}
+                className="sidebar-toggle-btn"
+                aria-label={sidebarToggleLabel}
+                onClick={handleSidebarToggle}
               >
+                {sidebarToggleSymbol}
+              </button>
+              <button className="menu-toggle" id="menuToggle" type="button" aria-controls="sidebar" aria-expanded={mobileOpen} aria-label={mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'} onClick={() => setMobileOpen((current) => !current)}>
                 ☰ Menu
               </button>
               <h2>Painel Aluno</h2>
               <p>Visão geral de marcações, validações e comunicações da escola</p>
             </div>
-            <div className="topbar-right">
+            <div className="topbar-right" ref={notificationBoxRef}>
               <input
                 className="search"
                 type="text"
@@ -217,9 +318,49 @@ export default function DashboardPage() {
               <Link className="pill" to="/student/account">
                 Minha Conta
               </Link>
-              <Link className="pill" to="/student/notifications">
+              <button type="button" className="pill notifications-pill" onClick={handleNotificationsClick}>
                 Notificações {unreadNotifications}
-              </Link>
+              </button>
+
+              {notificationsOpen ? (
+                <div className="notifications-popover">
+                  <div className="notifications-popover-header">
+                    <strong>Notificações</strong>
+                  </div>
+
+                  {notificationsLoading ? (
+                    <p className="notifications-state">A carregar...</p>
+                  ) : null}
+
+                  {!notificationsLoading && notificationsError ? (
+                    <p className="notifications-state error">{notificationsError}</p>
+                  ) : null}
+
+                  {!notificationsLoading && !notificationsError && notifications.length === 0 ? (
+                    <p className="notifications-state">Sem notificações.</p>
+                  ) : null}
+
+                  {!notificationsLoading && notifications.length > 0 ? (
+                    <ul className="notifications-list">
+                      {notifications.map((notification) => (
+                        <li key={notification.id} className="notifications-item">
+                          <strong>{notification.title}</strong>
+                          {notification.message ? <p>{notification.message}</p> : null}
+                          <small>{formatNotificationDate(notification.createdAt)}</small>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+
+                  <Link
+                    to="/student/notifications"
+                    className="notifications-more-link"
+                    onClick={() => setNotificationsOpen(false)}
+                  >
+                    Ver Mais
+                  </Link>
+                </div>
+              ) : null}
             </div>
           </header>
 

@@ -3,8 +3,16 @@ import ProtectedRoute from './components/ProtectedRoute'
 import { useAuth } from './hooks/useAuth'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import LoginPage from './pages/LoginPage'
+import StudioManagementPage from './pages/admin/StudioManagementPage'
+import AdminUsersPage from './pages/admin/AdminUsersPage'
 import DashboardPage from './pages/student/DashboardPage'
 import TeacherDashboardPage from './pages/teacher/DashboardPage'
+import AdmissionRequestsPage from './pages/teacher/AdmissionRequestsPage'
+import InventoryPage from './pages/student/InventoryPage'
+import RentalCheckoutPage from './pages/student/RentalCheckoutPage'
+import RentalRequestsPage from './pages/student/RentalRequestsPage'
+import MarketplacePage from './pages/student/MarketplacePage'
+import MyListingsPage from './pages/student/MyListingsPage'
 
 function PlaceholderPage({ title }) {
   return (
@@ -28,14 +36,14 @@ function UnauthorizedPage() {
   )
 }
 
-function ProtectedPlaceholderPage({ title }) {
+function ProtectedPlaceholderPage({ title, actionLink }) {
   const navigate = useNavigate()
   const { logout, role, user } = useAuth()
   const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'Utilizador'
 
   async function handleLogout() {
     await logout()
-    navigate('/login?reason=logged-out', { replace: true })
+    navigate('/login', { replace: true })
   }
 
   return (
@@ -74,6 +82,26 @@ function ProtectedPlaceholderPage({ title }) {
         </button>
       </header>
 
+      {actionLink ? (
+        <div style={{ marginBottom: '1rem' }}>
+          <Link
+            to={actionLink.to}
+            style={{
+              background: '#fff',
+              border: '1px solid #ddd',
+              borderRadius: '999px',
+              color: '#08060d',
+              display: 'inline-flex',
+              fontWeight: 600,
+              padding: '0.55rem 0.95rem',
+              textDecoration: 'none',
+            }}
+          >
+            {actionLink.label}
+          </Link>
+        </div>
+      ) : null}
+
       <PlaceholderPage title={title} />
     </main>
   )
@@ -81,10 +109,12 @@ function ProtectedPlaceholderPage({ title }) {
 
 const StudentSectionPage = ({ title }) => <PlaceholderPage title={title} />
 const CoachingPage = () => <ProtectedPlaceholderPage title="Coaching" />
-
-const TeacherDashboard = TeacherDashboardPage
-
-const AdminDashboard = () => <ProtectedPlaceholderPage title="Admin Dashboard" />
+const AdminDashboard = () => (
+  <ProtectedPlaceholderPage
+    title="Admin Dashboard"
+    actionLink={{ to: '/admin/studios', label: 'Gestão de estúdios' }}
+  />
+)
 
 function App() {
   return (
@@ -99,19 +129,26 @@ function App() {
         <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
         <Route path="/student/dashboard" element={<DashboardPage />} />
         <Route path="/student/coaching" element={<CoachingPage />} />
-        <Route path="/student/inventory" element={<StudentSectionPage title="Inventário da Escola" />} />
-        <Route path="/student/marketplace" element={<StudentSectionPage title="Marketplace" />} />
+        <Route path="/student/inventory" element={<InventoryPage />} />
+        <Route path="/student/inventory/checkout/:itemId" element={<RentalCheckoutPage />} />
+        <Route path="/student/inventory/rentals" element={<RentalRequestsPage />} />
+        <Route path="/student/marketplace" element={<MarketplacePage />} />
+        <Route path="/student/marketplace/my-listings" element={<MyListingsPage />} />
         <Route path="/student/notifications" element={<StudentSectionPage title="Notificações" />} />
         <Route path="/student/lostfound" element={<StudentSectionPage title="Perdidos e Achados" />} />
         <Route path="/student/account" element={<StudentSectionPage title="Minha Conta" />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['teacher']} />}>
-        <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
+        <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
+        <Route path="/teacher/dashboard" element={<TeacherDashboardPage />} />
+        <Route path="/teacher/admission-requests" element={<AdmissionRequestsPage />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/studios" element={<StudioManagementPage />} />
+        <Route path="/admin/users" element={<AdminUsersPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />
