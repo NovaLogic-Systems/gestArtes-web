@@ -145,7 +145,7 @@ export default function RentalCheckoutPage() {
 					<header className="topbar">
 						<div className="topbar-left">
 							<h2>Pedido de aluguer</h2>
-							<p>Resumo final antes de enviar o pedido para validação da admin.</p>
+							<p>Resumo final antes de enviar o pedido para validação da administração.</p>
 						</div>
 						<div className="topbar-right">
 							<Button as={Link} variant="secondary" size="sm" to="/student/inventory">
@@ -157,7 +157,7 @@ export default function RentalCheckoutPage() {
 					<section className="inventory-checkout-banner">
 						<div>
 							<p className="inventory-kicker">Inventário da escola</p>
-							<h3>Este pedido segue para aprovação da admin.</h3>
+							<h3>Este pedido segue para aprovação da administração.</h3>
 							<p>Não existe gateway online. Se for aprovado, pagas e levantas o artigo diretamente na escola.</p>
 						</div>
 						<Badge variant="warning">Pagamento na escola</Badge>
@@ -202,7 +202,7 @@ export default function RentalCheckoutPage() {
 
 						<form className="panel inventory-checkout-form" onSubmit={handleSubmit}>
 							<h3>Pedido e datas</h3>
-							<p className="inventory-form-note">O pedido é registado na plataforma e enviado para validação da admin. O pagamento é sempre presencial na escola.</p>
+							<p className="inventory-form-note">O pedido é registado na plataforma e enviado para validação da administração. O pagamento e o levantamento é sempre presencial na escola.</p>
 
 							<div className="inventory-checkout-fields">
 								<Input
@@ -227,7 +227,7 @@ export default function RentalCheckoutPage() {
 									<li><span>Artigo</span><strong>{item?.itemName || '—'}</strong></li>
 									<li><span>Taxa simbólica</span><strong>{formatMoney(item?.symbolicFee)}</strong></li>
 									<li><span>Devolução prevista</span><strong>{summaryDateLabel}</strong></li>
-									<li><span>Validação</span><strong>Admin (aprovação/rejeição)</strong></li>
+									<li><span>Validação</span><strong>Administração (aprovação/rejeição)</strong></li>
 									<li><span>Pagamento</span><strong>Presencial, na escola</strong></li>
 								</ul>
 							</section>
