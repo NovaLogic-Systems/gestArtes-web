@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { toAppRole } from '../utils/roles'
 import './auth.css'
 
 const allowedReturnPrefixes = ['/student/', '/teacher/', '/admin/']
 
 function getDashboardPath(currentRole) {
-  if (currentRole === 'admin') {
+  const normalizedRole = toAppRole(currentRole)
+
+  if (normalizedRole === 'admin') {
     return '/admin/dashboard'
   }
 
-  if (currentRole === 'teacher') {
+  if (normalizedRole === 'teacher') {
     return '/teacher/dashboard'
   }
 
