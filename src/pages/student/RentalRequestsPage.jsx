@@ -138,7 +138,7 @@ export default function RentalRequestsPage() {
 					<header className="topbar">
 						<div className="topbar-left">
 							<h2>Pedidos de aluguer</h2>
-							<p>Histórico de pedidos enviados para validação da admin.</p>
+							<p>Histórico de pedidos enviados para validação da administração.</p>
 						</div>
 						<div className="topbar-right">
 							<Button as={Link} variant="secondary" size="sm" to="/student/inventory">
