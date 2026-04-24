@@ -1,0 +1,754 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../hooks/useAuth'
+import adminMarketplaceService from '../../services/adminMarketplaceService'
+import Badge from '../../components/ui/Badge'
+import Input from '../../components/ui/Input'
+import Modal from '../../components/ui/Modal'
+import Table from '../../components/ui/Table'
+import '../admin-studios.css'
+
+const navigationItems = [
+  { href: '/admin/dashboard', label: 'Painel' },
+  { href: '/admin/validations', label: 'Validações' },
+  { href: '/admin/studios', label: 'Estúdios' },
+  { href: '/admin/users', label: 'Utilizadores' },
+  { href: '/admin/lostfound', label: 'Perdidos e Achados' },
+  { href: '/admin/inventory', label: 'Inventário da Escola' },
+  { href: '/admin/marketplace', label: 'Marketplace' },
+  { href: '/admin/finance', label: 'Finanças' },
+  { href: '/admin/audit', label: 'Auditoria' },
+]
+
+const statusOptions = [
+  { value: 'all', label: 'Todos' },
+  { value: 'pending', label: 'Pendentes' },
+  { value: 'approved', label: 'Aprovados' },
+  { value: 'rejected', label: 'Rejeitados' },
+  { value: 'removed', label: 'Removidos' },
+]
+
+function formatMoney(value) {
+  const numeric = Number(value)
+
+  if (Number.isNaN(numeric)) {
+    return '—'
+  }
+
+  return new Intl.NumberFormat('pt-PT', {
+    currency: 'EUR',
+    style: 'currency',
+  }).format(numeric)
+}
+
+function formatDateTime(value) {
+  if (!value) {
+    return '—'
+  }
+
+  const parsed = new Date(value)
+
+  if (Number.isNaN(parsed.getTime())) {
+    return '—'
+  }
+
+  return parsed.toLocaleString('pt-PT', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  })
+}
+
+function getStatusTone(statusName) {
+  const normalized = String(statusName || '').trim().toLowerCase()
+
+  if (normalized.includes('pend')) {
+    return 'warning'
+  }
+
+  if (normalized.includes('rejeit') || normalized.includes('reject')) {
+    return 'danger'
+  }
+
+  if (normalized.includes('aprov') || normalized.includes('approved') || normalized.includes('active')) {
+    return 'success'
+  }
+
+  return 'neutral'
+}
+
+function getStatusLabel(listing) {
+  return listing?.status?.statusName || (listing?.isActive ? 'Ativo' : 'Inativo')
+}
+
+function statusMatchesFilter(listing, statusFilter) {
+  if (statusFilter === 'all') {
+    return true
+  }
+
+  const statusName = String(listing?.status?.statusName || '').trim().toLowerCase()
+
+  if (statusFilter === 'pending') {
+    return statusName.includes('pend')
+  }
+
+  if (statusFilter === 'approved') {
+    return statusName.includes('aprov') || statusName.includes('approved') || statusName.includes('active')
+  }
+
+  if (statusFilter === 'rejected') {
+    return statusName.includes('rejeit') || statusName.includes('reject')
+  }
+
+  if (statusFilter === 'removed') {
+    return statusName.includes('remov') || statusName.includes('hidden') || statusName.includes('inactive')
+  }
+
+  return true
+}
+
+function marketplaceSearchText(listing) {
+  return [
+    listing?.title,
+    listing?.description,
+    listing?.location,
+    listing?.category?.categoryName,
+    listing?.seller?.firstName,
+    listing?.seller?.lastName,
+    listing?.seller?.email,
+    listing?.status?.statusName,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+}
+
+export default function MarketplaceModerationPage() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { logout, user } = useAuth()
+  const reasonRef = useRef(null)
+
+  const [isMobile, setIsMobile] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [listings, setListings] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [loadingError, setLoadingError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [error, setError] = useState('')
+  const [selectedListing, setSelectedListing] = useState(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [rejectionReason, setRejectionReason] = useState('')
+  const [submittingAction, setSubmittingAction] = useState('')
+  const [filters, setFilters] = useState({
+    search: '',
+    location: '',
+    minPrice: '',
+    maxPrice: '',
+    status: 'all',
+  })
+
+  const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'Utilizador'
+  const sidebarActivePath = location.pathname
+  const sidebarHidden = isMobile || sidebarCollapsed
+  const appShellClassName = ['app-shell', sidebarHidden ? 'sidebar-hidden' : '']
+    .filter(Boolean)
+    .join(' ')
+  const sidebarClassName = ['sidebar', isMobile && mobileOpen ? 'open' : '']
+    .filter(Boolean)
+    .join(' ')
+  const sidebarToggleSymbol = isMobile
+    ? mobileOpen ? '✕' : '☰'
+    : sidebarCollapsed ? '▶' : '◀'
+  const sidebarToggleLabel = isMobile
+    ? mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'
+    : sidebarCollapsed ? 'Mostrar barra lateral' : 'Esconder barra lateral'
+
+  const loadListings = useCallback(async () => {
+    setLoading(true)
+    setLoadingError('')
+
+    try {
+      const payload = await adminMarketplaceService.listListings()
+      setListings(Array.isArray(payload) ? payload : [])
+    } catch (requestError) {
+      setLoadingError(requestError?.response?.data?.error || 'Não foi possível carregar os anúncios do marketplace.')
+      setListings([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void loadListings()
+  }, [loadListings])
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 1024px)')
+
+    const updateLayout = () => {
+      setIsMobile(mediaQuery.matches)
+
+      if (!mediaQuery.matches) {
+        setMobileOpen(false)
+      }
+    }
+
+    updateLayout()
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', updateLayout)
+      return () => mediaQuery.removeEventListener('change', updateLayout)
+    }
+
+    mediaQuery.addListener(updateLayout)
+    return () => mediaQuery.removeListener(updateLayout)
+  }, [])
+
+  useEffect(() => {
+    document.body.classList.add('studio-page')
+
+    return () => {
+      document.body.classList.remove('studio-page')
+    }
+  }, [])
+
+  useEffect(() => {
+    if (isModalOpen && selectedListing) {
+      reasonRef.current?.focus?.()
+    }
+  }, [isModalOpen, selectedListing])
+
+  const filteredListings = useMemo(() => {
+    const search = filters.search.trim().toLowerCase()
+    const locationTerm = filters.location.trim().toLowerCase()
+    const minPrice = filters.minPrice === '' ? null : Number(filters.minPrice)
+    const maxPrice = filters.maxPrice === '' ? null : Number(filters.maxPrice)
+
+    return listings.filter((listing) => {
+      if (!statusMatchesFilter(listing, filters.status)) {
+        return false
+      }
+
+      if (search && !marketplaceSearchText(listing).includes(search)) {
+        return false
+      }
+
+      if (locationTerm && !String(listing.location || '').toLowerCase().includes(locationTerm)) {
+        return false
+      }
+
+      if (minPrice !== null && Number(listing.price) < minPrice) {
+        return false
+      }
+
+      if (maxPrice !== null && Number(listing.price) > maxPrice) {
+        return false
+      }
+
+      return true
+    })
+  }, [filters, listings])
+
+  const counts = useMemo(() => {
+    const summary = { all: listings.length, pending: 0, approved: 0, rejected: 0, removed: 0 }
+
+    for (const listing of listings) {
+      const statusName = String(listing?.status?.statusName || '').trim().toLowerCase()
+
+      if (statusName.includes('pend')) {
+        summary.pending += 1
+      } else if (statusName.includes('rejeit') || statusName.includes('reject')) {
+        summary.rejected += 1
+      } else if (statusName.includes('remov') || statusName.includes('inactive') || statusName.includes('hidden')) {
+        summary.removed += 1
+      } else if (statusName.includes('aprov') || statusName.includes('approved') || statusName.includes('active')) {
+        summary.approved += 1
+      }
+    }
+
+    return summary
+  }, [listings])
+
+  const selectedStatusTone = getStatusTone(selectedListing?.status?.statusName)
+
+  const updateFilter = (field, value) => {
+    setFilters((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  const openListing = (listing, shouldSelectReject = false) => {
+    setSelectedListing(listing)
+    setRejectionReason(listing?.rejectionReason || '')
+    setIsModalOpen(true)
+
+    if (shouldSelectReject) {
+      setTimeout(() => {
+        reasonRef.current?.focus?.()
+      }, 0)
+    }
+  }
+
+  const closeModal = () => {
+    setIsModalOpen(false)
+    setSelectedListing(null)
+    setRejectionReason('')
+  }
+
+  async function handleModeration(action, listing, payloadReason = '') {
+    if (!listing || submittingAction) {
+      return
+    }
+
+    setSubmittingAction(action)
+    setError('')
+    setNotice('')
+
+    try {
+      if (action === 'approve') {
+        await adminMarketplaceService.approveListing(listing.listingId)
+        setNotice(`Anúncio "${listing.title}" aprovado.`)
+      } else if (action === 'reject') {
+        const reason = String(payloadReason || '').trim()
+
+        if (!reason) {
+          setError('Indica um motivo de rejeição antes de continuar.')
+          reasonRef.current?.focus?.()
+          return
+        }
+
+        await adminMarketplaceService.rejectListing(listing.listingId, reason)
+        setNotice(`Anúncio "${listing.title}" rejeitado.`)
+      } else if (action === 'delete') {
+        const confirmed = window.confirm(`Eliminar o anúncio "${listing.title}"?`)
+
+        if (!confirmed) {
+          return
+        }
+
+        await adminMarketplaceService.deleteListing(listing.listingId)
+        setNotice(`Anúncio "${listing.title}" removido.`)
+      }
+
+      closeModal()
+      await loadListings()
+    } catch (requestError) {
+      setError(requestError?.response?.data?.error || 'Não foi possível concluir a ação de moderação.')
+    } finally {
+      setSubmittingAction('')
+    }
+  }
+
+  async function handleLogout(event) {
+    event.preventDefault()
+
+    try {
+      await logout()
+    } finally {
+      navigate('/login', { replace: true })
+    }
+  }
+
+  const handleSidebarToggle = () => {
+    if (isMobile) {
+      setMobileOpen((currentValue) => !currentValue)
+      return
+    }
+
+    setSidebarCollapsed((currentValue) => !currentValue)
+  }
+
+  const handleMobileNavClick = () => {
+    if (isMobile) {
+      setMobileOpen(false)
+    }
+  }
+
+  return (
+    <div className={appShellClassName}>
+      {isMobile && mobileOpen ? (
+        <button
+          type="button"
+          className="sidebar-overlay"
+          aria-label="Fechar navegação lateral"
+          onClick={() => setMobileOpen(false)}
+        />
+      ) : null}
+
+      <aside className={sidebarClassName} id="sidebar">
+        <div className="brand">
+          <span className="brand-dot" />
+          <div>
+            <h1>gestArtes</h1>
+            <p>{displayName}</p>
+          </div>
+        </div>
+
+        <div className="nav-group">
+          <h2>Gestão</h2>
+
+          {navigationItems.map((item) => (
+            <Link
+              key={item.href}
+              className={`nav-link${sidebarActivePath === item.href ? ' active' : ''}`}
+              to={item.href}
+              onClick={handleMobileNavClick}
+            >
+              {item.label}
+            </Link>
+          ))}
+
+          <a className="nav-link" href="/login" title={`Terminar sessão de ${displayName}`} onClick={handleLogout}>
+            Terminar Sessão
+          </a>
+        </div>
+      </aside>
+
+      <main className="main">
+        <header className="topbar">
+          <div className="topbar-left">
+            <div className="topbar-heading">
+              <button
+                type="button"
+                className="sidebar-toggle-btn"
+                aria-label={sidebarToggleLabel}
+                onClick={handleSidebarToggle}
+              >
+                {sidebarToggleSymbol}
+              </button>
+              <h2>Moderação do Marketplace</h2>
+            </div>
+            <p>Pesquisa anúncios, revisa o conteúdo e aprova ou rejeita antes da publicação.</p>
+          </div>
+
+          <div className="topbar-right">
+            <span className="pill">{counts.pending} pendentes</span>
+          </div>
+        </header>
+
+        <section className="content-grid" style={{ gap: '1rem' }}>
+          <div className="content-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+            <article className="panel">
+              <h3>Todos</h3>
+              <strong style={{ fontSize: '1.7rem' }}>{counts.all}</strong>
+            </article>
+            <article className="panel">
+              <h3>Pendentes</h3>
+              <strong style={{ fontSize: '1.7rem' }}>{counts.pending}</strong>
+            </article>
+            <article className="panel">
+              <h3>Aprovados</h3>
+              <strong style={{ fontSize: '1.7rem' }}>{counts.approved}</strong>
+            </article>
+            <article className="panel">
+              <h3>Rejeitados</h3>
+              <strong style={{ fontSize: '1.7rem' }}>{counts.rejected}</strong>
+            </article>
+          </div>
+
+          {notice ? (
+            <div className="soft-box" role="status" aria-live="polite">
+              {notice}
+            </div>
+          ) : null}
+
+          {loadingError ? (
+            <div className="soft-box error" role="alert">
+              {loadingError}
+            </div>
+          ) : null}
+
+          {error ? (
+            <div className="soft-box error" role="alert">
+              {error}
+            </div>
+          ) : null}
+
+          <article className="panel">
+            <div className="panel-header">
+              <h3>Feed e queue de moderação</h3>
+              <button type="button" className="ghost-btn" onClick={() => void loadListings()}>
+                Atualizar
+              </button>
+            </div>
+
+            <div className="form-grid two">
+              <Input
+                label="Pesquisar"
+                value={filters.search}
+                onChange={(event) => updateFilter('search', event.target.value)}
+                placeholder="Título, descrição, vendedor ou estado"
+              />
+
+              <Input
+                label="Localização"
+                value={filters.location}
+                onChange={(event) => updateFilter('location', event.target.value)}
+                placeholder="Ex.: Viana do Castelo"
+              />
+
+              <Input
+                label="Preço mínimo"
+                type="number"
+                min="0"
+                value={filters.minPrice}
+                onChange={(event) => updateFilter('minPrice', event.target.value)}
+                placeholder="0"
+              />
+
+              <Input
+                label="Preço máximo"
+                type="number"
+                min="0"
+                value={filters.maxPrice}
+                onChange={(event) => updateFilter('maxPrice', event.target.value)}
+                placeholder="100"
+              />
+            </div>
+
+            <div className="marketplace-status-tabs" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.85rem' }}>
+              {statusOptions.map((option) => {
+                const active = filters.status === option.value
+
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={active ? 'pill' : 'ghost-btn'}
+                    onClick={() => updateFilter('status', option.value)}
+                  >
+                    {option.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="table-wrap" style={{ marginTop: '1rem' }}>
+              {loading ? (
+                <div className="soft-box">A carregar anúncios...</div>
+              ) : (
+                <Table
+                  columns={[
+                    {
+                      header: 'Anúncio',
+                      key: 'title',
+                      render: (listing) => (
+                        <div style={{ display: 'grid', gap: '0.25rem' }}>
+                          <strong>{listing.title || 'Sem título'}</strong>
+                          <span style={{ color: 'var(--studio-muted)', fontSize: '0.85rem' }}>
+                            {listing.category?.categoryName || 'Categoria geral'} · {formatDateTime(listing.createdAt)}
+                          </span>
+                        </div>
+                      ),
+                    },
+                    {
+                      header: 'Vendedor',
+                      key: 'seller',
+                      render: (listing) => (
+                        <div style={{ display: 'grid', gap: '0.2rem' }}>
+                          <strong>{[listing.seller?.firstName, listing.seller?.lastName].filter(Boolean).join(' ') || '—'}</strong>
+                          <span style={{ color: 'var(--studio-muted)', fontSize: '0.85rem' }}>
+                            {listing.seller?.email || '—'}
+                          </span>
+                        </div>
+                      ),
+                    },
+                    {
+                      header: 'Preço',
+                      key: 'price',
+                      align: 'right',
+                      render: (listing) => formatMoney(listing.price),
+                    },
+                    {
+                      header: 'Localização',
+                      key: 'location',
+                      render: (listing) => listing.location || '—',
+                    },
+                    {
+                      header: 'Estado',
+                      key: 'status',
+                      render: (listing) => (
+                        <Badge variant={getStatusTone(listing.status?.statusName)}>
+                          {getStatusLabel(listing)}
+                        </Badge>
+                      ),
+                    },
+                  ]}
+                  rows={filteredListings}
+                  getRowKey={(listing) => listing.listingId}
+                  emptyState="Não existem anúncios com os filtros atuais."
+                  renderRowActions={(listing) => (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                      <button type="button" className="ghost-btn" onClick={() => openListing(listing)}>
+                        Ver
+                      </button>
+                      <button
+                        type="button"
+                        className="ghost-btn"
+                        disabled={submittingAction === 'approve' || getStatusTone(listing.status?.statusName) === 'success'}
+                        onClick={() => void handleModeration('approve', listing)}
+                      >
+                        Aprovar
+                      </button>
+                      <button
+                        type="button"
+                        className="ghost-btn"
+                        disabled={submittingAction === 'reject'}
+                        onClick={() => openListing(listing, true)}
+                      >
+                        Rejeitar
+                      </button>
+                      <button
+                        type="button"
+                        className="danger-btn"
+                        disabled={submittingAction === 'delete'}
+                        onClick={() => void handleModeration('delete', listing)}
+                      >
+                        Apagar
+                      </button>
+                    </div>
+                  )}
+                />
+              )}
+            </div>
+          </article>
+        </section>
+      </main>
+
+      <Modal
+        open={isModalOpen}
+        onClose={closeModal}
+        title={selectedListing?.title || 'Detalhe do anúncio'}
+        description="Revisa o anúncio, consulta a informação enviada e decide o estado de publicação."
+        size="xl"
+        footer={
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              className="ghost-btn"
+              disabled={submittingAction === 'approve'}
+              onClick={() => void handleModeration('approve', selectedListing)}
+            >
+              Aprovar
+            </button>
+            <button
+              type="button"
+              className="ghost-btn"
+              disabled={submittingAction === 'reject'}
+              onClick={() => void handleModeration('reject', selectedListing, rejectionReason)}
+            >
+              Rejeitar
+            </button>
+            <button
+              type="button"
+              className="danger-btn"
+              disabled={submittingAction === 'delete'}
+              onClick={() => void handleModeration('delete', selectedListing)}
+            >
+              Apagar
+            </button>
+          </div>
+        }
+      >
+        <div className="marketplace-preview-grid" style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'minmax(0, 1.1fr) minmax(0, 0.9fr)' }}>
+          <div style={{ display: 'grid', gap: '0.85rem' }}>
+            {selectedListing?.photoUrl ? (
+              <img
+                src={selectedListing.photoUrl}
+                alt={selectedListing.title || 'Anúncio'}
+                style={{ width: '100%', borderRadius: '1rem', border: '1px solid var(--studio-line)', objectFit: 'cover', aspectRatio: '4 / 3' }}
+              />
+            ) : (
+              <div
+                style={{
+                  alignItems: 'center',
+                  aspectRatio: '4 / 3',
+                  background: 'var(--studio-soft-bg)',
+                  border: '1px dashed var(--studio-soft-line)',
+                  borderRadius: '1rem',
+                  display: 'grid',
+                  justifyItems: 'center',
+                  color: 'var(--studio-muted)',
+                }}
+              >
+                Sem imagem
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+                <Badge variant={selectedStatusTone}>{getStatusLabel(selectedListing)}</Badge>
+                <span style={{ color: 'var(--studio-muted)' }}>{formatMoney(selectedListing?.price)}</span>
+              </div>
+
+              <p style={{ margin: 0, color: 'var(--studio-muted)' }}>{selectedListing?.description || 'Sem descrição adicional.'}</p>
+
+              {selectedListing?.rejectionReason ? (
+                <div className="soft-box error" style={{ marginTop: '0.25rem' }}>
+                  <strong>Motivo registado:</strong> {selectedListing.rejectionReason}
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gap: '0.85rem' }}>
+            <div className="soft-box">
+              <strong>Vendedor</strong>
+              <p style={{ margin: '0.35rem 0 0' }}>
+                {[selectedListing?.seller?.firstName, selectedListing?.seller?.lastName].filter(Boolean).join(' ') || '—'}
+              </p>
+              <p style={{ margin: '0.1rem 0 0', color: 'var(--studio-muted)' }}>
+                {selectedListing?.seller?.email || '—'}
+              </p>
+              <p style={{ margin: '0.1rem 0 0', color: 'var(--studio-muted)' }}>
+                {selectedListing?.seller?.phoneNumber || '—'}
+              </p>
+            </div>
+
+            <div className="soft-box">
+              <strong>Detalhes do anúncio</strong>
+              <p style={{ margin: '0.35rem 0 0' }}>
+                Categoria: {selectedListing?.category?.categoryName || '—'}
+              </p>
+              <p style={{ margin: '0.1rem 0 0' }}>
+                Estado: {selectedListing?.condition?.conditionName || '—'}
+              </p>
+              <p style={{ margin: '0.1rem 0 0' }}>
+                Localização: {selectedListing?.location || '—'}
+              </p>
+              <p style={{ margin: '0.1rem 0 0' }}>
+                Publicado: {formatDateTime(selectedListing?.createdAt)}
+              </p>
+            </div>
+
+            <label style={{ display: 'grid', gap: '0.45rem' }}>
+              <span style={{ color: 'var(--studio-ink)', fontWeight: 600 }}>Motivo da rejeição</span>
+              <textarea
+                ref={reasonRef}
+                rows={5}
+                value={rejectionReason}
+                onChange={(event) => setRejectionReason(event.target.value)}
+                placeholder="Descreve claramente o motivo para rejeitar este anúncio"
+                style={{
+                  background: 'var(--studio-field-bg)',
+                  border: '1px solid var(--studio-field-line)',
+                  borderRadius: '0.85rem',
+                  color: 'var(--studio-ink)',
+                  font: 'inherit',
+                  padding: '0.8rem 0.9rem',
+                  resize: 'vertical',
+                  width: '100%',
+                }}
+              />
+              <span style={{ color: 'var(--studio-muted)', fontSize: '0.85rem' }}>
+                Obrigatório quando a decisão for rejeitar.
+              </span>
+            </label>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  )
+}

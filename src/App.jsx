@@ -5,6 +5,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import LoginPage from './pages/LoginPage'
 import StudioManagementPage from './pages/admin/StudioManagementPage'
 import AdminUsersPage from './pages/admin/AdminUsersPage'
+import MarketplaceModerationPage from './pages/admin/MarketplaceModerationPage'
 import DashboardPage from './pages/student/DashboardPage'
 import AdmissionRequestsPage from './pages/teacher/AdmissionRequestsPage'
 import InventoryPage from './pages/student/InventoryPage'
@@ -154,6 +155,7 @@ function App() {
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/studios" element={<StudioManagementPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
+        <Route path="/admin/marketplace" element={<MarketplaceModerationPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />
