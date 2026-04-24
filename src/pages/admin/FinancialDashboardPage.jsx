@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import {
   Bar,
@@ -58,6 +58,7 @@ function fmt(n) {
 export default function FinancialDashboardPage() {
   const location = useLocation()
   const [filters, setFilters] = useState(INITIAL_FILTERS)
+  const [appliedFilters, setAppliedFilters] = useState(INITIAL_FILTERS)
   const [summary, setSummary] = useState(null)
   const [transactions, setTransactions] = useState([])
   const [transactionTotal, setTransactionTotal] = useState(0)
@@ -67,52 +68,48 @@ export default function FinancialDashboardPage() {
   const [exportLoading, setExportLoading] = useState(false)
   const [exportError, setExportError] = useState('')
 
-  const buildParams = useCallback(
-    (f = filters) => {
-      const p = {}
-      if (f.periodStart) p.periodStart = f.periodStart
-      if (f.periodEnd) p.periodEnd = f.periodEnd
-      if (f.studentNumber) p.studentNumber = f.studentNumber
-      return p
-    },
-    [filters],
-  )
+  useEffect(() => {
+    let cancelled = false
 
-  const loadAll = useCallback(
-    async (f) => {
+    async function run() {
       setLoading(true)
       setError('')
+      const params = {}
+      if (appliedFilters.periodStart) params.periodStart = appliedFilters.periodStart
+      if (appliedFilters.periodEnd) params.periodEnd = appliedFilters.periodEnd
+      if (appliedFilters.studentNumber) params.studentNumber = appliedFilters.studentNumber
+
       try {
-        const params = buildParams(f)
         const [sumRes, txRes, revRes] = await Promise.all([
           api.get('/admin/finance/summary', { params }),
           api.get('/admin/finance/transactions', { params: { ...params, limit: 50, offset: 0 } }),
           api.get('/admin/finance/revenue'),
         ])
+        if (cancelled) return
         setSummary(sumRes.data)
         setTransactions(Array.isArray(txRes.data?.items) ? txRes.data.items : [])
         setTransactionTotal(txRes.data?.total ?? 0)
         setRevenue(revRes.data)
       } catch {
-        setError('Não foi possível carregar os dados financeiros.')
+        if (!cancelled) setError('Não foi possível carregar os dados financeiros.')
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
-    },
-    [buildParams],
-  )
+    }
 
-  useEffect(() => {
-    void loadAll()
-  }, [loadAll])
+    void run()
+    return () => {
+      cancelled = true
+    }
+  }, [appliedFilters])
 
   function handleFilterChange(field, value) {
     setFilters((prev) => ({ ...prev, [field]: value }))
   }
 
-  async function handleFilterSubmit(e) {
+  function handleFilterSubmit(e) {
     e.preventDefault()
-    await loadAll(filters)
+    setAppliedFilters(filters)
   }
 
   async function handleExport() {
@@ -137,7 +134,7 @@ export default function FinancialDashboardPage() {
       a.download = `financeiro_${dateTag}.csv`
       a.click()
       URL.revokeObjectURL(url)
-      await loadAll(filters)
+      setAppliedFilters(filters)
     } catch {
       setExportError('Erro ao exportar CSV.')
     } finally {

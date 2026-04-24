@@ -34,8 +34,14 @@ function AdminShell({ title, subtitle, activePath, children, topbarEnd }) {
       if (!mq.matches) setMobileOpen(false)
     }
     update()
-    mq.addEventListener('change', update)
-    return () => mq.removeEventListener('change', update)
+
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', update)
+      return () => mq.removeEventListener('change', update)
+    }
+
+    mq.addListener(update)
+    return () => mq.removeListener(update)
   }, [])
 
   async function handleLogout() {
@@ -84,14 +90,22 @@ function AdminShell({ title, subtitle, activePath, children, topbarEnd }) {
               {item.label}
             </Link>
           ))}
-          <a
+          <button
+            type="button"
             className="nav-link"
-            href="/login"
             title={`Terminar sessão de ${displayName}`}
             onClick={handleLogout}
+            style={{
+              background: 'transparent',
+              border: 0,
+              cursor: 'pointer',
+              font: 'inherit',
+              textAlign: 'left',
+              width: '100%',
+            }}
           >
             Terminar Sessão
-          </a>
+          </button>
         </div>
       </aside>
 

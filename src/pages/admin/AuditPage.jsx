@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Badge } from '../../components/ui/Badge'
 import { KPICard } from '../../components/ui/KPICard'
@@ -41,56 +41,53 @@ const TABLE_COLUMNS = [
 export default function AuditPage() {
   const location = useLocation()
   const [filters, setFilters] = useState(INITIAL_FILTERS)
+  const [appliedFilters, setAppliedFilters] = useState(INITIAL_FILTERS)
   const [events, setEvents] = useState([])
   const [eventTotal, setEventTotal] = useState(0)
   const [summary, setSummary] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const buildParams = useCallback(
-    (f = filters) => {
-      const p = {}
-      if (f.periodStart) p.periodStart = f.periodStart
-      if (f.periodEnd) p.periodEnd = f.periodEnd
-      if (f.module) p.module = f.module
-      return p
-    },
-    [filters],
-  )
+  useEffect(() => {
+    let cancelled = false
 
-  const loadAll = useCallback(
-    async (f) => {
+    async function run() {
       setLoading(true)
       setError('')
+      const params = {}
+      if (appliedFilters.periodStart) params.periodStart = appliedFilters.periodStart
+      if (appliedFilters.periodEnd) params.periodEnd = appliedFilters.periodEnd
+      if (appliedFilters.module) params.module = appliedFilters.module
+
       try {
-        const params = buildParams(f)
         const [evRes, sumRes] = await Promise.all([
           api.get('/admin/audit', { params: { ...params, limit: 100, offset: 0 } }),
           api.get('/admin/audit/summary', { params }),
         ])
+        if (cancelled) return
         setEvents(Array.isArray(evRes.data?.items) ? evRes.data.items : [])
         setEventTotal(evRes.data?.total ?? 0)
         setSummary(sumRes.data)
       } catch {
-        setError('Não foi possível carregar os eventos de auditoria.')
+        if (!cancelled) setError('Não foi possível carregar os eventos de auditoria.')
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
-    },
-    [buildParams],
-  )
+    }
 
-  useEffect(() => {
-    void loadAll()
-  }, [loadAll])
+    void run()
+    return () => {
+      cancelled = true
+    }
+  }, [appliedFilters])
 
   function handleFilterChange(field, value) {
     setFilters((prev) => ({ ...prev, [field]: value }))
   }
 
-  async function handleFilterSubmit(e) {
+  function handleFilterSubmit(e) {
     e.preventDefault()
-    await loadAll(filters)
+    setAppliedFilters(filters)
   }
 
   return (
