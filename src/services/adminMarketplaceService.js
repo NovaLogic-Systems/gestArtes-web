@@ -1,4 +1,5 @@
 import api from './api'
+import { resolveMarketplacePhotoUrl } from '../utils/marketplace-photo-url'
 
 function toNumber(value) {
   const numeric = Number(value)
@@ -32,7 +33,7 @@ function mapListing(entry) {
           statusName: String(entry.status.statusName ?? entry.status.StatusName ?? '').trim(),
         }
       : null,
-    photoUrl: String(entry?.photoUrl ?? entry?.PhotoURL ?? '').trim(),
+    photoUrl: resolveMarketplacePhotoUrl(entry?.photoUrl ?? entry?.PhotoURL ?? ''),
     location: String(entry?.location ?? entry?.Location ?? '').trim(),
     createdAt: entry?.createdAt ?? entry?.CreatedAt ?? null,
     isActive: Boolean(entry?.isActive ?? entry?.IsActive),
