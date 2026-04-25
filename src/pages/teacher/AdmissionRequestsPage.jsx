@@ -14,6 +14,7 @@ import './AdmissionRequestsPage.css'
 const NAV_ITEMS = [
   { label: 'Painel', href: '/teacher/dashboard' },
   { label: 'Pedidos de admissão', href: '/teacher/admission-requests' },
+  { label: 'Inventário da Escola', href: '/teacher/inventory' },
 ]
 
 function toInteger(value, fallback = 0) {
