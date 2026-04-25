@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import notificationPreviewService from '../../services/notificationPreviewService'
 import Badge from '../../components/ui/Badge'
 import Button from '../../components/ui/Button'
+import LoadingSkeleton from '../../components/ui/LoadingSkeleton'
 import Modal from '../../components/ui/Modal'
 import Table from '../../components/ui/Table'
 import {
@@ -10,31 +12,46 @@ import {
   listInventoryItems,
   listMyInventoryRentals,
 } from '../../services/inventory'
+import './InventoryPage.css'
+
+const NAV_ITEMS = [
+  { label: 'Painel', href: '/teacher/dashboard' },
+  { label: 'Pedidos de admissão', href: '/teacher/admission-requests' },
+  { label: 'Inventário da Escola', href: '/teacher/inventory' },
+]
 
 const PAYMENT_METHOD_OPTIONS = [
-  { id: 1, label: 'Pagamento presencial' },
-  { id: 2, label: 'Multibanco' },
-  { id: 3, label: 'MB Way' },
+  { id: 1, label: 'MB Way' },
+  { id: 2, label: 'Cartão' },
+  { id: 3, label: 'Referência Multibanco' },
 ]
 
 const RENTAL_STATUS_BADGE = {
-  pending: { variant: 'warning', label: 'Pendente' },
+  pending: { variant: 'warning', label: 'A aguardar direção' },
+  pending_validation: { variant: 'warning', label: 'A aguardar direção' },
   'condition-checked': { variant: 'info', label: 'Condição verificada' },
   'return-verified': { variant: 'info', label: 'Devolução verificada' },
   completed: { variant: 'success', label: 'Concluído' },
-  pending_validation: { variant: 'warning', label: 'Pendente' },
+  rejected: { variant: 'danger', label: 'Rejeitado' },
 }
 
 function formatCurrency(value) {
   if (value === null || value === undefined) return '—'
-  return `${Number(value).toFixed(2)} €`
+  return new Intl.NumberFormat('pt-PT', { currency: 'EUR', style: 'currency' }).format(Number(value))
 }
 
 function formatDate(value) {
   if (!value) return '—'
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) return '—'
-  return d.toLocaleDateString('pt-PT')
+  return new Intl.DateTimeFormat('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(d)
+}
+
+function formatNotificationDate(value) {
+  if (!value) return ''
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' })
 }
 
 function toIsoDate(dateString) {
@@ -42,11 +59,21 @@ function toIsoDate(dateString) {
   return `${dateString}T00:00:00.000Z`
 }
 
+function getCategoryAbbrev(categoryName) {
+  if (!categoryName) return 'ART'
+  return String(categoryName).slice(0, 4).toUpperCase()
+}
+
 export default function TeacherInventoryPage() {
-  const { logout, user, role } = useAuth()
+  const { logout, user } = useAuth()
+  const location = useLocation()
   const navigate = useNavigate()
 
   const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'Professor'
+
+  const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false))
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   const [activeTab, setActiveTab] = useState('items')
   const [items, setItems] = useState([])
@@ -54,21 +81,58 @@ export default function TeacherInventoryPage() {
   const [loadingItems, setLoadingItems] = useState(true)
   const [loadingRentals, setLoadingRentals] = useState(true)
   const [error, setError] = useState('')
-  const [filters, setFilters] = useState({ search: '', category: '', onlyAvailable: false })
+
+  const [search, setSearch] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('')
+  const [onlyAvailable, setOnlyAvailable] = useState(false)
 
   const [rentalModal, setRentalModal] = useState({ open: false, item: null })
   const [rentalForm, setRentalForm] = useState({ startDate: '', endDate: '', paymentMethodId: PAYMENT_METHOD_OPTIONS[0].id })
   const [submittingRental, setSubmittingRental] = useState(false)
   const [rentalError, setRentalError] = useState('')
 
+  const [detailModal, setDetailModal] = useState({ open: false, item: null })
+
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [notificationsLoaded, setNotificationsLoaded] = useState(false)
+  const [notificationsLoading, setNotificationsLoading] = useState(false)
+  const [notificationsError, setNotificationsError] = useState('')
+  const [notifications, setNotifications] = useState([])
+  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0)
+
+  const notificationBoxRef = useRef(null)
+
+  const sidebarHidden = isMobile || sidebarCollapsed
+  const appShellClassName = ['app-shell', sidebarHidden ? 'sidebar-hidden' : ''].filter(Boolean).join(' ')
+  const sidebarClassName = ['sidebar', isMobile && mobileOpen ? 'open' : ''].filter(Boolean).join(' ')
+  const sidebarToggleSymbol = isMobile ? (mobileOpen ? '✕' : '☰') : (sidebarCollapsed ? '▶' : '◀')
+  const sidebarToggleLabel = isMobile
+    ? (mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral')
+    : (sidebarCollapsed ? 'Mostrar barra lateral' : 'Esconder barra lateral')
+
+  const handleSidebarToggle = useCallback(() => {
+    if (isMobile) { setMobileOpen((v) => !v); return }
+    setSidebarCollapsed((v) => !v)
+  }, [isMobile])
+
+  const handleMobileNavClick = useCallback(() => { if (isMobile) setMobileOpen(false) }, [isMobile])
+
+  useEffect(() => {
+    const onResize = () => {
+      const mobile = window.innerWidth <= 1024
+      setIsMobile(mobile)
+      if (!mobile) setMobileOpen(false)
+    }
+    window.addEventListener('resize', onResize)
+    onResize()
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
   const loadItems = useCallback(async () => {
     try {
       setLoadingItems(true)
       setError('')
-      const data = await listInventoryItems({
-        category: filters.category || undefined,
-        onlyAvailable: filters.onlyAvailable,
-      })
+      const data = await listInventoryItems({ category: categoryFilter || undefined, onlyAvailable })
       setItems(data)
     } catch (err) {
       setItems([])
@@ -76,7 +140,7 @@ export default function TeacherInventoryPage() {
     } finally {
       setLoadingItems(false)
     }
-  }, [filters.category, filters.onlyAvailable])
+  }, [categoryFilter, onlyAvailable])
 
   const loadRentals = useCallback(async () => {
     try {
@@ -85,19 +149,55 @@ export default function TeacherInventoryPage() {
       setRentals(data)
     } catch (err) {
       setRentals([])
-      setError((previous) => previous || err?.response?.data?.error || 'Não foi possível carregar as reservas.')
+      setError((prev) => prev || err?.response?.data?.error || 'Não foi possível carregar as reservas.')
     } finally {
       setLoadingRentals(false)
     }
   }, [])
 
-  useEffect(() => {
-    loadItems()
-  }, [loadItems])
+  useEffect(() => { loadItems() }, [loadItems])
+  useEffect(() => { loadRentals() }, [loadRentals])
+
+  const refreshNotificationSummary = useCallback(async () => {
+    try {
+      const preview = await notificationPreviewService.getPreview({ limit: 0, includeUnreadCount: true })
+      setNotificationUnreadCount(preview.unreadCount)
+    } catch {}
+  }, [])
+
+  const loadNotificationPreview = useCallback(async () => {
+    setNotificationsLoading(true)
+    setNotificationsError('')
+    try {
+      const preview = await notificationPreviewService.getPreview({ limit: 4, includeUnreadCount: true })
+      setNotifications(preview.items)
+      setNotificationUnreadCount(preview.unreadCount)
+      setNotificationsLoaded(true)
+    } catch {
+      setNotificationsError('Não foi possível carregar as notificações.')
+    } finally {
+      setNotificationsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { void refreshNotificationSummary() }, [refreshNotificationSummary])
 
   useEffect(() => {
-    loadRentals()
-  }, [loadRentals])
+    if (!notificationsOpen) return undefined
+    const handleOutsideClick = (event) => {
+      if (notificationBoxRef.current && !notificationBoxRef.current.contains(event.target)) {
+        setNotificationsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [notificationsOpen])
+
+  const handleNotificationsClick = useCallback(() => {
+    const next = !notificationsOpen
+    setNotificationsOpen(next)
+    if (next && !notificationsLoaded) void loadNotificationPreview()
+  }, [loadNotificationPreview, notificationsLoaded, notificationsOpen])
 
   const categories = useMemo(() => {
     const map = new Map()
@@ -110,25 +210,14 @@ export default function TeacherInventoryPage() {
   }, [items])
 
   const filteredItems = useMemo(() => {
-    const search = filters.search.trim().toLowerCase()
-    if (!search) return items
+    const term = search.trim().toLowerCase()
+    if (!term) return items
     return items.filter((item) => {
       const haystack = [item.itemName, item.description, item.category?.categoryName]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-      return haystack.includes(search)
+        .filter(Boolean).join(' ').toLowerCase()
+      return haystack.includes(term)
     })
-  }, [items, filters.search])
-
-  function updateFilter(field, value) {
-    setFilters((current) => ({ ...current, [field]: value }))
-  }
-
-  async function handleLogout() {
-    await logout()
-    navigate('/login?reason=logged-out', { replace: true })
-  }
+  }, [items, search])
 
   function openRentalModal(item) {
     const today = new Date().toISOString().slice(0, 10)
@@ -146,15 +235,11 @@ export default function TeacherInventoryPage() {
   async function submitRental(event) {
     event.preventDefault()
     if (!rentalModal.item) return
-    if (!rentalForm.startDate) {
-      setRentalError('A data de início é obrigatória.')
-      return
-    }
+    if (!rentalForm.startDate) { setRentalError('A data de início é obrigatória.'); return }
     if (rentalForm.endDate && rentalForm.endDate < rentalForm.startDate) {
       setRentalError('A data de fim não pode ser anterior à data de início.')
       return
     }
-
     try {
       setSubmittingRental(true)
       setRentalError('')
@@ -176,13 +261,23 @@ export default function TeacherInventoryPage() {
 
   const itemColumns = [
     {
+      key: 'image',
+      header: 'Imagem',
+      width: '64px',
+      render: (row) => (
+        <div className="item-image">
+          {getCategoryAbbrev(row.category?.categoryName)}
+        </div>
+      ),
+    },
+    {
       key: 'itemName',
-      header: 'Artigo',
+      header: 'Item',
       render: (row) => (
         <div style={{ display: 'grid', gap: '0.2rem' }}>
           <strong>{row.itemName}</strong>
           {row.description ? (
-            <span style={{ color: 'var(--text)', fontSize: '0.85rem' }}>{row.description}</span>
+            <span style={{ color: 'var(--muted)', fontSize: '0.82rem' }}>{row.description}</span>
           ) : null}
         </div>
       ),
@@ -193,20 +288,27 @@ export default function TeacherInventoryPage() {
       render: (row) => row.category?.categoryName ?? '—',
     },
     {
-      key: 'availability',
-      header: 'Disponível',
-      align: 'center',
-      render: (row) => (
-        <Badge variant={row.availableQuantity > 0 ? 'success' : 'danger'}>
-          {row.availableQuantity} / {row.totalQuantity}
-        </Badge>
-      ),
-    },
-    {
       key: 'symbolicFee',
-      header: 'Taxa',
+      header: 'Taxa simbólica',
       align: 'right',
       render: (row) => formatCurrency(row.symbolicFee),
+    },
+    {
+      key: 'condition',
+      header: 'Condição',
+      render: (row) => row.conditionLabel ?? 'Verificado',
+    },
+    {
+      key: 'status',
+      header: 'Estado',
+      render: (row) => {
+        const available = Number(row.availableQuantity ?? 0) > 0
+        return (
+          <Badge variant={available ? 'success' : 'warning'}>
+            {available ? 'Disponível' : 'Reservado'}
+          </Badge>
+        )
+      },
     },
   ]
 
@@ -218,8 +320,19 @@ export default function TeacherInventoryPage() {
     },
     {
       key: 'item',
-      header: 'Artigo',
+      header: 'Item',
       render: (row) => row.item?.itemName ?? '—',
+    },
+    {
+      key: 'paymentMethod',
+      header: 'Método de pagamento',
+      render: (row) => row.paymentMethod?.label ?? row.paymentMethodName ?? '—',
+    },
+    {
+      key: 'estimatedTotal',
+      header: 'Preço a pagar',
+      align: 'right',
+      render: (row) => formatCurrency(row.estimatedTotal ?? row.symbolicFee),
     },
     {
       key: 'status',
@@ -239,258 +352,370 @@ export default function TeacherInventoryPage() {
       header: 'Fim',
       render: (row) => formatDate(row.endDate),
     },
-    {
-      key: 'fee',
-      header: 'Taxa',
-      align: 'right',
-      render: (row) => formatCurrency(row.symbolicFee ?? row.estimatedTotal),
-    },
   ]
 
   return (
-    <main style={{ minHeight: '100vh', padding: '2rem', background: 'var(--bg)' }}>
-      <header
-        style={{
-          alignItems: 'center',
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '1rem',
-          justifyContent: 'space-between',
-          marginBottom: '1.5rem',
-        }}
-      >
-        <div>
-          <p style={{ color: '#666', margin: 0 }}>
-            {displayName} · {String(role || '').toUpperCase()}
-          </p>
-          <h1 style={{ margin: 0 }}>Inventário da Escola</h1>
-          <p style={{ color: '#555', margin: '0.25rem 0 0' }}>
-            Consulta os artigos disponíveis e gere as tuas reservas.
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <Button as="a" href="/teacher/dashboard" variant="secondary">
-            Voltar ao Dashboard
-          </Button>
-          <Button variant="ghost" onClick={handleLogout}>
-            Terminar sessão
-          </Button>
-        </div>
-      </header>
+    <div className="teacher-inventory">
+      <div className={appShellClassName}>
+        {isMobile && mobileOpen ? (
+          <button
+            type="button"
+            className="sidebar-overlay"
+            aria-label="Fechar navegação lateral"
+            onClick={() => setMobileOpen(false)}
+          />
+        ) : null}
 
-      <div role="tablist" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
-        <Button
-          role="tab"
-          aria-selected={activeTab === 'items'}
-          variant={activeTab === 'items' ? 'primary' : 'secondary'}
-          onClick={() => setActiveTab('items')}
-        >
-          Itens disponíveis
-        </Button>
-        <Button
-          role="tab"
-          aria-selected={activeTab === 'myRentals'}
-          variant={activeTab === 'myRentals' ? 'primary' : 'secondary'}
-          onClick={() => setActiveTab('myRentals')}
-        >
-          As minhas reservas ({rentals.length})
-        </Button>
-      </div>
-
-      {error ? (
-        <div
-          style={{
-            background: 'rgba(220, 38, 38, 0.08)',
-            border: '1px solid rgba(220, 38, 38, 0.25)',
-            borderRadius: '0.75rem',
-            color: '#b91c1c',
-            marginBottom: '1rem',
-            padding: '0.75rem 1rem',
-          }}
-        >
-          {error}
-        </div>
-      ) : null}
-
-      {activeTab === 'items' ? (
-        <section>
-          <div
-            style={{
-              alignItems: 'end',
-              display: 'grid',
-              gap: '0.75rem',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              marginBottom: '1rem',
-            }}
-          >
-            <label style={{ display: 'grid', gap: '0.25rem' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-h)' }}>Pesquisar</span>
-              <input
-                type="search"
-                placeholder="Nome, descrição ou categoria"
-                value={filters.search}
-                onChange={(event) => updateFilter('search', event.target.value)}
-                style={{
-                  border: '1px solid var(--border)',
-                  borderRadius: '0.75rem',
-                  font: 'inherit',
-                  padding: '0.6rem 0.85rem',
-                }}
-              />
-            </label>
-            <label style={{ display: 'grid', gap: '0.25rem' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-h)' }}>Categoria</span>
-              <select
-                value={filters.category}
-                onChange={(event) => updateFilter('category', event.target.value)}
-                style={{
-                  border: '1px solid var(--border)',
-                  borderRadius: '0.75rem',
-                  font: 'inherit',
-                  padding: '0.6rem 0.85rem',
-                }}
-              >
-                <option value="">Todas as categorias</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.name}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label style={{ alignItems: 'center', display: 'flex', gap: '0.5rem', paddingTop: '1.4rem' }}>
-              <input
-                type="checkbox"
-                checked={filters.onlyAvailable}
-                onChange={(event) => updateFilter('onlyAvailable', event.target.checked)}
-              />
-              <span style={{ fontWeight: 600 }}>Apenas disponíveis</span>
-            </label>
+        <aside className={sidebarClassName} id="sidebar">
+          <div className="brand">
+            <span className="brand-dot" />
+            <div>
+              <h1>gestArtes</h1>
+              <p>{displayName}</p>
+            </div>
           </div>
 
-          {loadingItems ? (
-            <p style={{ color: 'var(--text)' }}>A carregar artigos…</p>
-          ) : (
-            <Table
-              columns={itemColumns}
-              rows={filteredItems}
-              getRowKey={(row) => row.itemId}
-              emptyState="Sem artigos para apresentar."
-              renderRowActions={(row) => (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  disabled={row.availableQuantity <= 0}
-                  onClick={() => openRentalModal(row)}
+          <div className="nav-group">
+            <h2>Professor</h2>
+            {NAV_ITEMS.map((item) => {
+              const isActive = location.pathname === item.href || location.pathname.startsWith(`${item.href}/`)
+              return (
+                <Link
+                  key={item.href}
+                  className={`nav-link${isActive ? ' active' : ''}`}
+                  to={item.href}
+                  onClick={handleMobileNavClick}
                 >
-                  Reservar
-                </Button>
-              )}
-            />
-          )}
-        </section>
-      ) : null}
+                  {item.label}
+                </Link>
+              )
+            })}
+            <button
+              className="nav-link"
+              type="button"
+              onClick={async () => { await logout(); navigate('/login', { replace: true }) }}
+            >
+              Terminar Sessão
+            </button>
+          </div>
+        </aside>
 
-      {activeTab === 'myRentals' ? (
-        <section>
-          {loadingRentals ? (
-            <p style={{ color: 'var(--text)' }}>A carregar reservas…</p>
-          ) : (
-            <Table
-              columns={rentalColumns}
-              rows={rentals}
-              getRowKey={(row) => row.rentalId}
-              emptyState="Ainda não tens reservas."
-            />
-          )}
-        </section>
-      ) : null}
+        <main className="main">
+          <header className="topbar">
+            <div className="topbar-left">
+              <div className="topbar-heading">
+                <button
+                  type="button"
+                  className="sidebar-toggle-btn"
+                  aria-label={sidebarToggleLabel}
+                  onClick={handleSidebarToggle}
+                >
+                  {sidebarToggleSymbol}
+                </button>
+                <h2>Inventário da Escola</h2>
+              </div>
+              <p>Catálogo oficial para reserva e aluguer</p>
+            </div>
 
+            <div className="topbar-right" ref={notificationBoxRef}>
+              <button
+                type="button"
+                className="pill"
+                onClick={() => setActiveTab('myRentals')}
+              >
+                Pedidos ({rentals.length})
+              </button>
+              <button
+                type="button"
+                className="pill notifications-pill"
+                onClick={handleNotificationsClick}
+              >
+                Notificações {notificationUnreadCount}
+              </button>
+
+              {notificationsOpen ? (
+                <div className="notifications-popover">
+                  <div className="notifications-popover-header">
+                    <strong>Notificações</strong>
+                  </div>
+                  {notificationsLoading ? <p className="notifications-state">A carregar...</p> : null}
+                  {!notificationsLoading && notificationsError ? (
+                    <p className="notifications-state error">{notificationsError}</p>
+                  ) : null}
+                  {!notificationsLoading && !notificationsError && notifications.length === 0 ? (
+                    <p className="notifications-state">Sem notificações.</p>
+                  ) : null}
+                  {!notificationsLoading && notifications.length > 0 ? (
+                    <ul className="notifications-list">
+                      {notifications.map((n) => (
+                        <li key={n.id} className="notifications-item">
+                          <strong>{n.title}</strong>
+                          {n.message ? <p>{n.message}</p> : null}
+                          <small>{formatNotificationDate(n.createdAt)}</small>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  <Link to="/notifications" className="notifications-more-link" onClick={() => setNotificationsOpen(false)}>
+                    Ver Mais
+                  </Link>
+                </div>
+              ) : null}
+            </div>
+          </header>
+
+          <section className="content-grid">
+            {error ? (
+              <div className="error-banner">
+                {error}
+                <button
+                  className="pill"
+                  style={{ marginLeft: '0.65rem' }}
+                  type="button"
+                  onClick={() => { loadItems(); loadRentals() }}
+                >
+                  Tentar novamente
+                </button>
+              </div>
+            ) : null}
+
+            <div className="panel">
+              <div className="tab-row">
+                <button
+                  type="button"
+                  className={`tab-btn${activeTab === 'items' ? ' active' : ''}`}
+                  onClick={() => setActiveTab('items')}
+                >
+                  Catálogo oficial
+                </button>
+                <button
+                  type="button"
+                  className={`tab-btn${activeTab === 'myRentals' ? ' active' : ''}`}
+                  onClick={() => setActiveTab('myRentals')}
+                >
+                  Os meus pedidos ({rentals.length})
+                </button>
+              </div>
+
+              {activeTab === 'items' ? (
+                <>
+                  <div className="filters-row">
+                    <label className="filter-label">
+                      <span>Pesquisar</span>
+                      <input
+                        type="search"
+                        className="filter-input"
+                        placeholder="Nome, descrição ou categoria"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                      />
+                    </label>
+                    <label className="filter-label">
+                      <span>Categoria</span>
+                      <select
+                        className="filter-select"
+                        value={categoryFilter}
+                        onChange={(e) => setCategoryFilter(e.target.value)}
+                      >
+                        <option value="">Todas as categorias</option>
+                        {categories.map((cat) => (
+                          <option key={cat.id} value={cat.name}>{cat.name}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="filter-checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={onlyAvailable}
+                        onChange={(e) => setOnlyAvailable(e.target.checked)}
+                      />
+                      Apenas disponíveis
+                    </label>
+                  </div>
+
+                  {loadingItems ? (
+                    <div style={{ display: 'grid', gap: '10px' }}>
+                      <LoadingSkeleton variant="text" lines={1} width="30%" />
+                      <LoadingSkeleton variant="block" height="3rem" />
+                      <LoadingSkeleton variant="block" height="10rem" />
+                    </div>
+                  ) : (
+                    <Table
+                      columns={itemColumns}
+                      rows={filteredItems}
+                      getRowKey={(row) => row.itemId}
+                      emptyState="Sem artigos para apresentar."
+                      striped
+                      renderRowActions={(row) => {
+                        const available = Number(row.availableQuantity ?? 0) > 0
+                        if (!available) {
+                          return (
+                            <div className="row-actions">
+                              <Badge variant="warning" size="sm">
+                                Reservado
+                              </Badge>
+                            </div>
+                          )
+                        }
+                        return (
+                          <div className="row-actions">
+                            <Button variant="cta" size="sm" onClick={() => openRentalModal(row)}>
+                              Alugar
+                            </Button>
+                            <Button variant="secondary" size="sm" onClick={() => setDetailModal({ open: true, item: row })}>
+                              Detalhes
+                            </Button>
+                          </div>
+                        )
+                      }}
+                    />
+                  )}
+                </>
+              ) : null}
+
+              {activeTab === 'myRentals' ? (
+                <>
+                  {loadingRentals ? (
+                    <div style={{ display: 'grid', gap: '10px' }}>
+                      <LoadingSkeleton variant="block" height="3rem" />
+                      <LoadingSkeleton variant="block" height="8rem" />
+                    </div>
+                  ) : (
+                    <Table
+                      columns={rentalColumns}
+                      rows={rentals}
+                      getRowKey={(row) => row.rentalId}
+                      emptyState="Ainda não tens pedidos de aluguer."
+                      striped
+                    />
+                  )}
+                </>
+              ) : null}
+            </div>
+          </section>
+        </main>
+      </div>
+
+      {/* Modal: Alugar */}
       <Modal
         open={rentalModal.open}
-        title={rentalModal.item ? `Reservar “${rentalModal.item.itemName}”` : 'Reservar artigo'}
-        description="Seleciona as datas e o método de pagamento da reserva."
+        title={rentalModal.item ? `Alugar "${rentalModal.item.itemName}"` : 'Alugar artigo'}
+        description="Seleciona o período de aluguer e o método de pagamento."
         size="md"
+        className="teacher-inventory-modal"
         onClose={closeRentalModal}
         closeOnBackdrop={!submittingRental}
+        footer={
+          <div className="modal-footer-actions">
+            <Button type="button" variant="secondary" onClick={closeRentalModal} disabled={submittingRental}>
+              Cancelar
+            </Button>
+            <Button form="rental-form" type="submit" variant="cta" disabled={submittingRental}>
+              {submittingRental ? 'A enviar pedido…' : 'Enviar pedido à direção'}
+            </Button>
+          </div>
+        }
       >
-        <form onSubmit={submitRental} style={{ display: 'grid', gap: '0.85rem' }}>
-          <label style={{ display: 'grid', gap: '0.25rem' }}>
-            <span style={{ fontWeight: 600 }}>Data de início</span>
+        <form id="rental-form" className="modal-form" onSubmit={submitRental}>
+          {rentalModal.item ? (
+            <div className="rental-summary">
+              <p>Artigo: <strong>{rentalModal.item.itemName}</strong></p>
+              <p>Taxa simbólica: <strong>{formatCurrency(rentalModal.item.symbolicFee)}</strong></p>
+              <p>Disponível: <strong>{rentalModal.item.availableQuantity} / {rentalModal.item.totalQuantity}</strong></p>
+            </div>
+          ) : null}
+
+          <label className="form-label">
+            <span>Data de início</span>
             <input
               type="date"
               required
+              className="form-input"
               value={rentalForm.startDate}
-              onChange={(event) => setRentalForm((current) => ({ ...current, startDate: event.target.value }))}
-              style={{ border: '1px solid var(--border)', borderRadius: '0.75rem', font: 'inherit', padding: '0.6rem 0.85rem' }}
+              onChange={(e) => setRentalForm((f) => ({ ...f, startDate: e.target.value }))}
             />
           </label>
-          <label style={{ display: 'grid', gap: '0.25rem' }}>
-            <span style={{ fontWeight: 600 }}>Data de fim (opcional)</span>
+          <label className="form-label">
+            <span>Data de fim (opcional)</span>
             <input
               type="date"
+              className="form-input"
               value={rentalForm.endDate}
-              onChange={(event) => setRentalForm((current) => ({ ...current, endDate: event.target.value }))}
-              style={{ border: '1px solid var(--border)', borderRadius: '0.75rem', font: 'inherit', padding: '0.6rem 0.85rem' }}
+              onChange={(e) => setRentalForm((f) => ({ ...f, endDate: e.target.value }))}
             />
           </label>
-          <label style={{ display: 'grid', gap: '0.25rem' }}>
-            <span style={{ fontWeight: 600 }}>Método de pagamento</span>
+          <label className="form-label">
+            <span>Método de pagamento</span>
             <select
+              className="form-select"
               value={rentalForm.paymentMethodId}
-              onChange={(event) => setRentalForm((current) => ({ ...current, paymentMethodId: event.target.value }))}
-              style={{ border: '1px solid var(--border)', borderRadius: '0.75rem', font: 'inherit', padding: '0.6rem 0.85rem' }}
+              onChange={(e) => setRentalForm((f) => ({ ...f, paymentMethodId: e.target.value }))}
             >
-              {PAYMENT_METHOD_OPTIONS.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
+              {PAYMENT_METHOD_OPTIONS.map((opt) => (
+                <option key={opt.id} value={opt.id}>{opt.label}</option>
               ))}
             </select>
           </label>
 
-          {rentalModal.item ? (
-            <div
-              style={{
-                background: 'var(--social-bg)',
-                border: '1px solid var(--border)',
-                borderRadius: '0.75rem',
-                padding: '0.75rem 1rem',
-              }}
-            >
-              <p style={{ margin: 0, fontSize: '0.9rem' }}>
-                Taxa simbólica: <strong>{formatCurrency(rentalModal.item.symbolicFee)}</strong>
-              </p>
-              <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'var(--text)' }}>
-                Disponível: {rentalModal.item.availableQuantity} / {rentalModal.item.totalQuantity}
-              </p>
-            </div>
-          ) : null}
-
-          {rentalError ? (
-            <div
-              style={{
-                background: 'rgba(220, 38, 38, 0.08)',
-                border: '1px solid rgba(220, 38, 38, 0.25)',
-                borderRadius: '0.75rem',
-                color: '#b91c1c',
-                padding: '0.6rem 0.9rem',
-              }}
-            >
-              {rentalError}
-            </div>
-          ) : null}
-
-          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-            <Button type="button" variant="secondary" onClick={closeRentalModal} disabled={submittingRental}>
-              Cancelar
-            </Button>
-            <Button type="submit" variant="primary" disabled={submittingRental}>
-              {submittingRental ? 'A reservar…' : 'Confirmar reserva'}
-            </Button>
-          </div>
+          {rentalError ? <p className="modal-error">{rentalError}</p> : null}
         </form>
       </Modal>
-    </main>
+
+      {/* Modal: Detalhes */}
+      <Modal
+        open={detailModal.open}
+        title={detailModal.item?.itemName ?? 'Detalhes do artigo'}
+        size="md"
+        className="teacher-inventory-modal"
+        onClose={() => setDetailModal({ open: false, item: null })}
+        footer={
+          <div className="modal-footer-actions">
+            {detailModal.item && Number(detailModal.item.availableQuantity ?? 0) > 0 ? (
+              <Button
+                variant="cta"
+                onClick={() => {
+                  const item = detailModal.item
+                  setDetailModal({ open: false, item: null })
+                  openRentalModal(item)
+                }}
+              >
+                Alugar este artigo
+              </Button>
+            ) : null}
+            <Button variant="secondary" onClick={() => setDetailModal({ open: false, item: null })}>
+              Fechar
+            </Button>
+          </div>
+        }
+      >
+        {detailModal.item ? (
+          <div>
+            <div className="detail-grid">
+              <div className="detail-card">
+                <strong>Categoria</strong>
+                <span>{detailModal.item.category?.categoryName ?? '—'}</span>
+              </div>
+              <div className="detail-card">
+                <strong>Taxa simbólica</strong>
+                <span>{formatCurrency(detailModal.item.symbolicFee)}</span>
+              </div>
+              <div className="detail-card">
+                <strong>Condição</strong>
+                <span>{detailModal.item.conditionLabel ?? 'Verificado'}</span>
+              </div>
+              <div className="detail-card">
+                <strong>Disponibilidade</strong>
+                <span>{detailModal.item.availableQuantity} / {detailModal.item.totalQuantity} unidades</span>
+              </div>
+            </div>
+            {detailModal.item.description ? (
+              <p style={{ color: 'var(--muted)', margin: 0, fontSize: '0.9rem' }}>
+                {detailModal.item.description}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+      </Modal>
+    </div>
   )
 }
