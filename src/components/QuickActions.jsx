@@ -10,8 +10,8 @@ function QuickActions({ actions = [] }) {
     <div
       style={{
         display: 'grid',
-        gap: '0.75rem',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(12rem, 1fr))',
+        gap: '0.65rem',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(11rem, 1fr))',
       }}
     >
       {safeActions.map((action) => {
@@ -25,8 +25,8 @@ function QuickActions({ actions = [] }) {
             display: 'grid',
             gap: '0.2rem',
             justifyItems: 'start',
-            minHeight: '5.5rem',
-            padding: '1rem',
+            minHeight: '5rem',
+            padding: '0.9rem',
             textAlign: 'left',
           },
         }
@@ -35,9 +35,9 @@ function QuickActions({ actions = [] }) {
           return (
             <Button {...sharedProps} as={Link} to={action.to}>
               <span style={{ display: 'grid', gap: '0.2rem' }}>
-                <strong style={{ fontSize: '1rem', lineHeight: 1.15 }}>{action.label}</strong>
+                <strong style={{ fontSize: '0.95rem', lineHeight: 1.15 }}>{action.label}</strong>
                 {action.description ? (
-                  <span style={{ fontSize: '0.88rem', fontWeight: 500, lineHeight: 1.35, opacity: 0.9 }}>
+                  <span style={{ fontSize: '0.84rem', fontWeight: 500, lineHeight: 1.35, opacity: 0.9 }}>
                     {action.description}
                   </span>
                 ) : null}
@@ -50,9 +50,9 @@ function QuickActions({ actions = [] }) {
           return (
             <Button {...sharedProps} as="a" href={action.href}>
               <span style={{ display: 'grid', gap: '0.2rem' }}>
-                <strong style={{ fontSize: '1rem', lineHeight: 1.15 }}>{action.label}</strong>
+                <strong style={{ fontSize: '0.95rem', lineHeight: 1.15 }}>{action.label}</strong>
                 {action.description ? (
-                  <span style={{ fontSize: '0.88rem', fontWeight: 500, lineHeight: 1.35, opacity: 0.9 }}>
+                  <span style={{ fontSize: '0.84rem', fontWeight: 500, lineHeight: 1.35, opacity: 0.9 }}>
                     {action.description}
                   </span>
                 ) : null}
