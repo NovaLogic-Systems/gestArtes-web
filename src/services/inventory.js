@@ -23,3 +23,6 @@ export async function listMyInventoryRentals() {
   const response = await api.get('/inventory/rentals')
   return response.data?.rentals ?? []
 }
+
+export const getInventoryItemById = getInventoryItem
+export const listInventoryRentals = listMyInventoryRentals
