@@ -6,7 +6,9 @@ import Badge from '../../components/ui/Badge'
 import Input from '../../components/ui/Input'
 import Modal from '../../components/ui/Modal'
 import Table from '../../components/ui/Table'
+import { resolveMarketplacePhotoUrl } from '../../utils/marketplace-photo-url'
 import '../admin-studios.css'
+import './marketplace-moderation.css'
 
 const navigationItems = [
   { href: '/admin/dashboard', label: 'Painel' },
@@ -139,6 +141,8 @@ export default function MarketplaceModerationPage() {
   const [selectedListing, setSelectedListing] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [rejectionReason, setRejectionReason] = useState('')
+  const [isRejectMode, setIsRejectMode] = useState(false)
+  const [modalImageFailed, setModalImageFailed] = useState(false)
   const [submittingAction, setSubmittingAction] = useState('')
   const [filters, setFilters] = useState({
     search: '',
@@ -214,10 +218,10 @@ export default function MarketplaceModerationPage() {
   }, [])
 
   useEffect(() => {
-    if (isModalOpen && selectedListing) {
+    if (isModalOpen && selectedListing && isRejectMode) {
       reasonRef.current?.focus?.()
     }
-  }, [isModalOpen, selectedListing])
+  }, [isModalOpen, isRejectMode, selectedListing])
 
   const filteredListings = useMemo(() => {
     const search = filters.search.trim().toLowerCase()
@@ -271,6 +275,8 @@ export default function MarketplaceModerationPage() {
   }, [listings])
 
   const selectedStatusTone = getStatusTone(selectedListing?.status?.statusName)
+  const selectedListingPhotoUrl = useMemo(() => resolveMarketplacePhotoUrl(selectedListing?.photoUrl), [selectedListing?.photoUrl])
+  const selectedIsApproved = selectedStatusTone === 'success'
 
   const updateFilter = (field, value) => {
     setFilters((current) => ({
@@ -282,6 +288,8 @@ export default function MarketplaceModerationPage() {
   const openListing = (listing, shouldSelectReject = false) => {
     setSelectedListing(listing)
     setRejectionReason(listing?.rejectionReason || '')
+    setIsRejectMode(Boolean(shouldSelectReject))
+    setModalImageFailed(false)
     setIsModalOpen(true)
 
     if (shouldSelectReject) {
@@ -295,6 +303,8 @@ export default function MarketplaceModerationPage() {
     setIsModalOpen(false)
     setSelectedListing(null)
     setRejectionReason('')
+    setIsRejectMode(false)
+    setModalImageFailed(false)
   }
 
   async function handleModeration(action, listing, payloadReason = '') {
@@ -580,13 +590,13 @@ export default function MarketplaceModerationPage() {
                   getRowKey={(listing) => listing.listingId}
                   emptyState="Não existem anúncios com os filtros atuais."
                   renderRowActions={(listing) => (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                      <button type="button" className="ghost-btn" onClick={() => openListing(listing)}>
+                    <div className="marketplace-row-actions">
+                      <button type="button" className="moderation-action-btn neutral" onClick={() => openListing(listing)}>
                         Ver
                       </button>
                       <button
                         type="button"
-                        className="ghost-btn"
+                        className="moderation-action-btn approve"
                         disabled={submittingAction === 'approve' || getStatusTone(listing.status?.statusName) === 'success'}
                         onClick={() => void handleModeration('approve', listing)}
                       >
@@ -594,7 +604,7 @@ export default function MarketplaceModerationPage() {
                       </button>
                       <button
                         type="button"
-                        className="ghost-btn"
+                        className="moderation-action-btn reject"
                         disabled={submittingAction === 'reject'}
                         onClick={() => openListing(listing, true)}
                       >
@@ -602,7 +612,7 @@ export default function MarketplaceModerationPage() {
                       </button>
                       <button
                         type="button"
-                        className="danger-btn"
+                        className="moderation-action-btn delete"
                         disabled={submittingAction === 'delete'}
                         onClick={() => void handleModeration('delete', listing)}
                       >
@@ -621,29 +631,40 @@ export default function MarketplaceModerationPage() {
         open={isModalOpen}
         onClose={closeModal}
         title={selectedListing?.title || 'Detalhe do anúncio'}
-        description="Revisa o anúncio, consulta a informação enviada e decide o estado de publicação."
+        description="Revê o anúncio, consulta a informação enviada e decide o estado de publicação."
         size="xl"
         footer={
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', justifyContent: 'flex-end' }}>
+          <div className="marketplace-modal-footer-actions">
             <button
               type="button"
-              className="ghost-btn"
-              disabled={submittingAction === 'approve'}
+              className="moderation-action-btn approve"
+              disabled={submittingAction === 'approve' || selectedIsApproved}
               onClick={() => void handleModeration('approve', selectedListing)}
             >
-              Aprovar
+              {selectedIsApproved ? 'Já aprovado' : 'Aprovar anúncio'}
             </button>
+            {isRejectMode ? (
+              <button
+                type="button"
+                className="moderation-action-btn reject"
+                disabled={submittingAction === 'reject'}
+                onClick={() => void handleModeration('reject', selectedListing, rejectionReason)}
+              >
+                Confirmar rejeição
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="moderation-action-btn reject"
+                disabled={submittingAction === 'reject'}
+                onClick={() => setIsRejectMode(true)}
+              >
+                Rejeitar anúncio
+              </button>
+            )}
             <button
               type="button"
-              className="ghost-btn"
-              disabled={submittingAction === 'reject'}
-              onClick={() => void handleModeration('reject', selectedListing, rejectionReason)}
-            >
-              Rejeitar
-            </button>
-            <button
-              type="button"
-              className="danger-btn"
+              className="moderation-action-btn delete"
               disabled={submittingAction === 'delete'}
               onClick={() => void handleModeration('delete', selectedListing)}
             >
@@ -652,100 +673,80 @@ export default function MarketplaceModerationPage() {
           </div>
         }
       >
-        <div className="marketplace-preview-grid" style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'minmax(0, 1.1fr) minmax(0, 0.9fr)' }}>
-          <div style={{ display: 'grid', gap: '0.85rem' }}>
-            {selectedListing?.photoUrl ? (
+        <div className="marketplace-preview-grid">
+          <div className="marketplace-modal-main-column">
+            {selectedListingPhotoUrl && !modalImageFailed ? (
               <img
-                src={selectedListing.photoUrl}
+                src={selectedListingPhotoUrl}
                 alt={selectedListing.title || 'Anúncio'}
-                style={{ width: '100%', borderRadius: '1rem', border: '1px solid var(--studio-line)', objectFit: 'cover', aspectRatio: '4 / 3' }}
+                className="marketplace-modal-image"
+                onError={() => setModalImageFailed(true)}
               />
             ) : (
-              <div
-                style={{
-                  alignItems: 'center',
-                  aspectRatio: '4 / 3',
-                  background: 'var(--studio-soft-bg)',
-                  border: '1px dashed var(--studio-soft-line)',
-                  borderRadius: '1rem',
-                  display: 'grid',
-                  justifyItems: 'center',
-                  color: 'var(--studio-muted)',
-                }}
-              >
+              <div className="marketplace-modal-image-empty">
                 Sem imagem
               </div>
             )}
 
-            <div style={{ display: 'grid', gap: '0.5rem' }}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+            <div className="marketplace-modal-meta-block">
+              <div className="marketplace-modal-meta-head">
                 <Badge variant={selectedStatusTone}>{getStatusLabel(selectedListing)}</Badge>
-                <span style={{ color: 'var(--studio-muted)' }}>{formatMoney(selectedListing?.price)}</span>
+                <span className="marketplace-modal-price">{formatMoney(selectedListing?.price)}</span>
               </div>
 
-              <p style={{ margin: 0, color: 'var(--studio-muted)' }}>{selectedListing?.description || 'Sem descrição adicional.'}</p>
+              <p className="marketplace-modal-description">{selectedListing?.description || 'Sem descrição adicional.'}</p>
 
               {selectedListing?.rejectionReason ? (
-                <div className="soft-box error" style={{ marginTop: '0.25rem' }}>
+                <div className="soft-box error marketplace-modal-registered-reason">
                   <strong>Motivo registado:</strong> {selectedListing.rejectionReason}
                 </div>
               ) : null}
             </div>
           </div>
 
-          <div style={{ display: 'grid', gap: '0.85rem' }}>
+          <div className="marketplace-modal-side-column">
             <div className="soft-box">
               <strong>Vendedor</strong>
-              <p style={{ margin: '0.35rem 0 0' }}>
+              <p className="marketplace-modal-line-first">
                 {[selectedListing?.seller?.firstName, selectedListing?.seller?.lastName].filter(Boolean).join(' ') || '—'}
               </p>
-              <p style={{ margin: '0.1rem 0 0', color: 'var(--studio-muted)' }}>
+              <p className="marketplace-modal-line-subtle">
                 {selectedListing?.seller?.email || '—'}
               </p>
-              <p style={{ margin: '0.1rem 0 0', color: 'var(--studio-muted)' }}>
+              <p className="marketplace-modal-line-subtle">
                 {selectedListing?.seller?.phoneNumber || '—'}
               </p>
             </div>
 
             <div className="soft-box">
               <strong>Detalhes do anúncio</strong>
-              <p style={{ margin: '0.35rem 0 0' }}>
+              <p className="marketplace-modal-line-first">
                 Categoria: {selectedListing?.category?.categoryName || '—'}
               </p>
-              <p style={{ margin: '0.1rem 0 0' }}>
+              <p className="marketplace-modal-line-regular">
                 Estado: {selectedListing?.condition?.conditionName || '—'}
               </p>
-              <p style={{ margin: '0.1rem 0 0' }}>
+              <p className="marketplace-modal-line-regular">
                 Localização: {selectedListing?.location || '—'}
               </p>
-              <p style={{ margin: '0.1rem 0 0' }}>
+              <p className="marketplace-modal-line-regular">
                 Publicado: {formatDateTime(selectedListing?.createdAt)}
               </p>
             </div>
 
-            <label style={{ display: 'grid', gap: '0.45rem' }}>
-              <span style={{ color: 'var(--studio-ink)', fontWeight: 600 }}>Motivo da rejeição</span>
-              <textarea
-                ref={reasonRef}
-                rows={5}
-                value={rejectionReason}
-                onChange={(event) => setRejectionReason(event.target.value)}
-                placeholder="Descreve claramente o motivo para rejeitar este anúncio"
-                style={{
-                  background: 'var(--studio-field-bg)',
-                  border: '1px solid var(--studio-field-line)',
-                  borderRadius: '0.85rem',
-                  color: 'var(--studio-ink)',
-                  font: 'inherit',
-                  padding: '0.8rem 0.9rem',
-                  resize: 'vertical',
-                  width: '100%',
-                }}
-              />
-              <span style={{ color: 'var(--studio-muted)', fontSize: '0.85rem' }}>
-                Obrigatório quando a decisão for rejeitar.
-              </span>
-            </label>
+            {isRejectMode ? (
+              <label className="marketplace-rejection-panel">
+                <span className="marketplace-rejection-title">Motivo da rejeição</span>
+                <textarea
+                  ref={reasonRef}
+                  rows={5}
+                  value={rejectionReason}
+                  onChange={(event) => setRejectionReason(event.target.value)}
+                  placeholder="Descreve claramente o motivo para rejeitar este anúncio"
+                />
+                <span className="marketplace-rejection-help">Obrigatório para confirmar rejeição.</span>
+              </label>
+            ) : null}
           </div>
         </div>
       </Modal>
