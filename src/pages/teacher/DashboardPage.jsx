@@ -3,13 +3,21 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
 import notificationPreviewService from '../../services/notificationPreviewService'
-import QuickActions from '../../components/QuickActions'
+import Badge from '../../components/ui/Badge'
+import KPICard from '../../components/ui/KPICard'
+import LoadingSkeleton from '../../components/ui/LoadingSkeleton'
+import Table from '../../components/ui/Table'
 import Toast from '../../components/ui/Toast'
+import Button from '../../components/ui/Button'
 import './DashboardPage.css'
 
 const NAV_ITEMS = [
   { label: 'Painel', href: '/teacher/dashboard' },
-  { label: 'Pedidos de admissão', href: '/teacher/admission-requests' },
+  { label: 'Horário', href: '/teacher/schedule' },
+  { label: 'Coaching', href: '/teacher/coaching' },
+  { label: 'Inventário da Escola', href: '/teacher/inventory' },
+  { label: 'Marketplace', href: '/teacher/marketplace' },
+  { label: 'Minha Conta', href: '/teacher/account' },
 ]
 
 function toInteger(value, fallback = 0) {
@@ -17,70 +25,9 @@ function toInteger(value, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback
 }
 
-function normalizeKpis(data) {
-  return {
-    classesToday: toInteger(data?.classesToday ?? data?.ClassesToday),
-    pendingConfirmations: toInteger(data?.pendingConfirmations ?? data?.PendingConfirmations),
-    admissionRequests: toInteger(data?.admissionRequests ?? data?.AdmissionRequests),
-    noShows: toInteger(data?.noShows ?? data?.NoShows),
-  }
-}
-
-function normalizeScheduleRow(item) {
-  return {
-    sessionId: toInteger(item?.sessionId ?? item?.SessionId),
-    time: String(item?.time ?? item?.Time ?? '').slice(0, 5) || '—',
-    studio: String(item?.studio ?? item?.Studio ?? item?.studioName ?? '—'),
-    status: String(item?.status ?? item?.Status ?? item?.sessionStatus ?? ''),
-    studentCount: toInteger(item?.studentCount ?? item?.StudentCount),
-  }
-}
-
-function normalizeSchedule(data) {
-  const rows = Array.isArray(data)
-    ? data
-    : Array.isArray(data?.schedule)
-      ? data.schedule
-      : []
-  return rows.map(normalizeScheduleRow)
-}
-
-function normalizeJoinRequest(item) {
-  return {
-    joinRequestId: toInteger(item?.joinRequestId ?? item?.JoinRequestID ?? item?.id),
-    studentName: String(item?.studentName ?? item?.StudentName ?? 'Estudante').trim(),
-    sessionLabel: String(item?.sessionLabel ?? item?.SessionLabel ?? `Sessão #${toInteger(item?.sessionId ?? item?.SessionId)}`).trim(),
-  }
-}
-
-function normalizeJoinRequests(data) {
-  const items = Array.isArray(data)
-    ? data
-    : Array.isArray(data?.requests)
-      ? data.requests
-      : Array.isArray(data?.items)
-        ? data.items
-        : []
-  return items.map(normalizeJoinRequest)
-}
-
-function resolveStatusBadgeClass(status) {
-  const s = String(status || '').trim().toLowerCase()
-  if (s.includes('conclu') || s.includes('complet') || s.includes('finaliz')) return 'badge ok'
-  if (s.includes('curso') || s.includes('progress') || s.includes('ativ')) return 'badge warn'
-  if (s.includes('cancel') || s.includes('reject')) return 'badge danger'
-  return 'badge info'
-}
-
-function resolveStatusLabel(status) {
-  const s = String(status || '').trim().toLowerCase()
-  if (!s) return 'Agendada'
-  if (s.includes('conclu') || s.includes('complet') || s.includes('finaliz')) return 'Concluída'
-  if (s.includes('curso') || s.includes('progress') || s.includes('ativ')) return 'Em curso'
-  if (s.includes('agendad') || s.includes('schedul')) return 'Agendada'
-  if (s.includes('pend')) return 'Pendente'
-  if (s.includes('cancel')) return 'Cancelada'
-  return status
+function formatTime(value) {
+  if (!value) return '—'
+  return String(value).slice(0, 5)
 }
 
 function formatNotificationDate(value) {
@@ -90,20 +37,106 @@ function formatNotificationDate(value) {
   return parsed.toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' })
 }
 
+const SESSION_STATUS_META = {
+  scheduled:                       { label: 'Agendada',                variant: 'info'    },
+  completion_confirmation_pending: { label: 'A confirmar',             variant: 'warning' },
+  finalization_validation_pending: { label: 'A validar',               variant: 'warning' },
+  finalized:                       { label: 'Finalizada',              variant: 'success' },
+  accounting_table_updated:        { label: 'Contabilizada',           variant: 'success' },
+  no_show:                         { label: 'Falta s/ aviso',          variant: 'danger'  },
+  cancelled_justified:             { label: 'Cancelada (justificada)', variant: 'neutral' },
+  cancelled_timeout:               { label: 'Cancelada (timeout)',     variant: 'danger'  },
+  cancelled_rejected:              { label: 'Cancelada (rejeitada)',   variant: 'danger'  },
+}
+
+function normalizeStatusKey(statusName) {
+  return String(statusName ?? '')
+    .trim()
+    .replace(/([a-z])([A-Z])/g, '$1_$2')
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_')
+}
+
+function resolveSessionStatusMeta(statusName) {
+  const key = normalizeStatusKey(statusName)
+  if (SESSION_STATUS_META[key]) return SESSION_STATUS_META[key]
+  if (key.includes('finali') || key.includes('conclu')) return { label: 'Finalizada',     variant: 'success' }
+  if (key.includes('no_show') || key.includes('falta')) return { label: 'Falta s/ aviso', variant: 'danger'  }
+  if (key.includes('cancel'))                            return { label: 'Cancelada',     variant: 'neutral' }
+  if (key.includes('pend') || key.includes('valid'))     return { label: 'Em curso',      variant: 'warning' }
+  if (key.includes('schedul') || key.includes('agend'))  return { label: 'Agendada',      variant: 'info'    }
+  return { label: statusName || '—', variant: 'neutral' }
+}
+
+function normalizeSummary(data) {
+  return {
+    classesToday: toInteger(data?.classesToday),
+    pendingConfirmations: toInteger(data?.pendingConfirmations),
+    admissionRequests: toInteger(data?.admissionRequests),
+    noShows: toInteger(data?.noShows),
+  }
+}
+
+function normalizeSchedule(data) {
+  const rows = Array.isArray(data?.schedule) ? data.schedule : []
+  return rows.map((row) => ({
+    sessionId: toInteger(row?.sessionId),
+    time: row?.time ?? '—',
+    studio: String(row?.studio ?? '—').trim() || '—',
+    status: String(row?.status ?? '').trim(),
+    modalityName: String(row?.modalityName ?? '—').trim() || '—',
+  }))
+}
+
+
+const scheduleColumns = [
+  {
+    key: 'time',
+    header: 'Hora',
+    render: (row) => <strong>{formatTime(row.time)}</strong>,
+  },
+  {
+    key: 'sessionId',
+    header: 'Sessão',
+    render: (row) => <span>#{row.sessionId}</span>,
+  },
+  {
+    key: 'modalityName',
+    header: 'Formato',
+    render: (row) => <span>{row.modalityName}</span>,
+  },
+  {
+    key: 'studio',
+    header: 'Estúdio',
+    render: (row) => <span>{row.studio}</span>,
+  },
+  {
+    key: 'status',
+    header: 'Estado',
+    render: (row) => {
+      const meta = resolveSessionStatusMeta(row.status)
+      return (
+        <Badge variant={meta.variant} size="sm" aria-label={`Estado da sessão: ${meta.label}`}>
+          {meta.label}
+        </Badge>
+      )
+    },
+  },
+]
+
 export default function DashboardPage() {
   const { logout, user } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
 
-  const teacherName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Professor'
-
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth <= 1024 : false,
+  )
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false))
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
-  const [kpis, setKpis] = useState({ classesToday: 0, pendingConfirmations: 0, admissionRequests: 0, noShows: 0 })
+  const [summary, setSummary] = useState(null)
   const [schedule, setSchedule] = useState([])
-  const [joinRequests, setJoinRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [toast, setToast] = useState(null)
@@ -113,8 +146,12 @@ export default function DashboardPage() {
   const [notificationsLoading, setNotificationsLoading] = useState(false)
   const [notificationsError, setNotificationsError] = useState('')
   const [notifications, setNotifications] = useState([])
-  const [unreadCount, setUnreadCount] = useState(0)
+  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0)
+
   const notificationBoxRef = useRef(null)
+
+  const displayName =
+    [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'Professor'
 
   const sidebarHidden = isMobile || sidebarCollapsed
   const appShellClassName = ['app-shell', sidebarHidden ? 'sidebar-hidden' : ''].filter(Boolean).join(' ')
@@ -147,44 +184,37 @@ export default function DashboardPage() {
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  const loadAll = useCallback(async () => {
+  const loadData = useCallback(async () => {
     setLoading(true)
     setError('')
 
-    const [dashboardResult, scheduleResult, requestsResult] = await Promise.allSettled([
+    const [summaryResult, scheduleResult] = await Promise.allSettled([
       api.get('/teacher/dashboard'),
       api.get('/teacher/schedule/today'),
-      api.get('/teacher/admission-requests'),
     ])
 
-    if (dashboardResult.status === 'fulfilled') {
-      setKpis(normalizeKpis(dashboardResult.value.data))
-    } else {
-      setError('Não foi possível carregar o resumo do painel.')
-    }
+    setSummary(summaryResult.status === 'fulfilled' ? normalizeSummary(summaryResult.value.data) : null)
+    setSchedule(scheduleResult.status === 'fulfilled' ? normalizeSchedule(scheduleResult.value.data) : [])
 
-    if (scheduleResult.status === 'fulfilled') {
-      setSchedule(normalizeSchedule(scheduleResult.value.data))
-    }
-
-    if (requestsResult.status === 'fulfilled') {
-      setJoinRequests(normalizeJoinRequests(requestsResult.value.data))
+    if (summaryResult.status === 'rejected' && scheduleResult.status === 'rejected') {
+      setError('Não foi possível carregar os dados do painel. Verifica a ligação ao servidor.')
     }
 
     setLoading(false)
   }, [])
 
-  useEffect(() => {
-    void loadAll()
-  }, [loadAll])
+  const refreshNotificationSummary = useCallback(async () => {
+    const preview = await notificationPreviewService.getPreview({ limit: 0, includeUnreadCount: true })
+    setNotificationUnreadCount(preview.unreadCount)
+  }, [])
 
   const loadNotificationPreview = useCallback(async () => {
     setNotificationsLoading(true)
     setNotificationsError('')
     try {
       const preview = await notificationPreviewService.getPreview({ limit: 4, includeUnreadCount: true })
-      setNotifications(preview.items ?? [])
-      setUnreadCount(preview.unreadCount ?? 0)
+      setNotifications(preview.items)
+      setNotificationUnreadCount(preview.unreadCount)
       setNotificationsLoaded(true)
     } catch {
       setNotificationsError('Não foi possível carregar as notificações.')
@@ -194,8 +224,15 @@ export default function DashboardPage() {
   }, [])
 
   useEffect(() => {
-    if (!notificationsOpen) return undefined
+    void loadData()
+  }, [loadData])
 
+  useEffect(() => {
+    void refreshNotificationSummary()
+  }, [refreshNotificationSummary])
+
+  useEffect(() => {
+    if (!notificationsOpen) return undefined
     const handleOutsideClick = (event) => {
       if (notificationBoxRef.current && !notificationBoxRef.current.contains(event.target)) {
         setNotificationsOpen(false)
@@ -205,46 +242,18 @@ export default function DashboardPage() {
     return () => document.removeEventListener('mousedown', handleOutsideClick)
   }, [notificationsOpen])
 
-  const handleNotificationsClick = () => {
-    const nextState = !notificationsOpen
-    setNotificationsOpen(nextState)
-    if (nextState && !notificationsLoaded) {
-      void loadNotificationPreview()
-    }
-  }
+  const handleNotificationsClick = useCallback(() => {
+    const next = !notificationsOpen
+    setNotificationsOpen(next)
+    if (next && !notificationsLoaded) void loadNotificationPreview()
+  }, [loadNotificationPreview, notificationsLoaded, notificationsOpen])
 
-  function showToast(message) {
-    setToast(message)
-    setTimeout(() => setToast(null), 3000)
+  function showComingSoonToast() {
+    setToast({ title: 'Em breve', description: 'Funcionalidade em breve disponível.', variant: 'info' })
   }
-
-  const quickActions = [
-    {
-      key: 'availability',
-      label: 'Submeter disponibilidade',
-      onClick: () => showToast('Funcionalidade em breve disponível.'),
-    },
-    {
-      key: 'completion',
-      label: 'Confirmar conclusão',
-      onClick: () => showToast('Funcionalidade em breve disponível.'),
-    },
-    {
-      key: 'no-show',
-      label: 'Registar falta sem aviso',
-      variant: 'ctaSecondary',
-      onClick: () => showToast('Funcionalidade em breve disponível.'),
-    },
-  ]
 
   return (
     <div className="teacher-dashboard">
-      {toast ? (
-        <div className="toast-wrapper">
-          <Toast variant="info" title={toast} onClose={() => setToast(null)} />
-        </div>
-      ) : null}
-
       <div className={appShellClassName}>
         {isMobile && mobileOpen ? (
           <button
@@ -260,14 +269,16 @@ export default function DashboardPage() {
             <span className="brand-dot" />
             <div>
               <h1>gestArtes</h1>
-              <p>{teacherName}</p>
+              <p>{displayName}</p>
             </div>
           </div>
 
           <div className="nav-group">
             <h2>Professor</h2>
             {NAV_ITEMS.map((item) => {
-              const isActive = location.pathname === item.href || location.pathname.startsWith(`${item.href}/`)
+              const isActive =
+                location.pathname === item.href ||
+                location.pathname.startsWith(`${item.href}/`)
               return (
                 <Link
                   key={item.href}
@@ -284,7 +295,7 @@ export default function DashboardPage() {
               type="button"
               onClick={async () => {
                 await logout()
-                navigate('/login?reason=logged-out', { replace: true })
+                navigate('/login', { replace: true })
               }}
             >
               Terminar Sessão
@@ -295,34 +306,30 @@ export default function DashboardPage() {
         <main className="main">
           <header className="topbar">
             <div className="topbar-left">
-              <button
-                type="button"
-                className="sidebar-toggle-btn"
-                aria-label={sidebarToggleLabel}
-                onClick={handleSidebarToggle}
-              >
-                {sidebarToggleSymbol}
-              </button>
-              <button
-                className="menu-toggle"
-                type="button"
-                id="menuToggle"
-                aria-controls="sidebar"
-                aria-expanded={mobileOpen}
-                aria-label={mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'}
-                onClick={() => setMobileOpen((v) => !v)}
-              >
-                ☰ Menu
-              </button>
-              <h2>Painel Professor</h2>
+              <div className="topbar-heading">
+                <button
+                  type="button"
+                  className="sidebar-toggle-btn"
+                  aria-label={sidebarToggleLabel}
+                  onClick={handleSidebarToggle}
+                >
+                  {sidebarToggleSymbol}
+                </button>
+                <h2>Painel Professor</h2>
+              </div>
               <p>Operação diária de aulas, faltas e pedidos de adesão</p>
             </div>
+
             <div className="topbar-right" ref={notificationBoxRef}>
               <Link className="pill" to="/teacher/account">
                 Minha Conta
               </Link>
-              <button type="button" className="pill notifications-pill" onClick={handleNotificationsClick}>
-                {`Notificações${unreadCount > 0 ? ` ${unreadCount}` : ''}`}
+              <button
+                type="button"
+                className="notifications-pill"
+                onClick={handleNotificationsClick}
+              >
+                Notificações {notificationUnreadCount > 0 ? notificationUnreadCount : ''}
               </button>
 
               {notificationsOpen ? (
@@ -345,18 +352,18 @@ export default function DashboardPage() {
 
                   {!notificationsLoading && notifications.length > 0 ? (
                     <ul className="notifications-list">
-                      {notifications.map((notification) => (
-                        <li key={notification.id} className="notifications-item">
-                          <strong>{notification.title}</strong>
-                          {notification.message ? <p>{notification.message}</p> : null}
-                          <small>{formatNotificationDate(notification.createdAt)}</small>
+                      {notifications.map((n) => (
+                        <li key={n.id} className="notifications-item">
+                          <strong>{n.title}</strong>
+                          {n.message ? <p>{n.message}</p> : null}
+                          <small>{formatNotificationDate(n.createdAt)}</small>
                         </li>
                       ))}
                     </ul>
                   ) : null}
 
                   <Link
-                    to="/teacher/notifications"
+                    to="/notifications"
                     className="notifications-more-link"
                     onClick={() => setNotificationsOpen(false)}
                   >
@@ -371,29 +378,38 @@ export default function DashboardPage() {
             {error ? (
               <div className="error-banner">
                 {error}
-                <button className="pill" style={{ marginLeft: '0.65rem' }} type="button" onClick={loadAll}>
+                <button
+                  className="pill"
+                  style={{ marginLeft: '0.65rem', cursor: 'pointer' }}
+                  type="button"
+                  onClick={loadData}
+                >
                   Tentar novamente
                 </button>
               </div>
             ) : null}
 
             <div className="kpi-grid">
-              <article className="kpi">
-                <h3>Aulas hoje</h3>
-                <strong>{loading ? '—' : kpis.classesToday}</strong>
-              </article>
-              <article className="kpi">
-                <h3>Confirmações pendentes</h3>
-                <strong>{loading ? '—' : kpis.pendingConfirmations}</strong>
-              </article>
-              <article className="kpi">
-                <h3>Pedidos de adesão</h3>
-                <strong>{loading ? '—' : kpis.admissionRequests}</strong>
-              </article>
-              <article className="kpi">
-                <h3>Faltas sem aviso</h3>
-                <strong>{loading ? '—' : kpis.noShows}</strong>
-              </article>
+              <KPICard
+                title="Aulas hoje"
+                value={summary ? summary.classesToday : '—'}
+                accent="#0b9d8f"
+              />
+              <KPICard
+                title="Confirmações pendentes"
+                value={summary ? summary.pendingConfirmations : '—'}
+                accent="#c2410c"
+              />
+              <KPICard
+                title="Pedidos de adesão"
+                value={summary ? summary.admissionRequests : '—'}
+                accent="#6f5ca5"
+              />
+              <KPICard
+                title="Faltas sem aviso"
+                value={summary ? summary.noShows : '—'}
+                accent="#b91c1c"
+              />
             </div>
 
             <div className="split">
@@ -401,71 +417,72 @@ export default function DashboardPage() {
                 <h3>Agenda de hoje</h3>
 
                 {loading ? (
-                  <p className="panel-subtle">A carregar sessões...</p>
-                ) : schedule.length === 0 ? (
-                  <p className="empty">Sem sessões agendadas para hoje.</p>
+                  <div className="loading-stack" aria-label="A carregar agenda">
+                    <LoadingSkeleton variant="text" lines={1} width="36%" />
+                    <LoadingSkeleton variant="block" height="2.5rem" />
+                    <LoadingSkeleton variant="block" height="9rem" />
+                  </div>
                 ) : (
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Hora</th>
-                        <th>Sessão</th>
-                        <th>Estúdio</th>
-                        <th>Alunos</th>
-                        <th>Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {schedule.map((row) => (
-                        <tr key={row.sessionId}>
-                          <td>{row.time}</td>
-                          <td>#{row.sessionId}</td>
-                          <td>{row.studio}</td>
-                          <td>{row.studentCount}</td>
-                          <td>
-                            <span className={resolveStatusBadgeClass(row.status)}>
-                              {resolveStatusLabel(row.status)}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <Table
+                    columns={scheduleColumns}
+                    rows={schedule}
+                    getRowKey={(row) => row.sessionId}
+                    emptyState="Sem aulas agendadas para hoje."
+                    compact
+                    striped
+                    headBackground="rgba(11, 157, 143, 0.08)"
+                    style={{ background: 'transparent', border: 0, boxShadow: 'none' }}
+                  />
                 )}
               </article>
 
               <article className="panel">
                 <h3>Ações rápidas</h3>
-                <QuickActions actions={quickActions} />
+                <p className="panel-subtle">Operações do dia a dia.</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  <Button variant="cta" type="button" onClick={showComingSoonToast}>
+                    Submeter disponibilidade
+                  </Button>
+                  <Button variant="cta" type="button" onClick={showComingSoonToast}>
+                    Confirmar conclusão
+                  </Button>
+                  <Button variant="ctaSecondary" type="button" onClick={showComingSoonToast}>
+                    Registar falta sem aviso
+                  </Button>
+                </div>
 
-                <h3 style={{ marginTop: '1.25rem' }}>Pedidos de adesão em fila</h3>
-
-                {loading ? (
-                  <p className="panel-subtle">A carregar pedidos...</p>
-                ) : joinRequests.length === 0 ? (
-                  <p className="empty">Sem pedidos pendentes.</p>
-                ) : (
-                  <>
-                    <ul className="join-requests-list">
-                      {joinRequests.slice(0, 5).map((request) => (
-                        <li key={request.joinRequestId} className="join-request-item">
-                          <strong>#{request.joinRequestId} · {request.sessionLabel}</strong>
-                          <span>{request.studentName}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="join-requests-footer">
-                      <Link to="/teacher/admission-requests">
-                        Ver todos ({joinRequests.length})
-                      </Link>
-                    </div>
-                  </>
-                )}
+                <h3 className="panel-subheading">Atalhos</h3>
+                <p className="panel-subtle">Acesso rápido aos módulos do professor.</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  <Button variant="ctaSecondary" as={Link} to="/teacher/schedule">Horário</Button>
+                  <Button variant="ctaSecondary" as={Link} to="/teacher/availability">Disponibilidade</Button>
+                  <Button variant="ctaSecondary" as={Link} to="/teacher/coaching">Coaching</Button>
+                  <Button variant="ctaSecondary" as={Link} to="/teacher/inventory">Inventário da Escola</Button>
+                  <Button variant="ctaSecondary" as={Link} to="/teacher/marketplace">Marketplace</Button>
+                </div>
               </article>
             </div>
           </section>
         </main>
       </div>
+
+      {toast ? (
+        <Toast
+          open
+          variant={toast.variant}
+          title={toast.title}
+          description={toast.description}
+          onClose={() => setToast(null)}
+          style={{
+            position: 'fixed',
+            right: '1.25rem',
+            bottom: '1.25rem',
+            zIndex: 60,
+            background: '#ffffff',
+            color: '#1f1c2e',
+          }}
+        />
+      ) : null}
     </div>
   )
 }

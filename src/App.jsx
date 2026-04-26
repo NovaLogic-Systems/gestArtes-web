@@ -6,11 +6,11 @@ import LoginPage from './pages/LoginPage'
 import StudioManagementPage from './pages/admin/StudioManagementPage'
 import AdminUsersPage from './pages/admin/AdminUsersPage'
 import DashboardPage from './pages/student/DashboardPage'
-import TeacherDashboardPage from './pages/teacher/DashboardPage'
-import AdmissionRequestsPage from './pages/teacher/AdmissionRequestsPage'
 import InventoryPage from './pages/student/InventoryPage'
 import RentalCheckoutPage from './pages/student/RentalCheckoutPage'
 import RentalRequestsPage from './pages/student/RentalRequestsPage'
+import AdmissionRequestsPage from './pages/teacher/AdmissionRequestsPage'
+import TeacherDashboardPage from './pages/teacher/DashboardPage'
 import MarketplacePage from './pages/student/MarketplacePage'
 import MyListingsPage from './pages/student/MyListingsPage'
 
@@ -143,6 +143,12 @@ function App() {
         <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
         <Route path="/teacher/dashboard" element={<TeacherDashboardPage />} />
         <Route path="/teacher/admission-requests" element={<AdmissionRequestsPage />} />
+        <Route path="/teacher/schedule" element={<ProtectedPlaceholderPage title="Horário" />} />
+        <Route path="/teacher/availability" element={<ProtectedPlaceholderPage title="Disponibilidade" />} />
+        <Route path="/teacher/coaching" element={<ProtectedPlaceholderPage title="Coaching" />} />
+        <Route path="/teacher/inventory" element={<ProtectedPlaceholderPage title="Inventário da Escola" />} />
+        <Route path="/teacher/marketplace" element={<ProtectedPlaceholderPage title="Marketplace" />} />
+        <Route path="/teacher/account" element={<ProtectedPlaceholderPage title="Minha Conta" />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
