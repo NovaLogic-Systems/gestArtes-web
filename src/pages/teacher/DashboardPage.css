@@ -159,6 +159,13 @@
 .teacher-dashboard .notifications-pill {
   cursor: pointer;
   font: inherit;
+  border: 1px solid #afc2f2;
+  border-radius: 999px;
+  background: #eef3ff;
+  color: #2a408c;
+  padding: 8px 12px;
+  font-size: 0.88rem;
+  white-space: nowrap;
 }
 
 .teacher-dashboard .notifications-popover {
