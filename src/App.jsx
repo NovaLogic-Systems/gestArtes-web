@@ -10,7 +10,7 @@ import InventoryPage from './pages/student/InventoryPage'
 import RentalCheckoutPage from './pages/student/RentalCheckoutPage'
 import RentalRequestsPage from './pages/student/RentalRequestsPage'
 import AdmissionRequestsPage from './pages/teacher/AdmissionRequestsPage'
-import TeacherInventoryPage from './pages/teacher/InventoryPage'
+import TeacherDashboardPage from './pages/teacher/DashboardPage'
 import MarketplacePage from './pages/student/MarketplacePage'
 import MyListingsPage from './pages/student/MyListingsPage'
 
@@ -109,12 +109,6 @@ function ProtectedPlaceholderPage({ title, actionLink }) {
 
 const StudentSectionPage = ({ title }) => <PlaceholderPage title={title} />
 const CoachingPage = () => <ProtectedPlaceholderPage title="Coaching" />
-const TeacherDashboard = () => (
-  <ProtectedPlaceholderPage
-    title="Teacher Dashboard"
-    actionLink={{ to: '/teacher/admission-requests', label: 'Pedidos de admissão' }}
-  />
-)
 const AdminDashboard = () => (
   <ProtectedPlaceholderPage
     title="Admin Dashboard"
@@ -147,9 +141,14 @@ function App() {
 
       <Route element={<ProtectedRoute allowedRoles={['teacher']} />}>
         <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
-        <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
+        <Route path="/teacher/dashboard" element={<TeacherDashboardPage />} />
         <Route path="/teacher/admission-requests" element={<AdmissionRequestsPage />} />
-        <Route path="/teacher/inventory" element={<TeacherInventoryPage />} />
+        <Route path="/teacher/schedule" element={<ProtectedPlaceholderPage title="Horário" />} />
+        <Route path="/teacher/availability" element={<ProtectedPlaceholderPage title="Disponibilidade" />} />
+        <Route path="/teacher/coaching" element={<ProtectedPlaceholderPage title="Coaching" />} />
+        <Route path="/teacher/inventory" element={<ProtectedPlaceholderPage title="Inventário da Escola" />} />
+        <Route path="/teacher/marketplace" element={<ProtectedPlaceholderPage title="Marketplace" />} />
+        <Route path="/teacher/account" element={<ProtectedPlaceholderPage title="Minha Conta" />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>

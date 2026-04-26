@@ -4,11 +4,11 @@ import api from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
 import notificationPreviewService from '../../services/notificationPreviewService'
 import Badge from '../../components/ui/Badge'
+import KPICard from '../../components/ui/KPICard'
 import LoadingSkeleton from '../../components/ui/LoadingSkeleton'
 import Table from '../../components/ui/Table'
 import Toast from '../../components/ui/Toast'
-import QuickActions from '../../components/QuickActions'
-import JoinRequestsTeacherView from '../../components/JoinRequestsTeacherView'
+import Button from '../../components/ui/Button'
 import './DashboardPage.css'
 
 const NAV_ITEMS = [
@@ -37,28 +37,35 @@ function formatNotificationDate(value) {
   return parsed.toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' })
 }
 
-function resolveSessionStatusVariant(statusName) {
-  const s = String(statusName ?? '').toLowerCase()
-  if (s.includes('finali') || s.includes('conclu') || s.includes('complet')) return 'success'
-  if (
-    s.includes('agend') ||
-    s.includes('schedul') ||
-    s.includes('curso') ||
-    s.includes('progress') ||
-    s.includes('confirm') ||
-    s.includes('pend')
-  ) return 'warning'
-  return 'neutral'
+const SESSION_STATUS_META = {
+  scheduled:                       { label: 'Agendada',                variant: 'info'    },
+  completion_confirmation_pending: { label: 'A confirmar',             variant: 'warning' },
+  finalization_validation_pending: { label: 'A validar',               variant: 'warning' },
+  finalized:                       { label: 'Finalizada',              variant: 'success' },
+  accounting_table_updated:        { label: 'Contabilizada',           variant: 'success' },
+  no_show:                         { label: 'Falta s/ aviso',          variant: 'danger'  },
+  cancelled_justified:             { label: 'Cancelada (justificada)', variant: 'neutral' },
+  cancelled_timeout:               { label: 'Cancelada (timeout)',     variant: 'danger'  },
+  cancelled_rejected:              { label: 'Cancelada (rejeitada)',   variant: 'danger'  },
 }
 
-function resolveSessionStatusLabel(statusName) {
-  const s = String(statusName ?? '').toLowerCase()
-  if (s.includes('finali') || s.includes('conclu') || s.includes('complet')) return 'Concluída'
-  if (s.includes('schedul') || s.includes('agend')) return 'Agendada'
-  if (s.includes('progress') || s.includes('curso') || s.includes('confirm') || s.includes('pend')) return 'Em curso'
-  if (s.includes('no_show') || s.includes('no-show') || s.includes('falta')) return 'Falta s/ aviso'
-  if (s.includes('cancel')) return 'Cancelada'
-  return statusName || '—'
+function normalizeStatusKey(statusName) {
+  return String(statusName ?? '')
+    .trim()
+    .replace(/([a-z])([A-Z])/g, '$1_$2')
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_')
+}
+
+function resolveSessionStatusMeta(statusName) {
+  const key = normalizeStatusKey(statusName)
+  if (SESSION_STATUS_META[key]) return SESSION_STATUS_META[key]
+  if (key.includes('finali') || key.includes('conclu')) return { label: 'Finalizada',     variant: 'success' }
+  if (key.includes('no_show') || key.includes('falta')) return { label: 'Falta s/ aviso', variant: 'danger'  }
+  if (key.includes('cancel'))                            return { label: 'Cancelada',     variant: 'neutral' }
+  if (key.includes('pend') || key.includes('valid'))     return { label: 'Em curso',      variant: 'warning' }
+  if (key.includes('schedul') || key.includes('agend'))  return { label: 'Agendada',      variant: 'info'    }
+  return { label: statusName || '—', variant: 'neutral' }
 }
 
 function normalizeSummary(data) {
@@ -106,11 +113,14 @@ const scheduleColumns = [
   {
     key: 'status',
     header: 'Estado',
-    render: (row) => (
-      <Badge variant={resolveSessionStatusVariant(row.status)} size="sm">
-        {resolveSessionStatusLabel(row.status)}
-      </Badge>
-    ),
+    render: (row) => {
+      const meta = resolveSessionStatusMeta(row.status)
+      return (
+        <Badge variant={meta.variant} size="sm" aria-label={`Estado da sessão: ${meta.label}`}>
+          {meta.label}
+        </Badge>
+      )
+    },
   },
 ]
 
@@ -380,22 +390,26 @@ export default function DashboardPage() {
             ) : null}
 
             <div className="kpi-grid">
-              <article className="kpi">
-                <h3>Aulas hoje</h3>
-                <strong>{summary ? summary.classesToday : '—'}</strong>
-              </article>
-              <article className="kpi">
-                <h3>Confirmações pendentes</h3>
-                <strong>{summary ? summary.pendingConfirmations : '—'}</strong>
-              </article>
-              <article className="kpi">
-                <h3>Pedidos de adesão</h3>
-                <strong>{summary ? summary.admissionRequests : '—'}</strong>
-              </article>
-              <article className="kpi">
-                <h3>Faltas sem aviso</h3>
-                <strong>{summary ? summary.noShows : '—'}</strong>
-              </article>
+              <KPICard
+                title="Aulas hoje"
+                value={summary ? summary.classesToday : '—'}
+                accent="#0b9d8f"
+              />
+              <KPICard
+                title="Confirmações pendentes"
+                value={summary ? summary.pendingConfirmations : '—'}
+                accent="#c2410c"
+              />
+              <KPICard
+                title="Pedidos de adesão"
+                value={summary ? summary.admissionRequests : '—'}
+                accent="#6f5ca5"
+              />
+              <KPICard
+                title="Faltas sem aviso"
+                value={summary ? summary.noShows : '—'}
+                accent="#b91c1c"
+              />
             </div>
 
             <div className="split">
@@ -424,37 +438,27 @@ export default function DashboardPage() {
 
               <article className="panel">
                 <h3>Ações rápidas</h3>
-                <p className="panel-subtle">Acesso directo às operações do dia a dia.</p>
+                <p className="panel-subtle">Operações do dia a dia.</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  <Button variant="cta" type="button" onClick={showComingSoonToast}>
+                    Submeter disponibilidade
+                  </Button>
+                  <Button variant="cta" type="button" onClick={showComingSoonToast}>
+                    Confirmar conclusão
+                  </Button>
+                  <Button variant="ctaSecondary" type="button" onClick={showComingSoonToast}>
+                    Registar falta sem aviso
+                  </Button>
+                </div>
 
-                {loading ? (
-                  <div className="loading-stack">
-                    <LoadingSkeleton variant="block" height="5.5rem" />
-                    <LoadingSkeleton variant="block" height="5.5rem" />
-                    <LoadingSkeleton variant="block" height="5.5rem" />
-                  </div>
-                ) : (
-                  <QuickActions
-                    actions={[
-                      {
-                        label: 'Submeter disponibilidade',
-                        onClick: showComingSoonToast,
-                      },
-                      {
-                        label: 'Confirmar conclusão',
-                        onClick: showComingSoonToast,
-                      },
-                      {
-                        label: 'Registar falta sem aviso',
-                        onClick: showComingSoonToast,
-                        variant: 'ctaSecondary',
-                      },
-                    ]}
-                  />
-                )}
-
-                <div className="join-requests-section">
-                  <h3>Pedidos de Adesão a Sessões de Coaching</h3>
-                  <JoinRequestsTeacherView />
+                <h3 className="panel-subheading">Atalhos</h3>
+                <p className="panel-subtle">Acesso rápido aos módulos do professor.</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  <Button variant="ctaSecondary" as={Link} to="/teacher/schedule">Horário</Button>
+                  <Button variant="ctaSecondary" as={Link} to="/teacher/availability">Disponibilidade</Button>
+                  <Button variant="ctaSecondary" as={Link} to="/teacher/coaching">Coaching</Button>
+                  <Button variant="ctaSecondary" as={Link} to="/teacher/inventory">Inventário da Escola</Button>
+                  <Button variant="ctaSecondary" as={Link} to="/teacher/marketplace">Marketplace</Button>
                 </div>
               </article>
             </div>
