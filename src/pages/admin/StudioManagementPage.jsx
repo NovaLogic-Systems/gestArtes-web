@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import WithRole from '../../components/WithRole'
 import notificationPreviewService from '../../services/notificationPreviewService'
 import studioManagementService from '../../services/studioManagementService'
 import { uniqueNames } from '../../utils/strings'
@@ -640,9 +641,11 @@ function StudioManagementPage() {
                               <button type="button" className="ghost-btn" onClick={() => startEditStudio(studio)}>
                                 Editar
                               </button>
-                              <button type="button" className="danger-btn" onClick={() => handleDeleteStudio(studio)}>
-                                Apagar
-                              </button>
+                              <WithRole roles={['admin']}>
+                                <button type="button" className="danger-btn" onClick={() => handleDeleteStudio(studio)}>
+                                  Apagar
+                                </button>
+                              </WithRole>
                             </div>
                           </td>
                         </tr>
