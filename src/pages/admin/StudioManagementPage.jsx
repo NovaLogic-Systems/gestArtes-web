@@ -668,16 +668,23 @@ function StudioManagementPage() {
             <article ref={formRef} className="panel">
               <div className="panel-header">
                 <h3 style={{ margin: 0 }}>{editingStudioId ? 'Editar estúdio' : 'Novo estúdio'}</h3>
-                <button
-                  type="button"
-                  className="ghost-btn"
-                  onClick={() => {
-                    setIsStudioFormVisible(false)
-                    resetForm()
-                  }}
-                >
-                  Fechar
-                </button>
+                <div className="card-actions">
+                  {editingStudioId ? (
+                    <Link className="danger-btn" to={`/admin/studio-occupancy?studioId=${encodeURIComponent(editingStudioId)}`}>
+                      Bloquear
+                    </Link>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="ghost-btn"
+                    onClick={() => {
+                      setIsStudioFormVisible(false)
+                      resetForm()
+                    }}
+                  >
+                    Fechar
+                  </button>
+                </div>
               </div>
 
               <p>

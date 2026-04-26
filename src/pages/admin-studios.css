@@ -443,6 +443,11 @@ body.studio-page #root {
   margin-top: 10px;
 }
 
+.app-shell .quick-actions.occupancy-actions {
+  margin-top: 0;
+  margin-bottom: 2px;
+}
+
 .app-shell .quick-actions .cta {
   font-size: 0.88rem;
 }
@@ -547,6 +552,205 @@ body.studio-page #root {
   z-index: 30;
 }
 
+.app-shell .occupancy-state {
+  border: 1px dashed var(--studio-soft-line);
+  border-radius: 12px;
+  background: var(--studio-soft-bg);
+  color: var(--studio-muted);
+  padding: 12px;
+}
+
+.app-shell .occupancy-state.occupancy-state-error {
+  border-color: var(--studio-error-line);
+  background: var(--studio-error-bg);
+  color: var(--studio-error-ink);
+}
+
+.app-shell .occupancy-panel {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.app-shell .occupancy-controls-panel {
+  gap: 12px;
+}
+
+.app-shell .occupancy-controls-form {
+  margin-top: 4px;
+}
+
+.app-shell .occupancy-controls-form textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
+.app-shell .occupancy-reason-field {
+  grid-column: 1 / -1;
+}
+
+.app-shell .occupancy-feedback {
+  margin-top: 8px;
+}
+
+.app-shell .occupancy-alert {
+  border: 1px solid var(--studio-error-line);
+  border-left-width: 5px;
+  border-radius: 12px;
+  background: var(--studio-error-bg);
+  color: var(--studio-error-ink);
+  padding: 12px 14px;
+}
+
+.app-shell .occupancy-alert h4 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+}
+
+.app-shell .occupancy-alert ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.app-shell .occupancy-kpis {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.app-shell .occupancy-kpis .ui-kpi-card {
+  min-height: 132px;
+}
+
+.app-shell .occupancy-kpis .ui-kpi-card:nth-child(2) {
+  border-color: rgba(16, 185, 129, 0.28);
+  background: #f3fcf8;
+}
+
+.app-shell .occupancy-kpis .ui-kpi-card:nth-child(2) > div div:last-child {
+  color: #0f8a63;
+}
+
+.app-shell .occupancy-kpis .ui-kpi-card:nth-child(3) {
+  border-color: rgba(245, 158, 11, 0.32);
+  background: #fff8ea;
+}
+
+.app-shell .occupancy-kpis .ui-kpi-card:nth-child(3) > div div:last-child {
+  color: #b45309;
+}
+
+.app-shell .occupancy-kpis .ui-kpi-card:nth-child(4) {
+  border-color: rgba(239, 68, 68, 0.28);
+  background: #fff2f4;
+}
+
+.app-shell .occupancy-kpis .ui-kpi-card:nth-child(4) > div div:last-child {
+  color: #be123c;
+}
+
+.app-shell .occupancy-section {
+  display: grid;
+  gap: 12px;
+}
+
+.app-shell .occupancy-section h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--studio-ink);
+}
+
+.app-shell .occupancy-studios-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.app-shell .occupancy-card {
+  border: 1px solid var(--studio-line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(31, 28, 46, 0.08);
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.app-shell .occupancy-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(31, 28, 46, 0.12);
+}
+
+.app-shell .occupancy-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.app-shell .occupancy-card-head h3 {
+  margin: 0;
+  color: var(--studio-ink);
+  font-size: 1.03rem;
+}
+
+.app-shell .occupancy-card-body {
+  display: grid;
+  gap: 4px;
+  color: var(--studio-muted);
+  font-size: 0.9rem;
+}
+
+.app-shell .occupancy-card-body p {
+  margin: 0;
+}
+
+.app-shell .occupancy-card-body strong {
+  color: var(--studio-ink);
+}
+
+.app-shell .occupancy-card-until {
+  color: #2c253e;
+  font-weight: 600;
+}
+
+.app-shell .occupancy-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.app-shell .occupancy-card-actions > * {
+  flex: 1 1 140px;
+}
+
+.app-shell .occupancy-card-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.app-shell .occupancy-card-available {
+  border-color: rgba(16, 185, 129, 0.32);
+  background: #f4fdf9;
+}
+
+.app-shell .occupancy-card-occupied {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: #fffaef;
+}
+
+.app-shell .occupancy-card-blocked {
+  border-color: rgba(239, 68, 68, 0.24);
+  background: #fff5f6;
+}
+
+.app-shell .occupancy-card-double-booked {
+  border-color: rgba(220, 38, 38, 0.6);
+  background: #ffedf0;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.12), 0 10px 22px rgba(220, 38, 38, 0.2);
+}
+
 @media (max-width: 1024px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -578,6 +782,15 @@ body.studio-page #root {
   .app-shell .form-grid.two {
     grid-template-columns: 1fr;
   }
+
+  .app-shell .occupancy-kpis,
+  .app-shell .occupancy-studios-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .app-shell .occupancy-card-actions > * {
+    flex: 1 1 100%;
+  }
 }
 
 @media (max-width: 720px) {
@@ -604,5 +817,10 @@ body.studio-page #root {
   .app-shell .quick-actions > *,
   .app-shell .card-actions > * {
     flex: 1 1 100%;
+  }
+
+  .app-shell .occupancy-kpis,
+  .app-shell .occupancy-studios-grid {
+    grid-template-columns: 1fr;
   }
 }

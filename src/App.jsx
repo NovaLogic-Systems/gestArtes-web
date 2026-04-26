@@ -1,9 +1,10 @@
-import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+﻿import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import { useAuth } from './hooks/useAuth'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import LoginPage from './pages/LoginPage'
 import StudioManagementPage from './pages/admin/StudioManagementPage'
+import StudioOccupancyPage from './pages/admin/StudioOccupancyPage'
 import AdminUsersPage from './pages/admin/AdminUsersPage'
 import DashboardPage from './pages/student/DashboardPage'
 import AdmissionRequestsPage from './pages/teacher/AdmissionRequestsPage'
@@ -153,6 +154,7 @@ function App() {
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/studios" element={<StudioManagementPage />} />
+        <Route path="/admin/studio-occupancy" element={<StudioOccupancyPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
       </Route>
 
@@ -162,3 +164,4 @@ function App() {
 }
 
 export default App
+
