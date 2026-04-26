@@ -20,9 +20,10 @@ const SEARCH_HISTORY_LIMIT = 8
 const NAV_ITEMS = [
   { label: 'Painel', href: '/student/dashboard' },
   { label: 'Coaching', href: '/student/coaching' },
-  { label: 'Inventario da Escola', href: '/student/inventory' },
+  { label: 'Inventário da Escola', href: '/student/inventory' },
   { label: 'Marketplace', href: '/student/marketplace' },
-  { label: 'Meus anuncios', href: '/student/marketplace/my-listings' },
+    { label: 'Conversas', href: '/student/marketplace/conversas' },
+  { label: 'Meus anúncios', href: '/student/marketplace/my-listings' },
   { label: 'Perdidos e Achados', href: '/student/lostfound' },
   { label: 'Minha Conta', href: '/student/account' },
 ]
@@ -93,7 +94,7 @@ export default function MarketplacePage() {
         setListings(listingsResult.value)
       } else {
         setListings([])
-        setError(listingsResult.reason?.response?.data?.error || 'Nao foi possivel carregar o marketplace.')
+        setError(listingsResult.reason?.response?.data?.error || 'Não foi possível carregar o marketplace.')
       }
 
       if (optionsResult.status === 'fulfilled') {
@@ -104,7 +105,7 @@ export default function MarketplacePage() {
         setConditions([])
       }
     } catch (requestError) {
-      setError(requestError?.response?.data?.error || 'Nao foi possivel carregar o marketplace.')
+      setError(requestError?.response?.data?.error || 'Não foi possível carregar o marketplace.')
     } finally {
       setLoading(false)
     }
@@ -241,7 +242,7 @@ export default function MarketplacePage() {
                 navigate('/login?reason=logged-out', { replace: true })
               }}
             >
-              Terminar Sessao
+              Terminar Sessão
             </button>
           </div>
         </aside>
@@ -250,15 +251,18 @@ export default function MarketplacePage() {
           <header className="topbar">
             <div className="topbar-left">
               <h2>Marketplace da Comunidade</h2>
-              <p>Explora artigos, encontra servicos e publica os teus anuncios.</p>
+              <p>Explora artigos, encontra serviços e publica os teus anúncios.</p>
             </div>
 
             <div className="topbar-right">
               <button type="button" className="cta" onClick={() => setIsCreateOpen(true)}>
-                Criar anuncio
+                Criar anúncio
               </button>
+                <Link className="pill" to="/student/marketplace/conversas">
+                  Conversas
+                </Link>
               <Link className="pill" to="/student/marketplace/my-listings">
-                Meus anuncios
+                Meus anúncios
               </Link>
             </div>
           </header>
@@ -270,7 +274,7 @@ export default function MarketplacePage() {
               <div className="market-field-row">
                 <input
                   className="search"
-                  placeholder="Pesquisar por titulo, descricao ou categoria"
+                  placeholder="Pesquisar por título, descrição ou categoria"
                   value={filters.search}
                   onChange={(event) => updateFilter('search', event.target.value)}
                   onBlur={(event) => storeSearchInHistory(event.target.value)}
@@ -293,7 +297,7 @@ export default function MarketplacePage() {
               </label>
 
               <label>
-                <span>Localizacao</span>
+                <span>Localização</span>
                 <input
                   value={filters.location}
                   onChange={(event) => updateFilter('location', event.target.value)}
@@ -356,23 +360,28 @@ export default function MarketplacePage() {
 
             <article className="panel">
               <div className="market-feed-header">
-                <h3>Feed de anuncios</h3>
+                <h3>Feed de anúncios</h3>
                 {!loading && listings.length > 0 ? (
                   <p className="market-count-info">
-                    {filteredListings.length} de {listings.length} anuncio{listings.length !== 1 ? 's' : ''}
+                    {filteredListings.length} de {listings.length} anúncio{listings.length !== 1 ? 's' : ''}
                   </p>
                 ) : null}
               </div>
 
               {error ? <p className="error-banner">{error}</p> : null}
-              {loading ? <p className="panel-subtle">A carregar anuncios...</p> : null}
+              {loading ? <p className="panel-subtle">A carregar anúncios...</p> : null}
 
               {!loading && filteredListings.length === 0 ? (
-                <p className="empty">Nao encontramos anuncios com os filtros atuais.</p>
+                <p className="empty">Não encontramos anúncios com os filtros atuais.</p>
               ) : (
                 <div className="market-listing-grid">
                   {filteredListings.map((listing) => (
-                    <ListingCard key={listing.listingId} listing={listing} onOpen={handleOpenListing} />
+                    <ListingCard
+                      key={listing.listingId}
+                      listing={listing}
+                      onOpen={handleOpenListing}
+                      onBuy={handleOpenListing}
+                    />
                   ))}
                 </div>
               )}
@@ -393,14 +402,14 @@ export default function MarketplacePage() {
       <Modal
         open={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        title="Criar anuncio"
+        title="Criar anúncio"
         description="Publica um artigo no marketplace da comunidade"
         size="xl"
       >
         <ListingForm
           categories={categories}
           conditions={conditions}
-          submitLabel="Publicar anuncio"
+          submitLabel="Publicar anúncio"
           busy={isSaving}
           onSubmit={handleCreateListing}
           onCancel={() => setIsCreateOpen(false)}

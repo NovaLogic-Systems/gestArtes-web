@@ -1,11 +1,15 @@
-import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+﻿import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import { useAuth } from './hooks/useAuth'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import LoginPage from './pages/LoginPage'
 import StudioManagementPage from './pages/admin/StudioManagementPage'
 import AdminUsersPage from './pages/admin/AdminUsersPage'
+import AdminMarketplaceConversationsPage from './pages/admin/AdminMarketplaceConversationsPage'
+import MarketplaceModerationPage from './pages/admin/MarketplaceModerationPage'
 import DashboardPage from './pages/student/DashboardPage'
+import JoinRequestsTeacherView from './components/JoinRequestsTeacherView'
+import TeacherMarketplaceConversationsPage from './pages/teacher/TeacherMarketplaceConversationsPage'
 import InventoryPage from './pages/student/InventoryPage'
 import RentalCheckoutPage from './pages/student/RentalCheckoutPage'
 import RentalRequestsPage from './pages/student/RentalRequestsPage'
@@ -13,6 +17,7 @@ import AdmissionRequestsPage from './pages/teacher/AdmissionRequestsPage'
 import TeacherDashboardPage from './pages/teacher/DashboardPage'
 import MarketplacePage from './pages/student/MarketplacePage'
 import MyListingsPage from './pages/student/MyListingsPage'
+import MarketplaceConversationsPage from './pages/student/MarketplaceConversationsPage'
 
 function PlaceholderPage({ title }) {
   return (
@@ -109,6 +114,18 @@ function ProtectedPlaceholderPage({ title, actionLink }) {
 
 const StudentSectionPage = ({ title }) => <PlaceholderPage title={title} />
 const CoachingPage = () => <ProtectedPlaceholderPage title="Coaching" />
+const TeacherDashboard = () => (
+  <div>
+    <ProtectedPlaceholderPage
+      title="Teacher Dashboard"
+      actionLink={{ to: '/teacher/admission-requests', label: 'Pedidos de admissão' }}
+    />
+    <div style={{ padding: '0 2rem 2rem 2rem', maxWidth: '1200px', margin: '0 auto' }}>
+      <h2 style={{ marginBottom: '1rem' }}>Aprovação de Coaching (Join Requests)</h2>
+      <JoinRequestsTeacherView />
+    </div>
+  </div>
+)
 const AdminDashboard = () => (
   <ProtectedPlaceholderPage
     title="Admin Dashboard"
@@ -133,6 +150,7 @@ function App() {
         <Route path="/student/inventory/checkout/:itemId" element={<RentalCheckoutPage />} />
         <Route path="/student/inventory/rentals" element={<RentalRequestsPage />} />
         <Route path="/student/marketplace" element={<MarketplacePage />} />
+          <Route path="/student/marketplace/conversas" element={<MarketplaceConversationsPage />} />
         <Route path="/student/marketplace/my-listings" element={<MyListingsPage />} />
         <Route path="/student/notifications" element={<StudentSectionPage title="Notificações" />} />
         <Route path="/student/lostfound" element={<StudentSectionPage title="Perdidos e Achados" />} />
@@ -149,12 +167,15 @@ function App() {
         <Route path="/teacher/inventory" element={<ProtectedPlaceholderPage title="Inventário da Escola" />} />
         <Route path="/teacher/marketplace" element={<ProtectedPlaceholderPage title="Marketplace" />} />
         <Route path="/teacher/account" element={<ProtectedPlaceholderPage title="Minha Conta" />} />
+            <Route path="/teacher/marketplace/conversas" element={<TeacherMarketplaceConversationsPage />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/studios" element={<StudioManagementPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
+            <Route path="/admin/marketplace/conversas" element={<AdminMarketplaceConversationsPage />} />
+        <Route path="/admin/marketplace" element={<MarketplaceModerationPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />
@@ -163,3 +184,4 @@ function App() {
 }
 
 export default App
+
