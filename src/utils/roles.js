@@ -10,6 +10,12 @@ export const ADMIN_ROLE_OPTIONS = Object.freeze([
   { value: 'direction', label: 'Direção' },
 ])
 
+export const DASHBOARD_PATHS = Object.freeze({
+  admin: '/admin/dashboard',
+  teacher: '/teacher/dashboard',
+  student: '/student/dashboard',
+})
+
 export function normalizeRole(value) {
   return String(value || '')
     .trim()
@@ -44,4 +50,22 @@ export function toAppRole(value) {
   }
 
   return ''
+}
+
+export function normalizeRoleList(value) {
+  return (Array.isArray(value) ? value : [value]).map((entry) => toAppRole(entry)).filter(Boolean)
+}
+
+export function hasRoleAccess(currentRole, allowedRoles = []) {
+  const normalizedAllowedRoles = normalizeRoleList(allowedRoles)
+
+  if (!normalizedAllowedRoles.length) {
+    return true
+  }
+
+  return normalizedAllowedRoles.includes(toAppRole(currentRole))
+}
+
+export function getDashboardPath(currentRole) {
+  return DASHBOARD_PATHS[toAppRole(currentRole)] ?? DASHBOARD_PATHS.student
 }
