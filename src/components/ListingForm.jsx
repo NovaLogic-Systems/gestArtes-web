@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useReducer } from 'react'
+import { resolveMarketplacePhotoUrl } from '../utils/marketplace-photo-url'
 
 const DEFAULT_VALUES = {
   title: '',
@@ -64,7 +65,7 @@ export default function ListingForm({
           categoryId: initialValues?.categoryId ?? initialValues?.category?.categoryId ?? '',
           conditionId: initialValues?.conditionId ?? initialValues?.condition?.conditionId ?? '',
         },
-        previewUrl: initialValues?.photoUrl || '',
+        previewUrl: resolveMarketplacePhotoUrl(initialValues?.photoUrl),
         selectedFile: null,
         error: '',
       },

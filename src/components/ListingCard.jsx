@@ -1,3 +1,5 @@
+import { resolveMarketplacePhotoUrl } from '../utils/marketplace-photo-url'
+
 function formatMoney(value) {
   const numeric = Number(value)
 
@@ -37,7 +39,7 @@ export default function ListingCard({
   onDelete,
   showOwnerActions = false,
 }) {
-  const photoUrl = listing?.photoUrl || null
+  const photoUrl = resolveMarketplacePhotoUrl(listing?.photoUrl)
 
   return (
     <article className="market-listing-card">

@@ -1,6 +1,14 @@
 import api from './api'
 
-function appendField(formData, key, value) {
+function appendField(payload, key, value) {
+  if (value === undefined || value === null || value === '') {
+    return
+  }
+
+  payload[key] = value
+}
+
+function appendFieldToFormData(formData, key, value) {
   if (value === undefined || value === null || value === '') {
     return
   }
@@ -8,14 +16,26 @@ function appendField(formData, key, value) {
   formData.append(key, String(value))
 }
 
-function buildFormData(values, file) {
+function buildPayload(values) {
+  const payload = {}
+  appendField(payload, 'title', values.title)
+  appendField(payload, 'description', values.description)
+  appendField(payload, 'price', values.price)
+  appendField(payload, 'conditionId', values.conditionId)
+  appendField(payload, 'categoryId', values.categoryId)
+  appendField(payload, 'location', values.location)
+  appendField(payload, 'photoUrl', values.photoUrl)
+  return payload
+}
+
+function buildMultipartPayload(values, file) {
   const formData = new FormData()
-  appendField(formData, 'title', values.title)
-  appendField(formData, 'description', values.description)
-  appendField(formData, 'price', values.price)
-  appendField(formData, 'conditionId', values.conditionId)
-  appendField(formData, 'categoryId', values.categoryId)
-  appendField(formData, 'location', values.location)
+  appendFieldToFormData(formData, 'title', values.title)
+  appendFieldToFormData(formData, 'description', values.description)
+  appendFieldToFormData(formData, 'price', values.price)
+  appendFieldToFormData(formData, 'conditionId', values.conditionId)
+  appendFieldToFormData(formData, 'categoryId', values.categoryId)
+  appendFieldToFormData(formData, 'location', values.location)
 
   if (file) {
     formData.append('photo', file)
@@ -45,21 +65,25 @@ export async function getMyMarketplaceListings() {
 }
 
 export async function createMarketplaceListing(values, file) {
-  const response = await api.post('/marketplace/listings', buildFormData(values, file), {
+  const hasFile = Boolean(file)
+  const payload = hasFile ? buildMultipartPayload(values, file) : buildPayload(values)
+  const response = await api.post('/marketplace/listings', payload, hasFile ? {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
-  })
+  } : undefined)
 
   return response.data?.listing ?? null
 }
 
 export async function updateMarketplaceListing(listingId, values, file) {
-  const response = await api.patch(`/marketplace/listings/${listingId}`, buildFormData(values, file), {
+  const hasFile = Boolean(file)
+  const payload = hasFile ? buildMultipartPayload(values, file) : buildPayload(values)
+  const response = await api.patch(`/marketplace/listings/${listingId}`, payload, hasFile ? {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
-  })
+  } : undefined)
 
   return response.data?.listing ?? null
 }

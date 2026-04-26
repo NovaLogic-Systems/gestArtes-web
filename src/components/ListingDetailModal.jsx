@@ -1,3 +1,4 @@
+import { resolveMarketplacePhotoUrl } from '../utils/marketplace-photo-url'
 import Modal from './ui/Modal'
 
 function normalizePhone(phoneNumber) {
@@ -10,6 +11,7 @@ export default function ListingDetailModal({ open, listing, onClose }) {
   const whatsappDigits = normalizePhone(seller?.phoneNumber)
   const whatsappHref = whatsappDigits ? `https://wa.me/${whatsappDigits}` : null
   const mailHref = seller?.email ? `mailto:${seller.email}` : null
+  const photoUrl = resolveMarketplacePhotoUrl(listing?.photoUrl)
 
   return (
     <Modal
