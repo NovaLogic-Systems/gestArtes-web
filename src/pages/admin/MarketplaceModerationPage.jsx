@@ -6,6 +6,7 @@ import Badge from '../../components/ui/Badge'
 import Input from '../../components/ui/Input'
 import Modal from '../../components/ui/Modal'
 import Table from '../../components/ui/Table'
+import WithRole from '../../components/WithRole'
 import { resolveMarketplacePhotoUrl } from '../../utils/marketplace-photo-url'
 import '../admin-studios.css'
 import './marketplace-moderation.css'
@@ -590,35 +591,37 @@ export default function MarketplaceModerationPage() {
                   getRowKey={(listing) => listing.listingId}
                   emptyState="Não existem anúncios com os filtros atuais."
                   renderRowActions={(listing) => (
-                    <div className="marketplace-row-actions">
-                      <button type="button" className="moderation-action-btn neutral" onClick={() => openListing(listing)}>
-                        Ver
-                      </button>
-                      <button
-                        type="button"
-                        className="moderation-action-btn approve"
-                        disabled={submittingAction === 'approve' || getStatusTone(listing.status?.statusName) === 'success'}
-                        onClick={() => void handleModeration('approve', listing)}
-                      >
-                        Aprovar
-                      </button>
-                      <button
-                        type="button"
-                        className="moderation-action-btn reject"
-                        disabled={submittingAction === 'reject'}
-                        onClick={() => openListing(listing, true)}
-                      >
-                        Rejeitar
-                      </button>
-                      <button
-                        type="button"
-                        className="moderation-action-btn delete"
-                        disabled={submittingAction === 'delete'}
-                        onClick={() => void handleModeration('delete', listing)}
-                      >
-                        Apagar
-                      </button>
-                    </div>
+                    <WithRole roles={['admin']}>
+                      <div className="marketplace-row-actions">
+                        <button type="button" className="moderation-action-btn neutral" onClick={() => openListing(listing)}>
+                          Ver
+                        </button>
+                        <button
+                          type="button"
+                          className="moderation-action-btn approve"
+                          disabled={submittingAction === 'approve' || getStatusTone(listing.status?.statusName) === 'success'}
+                          onClick={() => void handleModeration('approve', listing)}
+                        >
+                          Aprovar
+                        </button>
+                        <button
+                          type="button"
+                          className="moderation-action-btn reject"
+                          disabled={submittingAction === 'reject'}
+                          onClick={() => openListing(listing, true)}
+                        >
+                          Rejeitar
+                        </button>
+                        <button
+                          type="button"
+                          className="moderation-action-btn delete"
+                          disabled={submittingAction === 'delete'}
+                          onClick={() => void handleModeration('delete', listing)}
+                        >
+                          Apagar
+                        </button>
+                      </div>
+                    </WithRole>
                   )}
                 />
               )}
@@ -634,43 +637,45 @@ export default function MarketplaceModerationPage() {
         description="Revê o anúncio, consulta a informação enviada e decide o estado de publicação."
         size="xl"
         footer={
-          <div className="marketplace-modal-footer-actions">
-            <button
-              type="button"
-              className="moderation-action-btn approve"
-              disabled={submittingAction === 'approve' || selectedIsApproved}
-              onClick={() => void handleModeration('approve', selectedListing)}
-            >
-              {selectedIsApproved ? 'Já aprovado' : 'Aprovar anúncio'}
-            </button>
-            {isRejectMode ? (
+          <WithRole roles={['admin']}>
+            <div className="marketplace-modal-footer-actions">
               <button
                 type="button"
-                className="moderation-action-btn reject"
-                disabled={submittingAction === 'reject'}
-                onClick={() => void handleModeration('reject', selectedListing, rejectionReason)}
+                className="moderation-action-btn approve"
+                disabled={submittingAction === 'approve' || selectedIsApproved}
+                onClick={() => void handleModeration('approve', selectedListing)}
               >
-                Confirmar rejeição
+                {selectedIsApproved ? 'Já aprovado' : 'Aprovar anúncio'}
               </button>
-            ) : (
+              {isRejectMode ? (
+                <button
+                  type="button"
+                  className="moderation-action-btn reject"
+                  disabled={submittingAction === 'reject'}
+                  onClick={() => void handleModeration('reject', selectedListing, rejectionReason)}
+                >
+                  Confirmar rejeição
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="moderation-action-btn reject"
+                  disabled={submittingAction === 'reject'}
+                  onClick={() => setIsRejectMode(true)}
+                >
+                  Rejeitar anúncio
+                </button>
+              )}
               <button
                 type="button"
-                className="moderation-action-btn reject"
-                disabled={submittingAction === 'reject'}
-                onClick={() => setIsRejectMode(true)}
+                className="moderation-action-btn delete"
+                disabled={submittingAction === 'delete'}
+                onClick={() => void handleModeration('delete', selectedListing)}
               >
-                Rejeitar anúncio
+                Apagar
               </button>
-            )}
-            <button
-              type="button"
-              className="moderation-action-btn delete"
-              disabled={submittingAction === 'delete'}
-              onClick={() => void handleModeration('delete', selectedListing)}
-            >
-              Apagar
-            </button>
-          </div>
+            </div>
+          </WithRole>
         }
       >
         <div className="marketplace-preview-grid">
