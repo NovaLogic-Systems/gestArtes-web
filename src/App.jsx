@@ -1,4 +1,4 @@
-import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+﻿import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import { useAuth } from './hooks/useAuth'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
@@ -7,6 +7,7 @@ import StudioManagementPage from './pages/admin/StudioManagementPage'
 import AdminUsersPage from './pages/admin/AdminUsersPage'
 import MarketplaceModerationPage from './pages/admin/MarketplaceModerationPage'
 import DashboardPage from './pages/student/DashboardPage'
+import JoinRequestsTeacherView from './components/JoinRequestsTeacherView'
 import AdmissionRequestsPage from './pages/teacher/AdmissionRequestsPage'
 import InventoryPage from './pages/student/InventoryPage'
 import RentalCheckoutPage from './pages/student/RentalCheckoutPage'
@@ -110,10 +111,16 @@ function ProtectedPlaceholderPage({ title, actionLink }) {
 const StudentSectionPage = ({ title }) => <PlaceholderPage title={title} />
 const CoachingPage = () => <ProtectedPlaceholderPage title="Coaching" />
 const TeacherDashboard = () => (
-  <ProtectedPlaceholderPage
-    title="Teacher Dashboard"
-    actionLink={{ to: '/teacher/admission-requests', label: 'Pedidos de admissão' }}
-  />
+  <div>
+    <ProtectedPlaceholderPage
+      title="Teacher Dashboard"
+      actionLink={{ to: '/teacher/admission-requests', label: 'Pedidos de admissão' }}
+    />
+    <div style={{ padding: '0 2rem 2rem 2rem', maxWidth: '1200px', margin: '0 auto' }}>
+      <h2 style={{ marginBottom: '1rem' }}>Aprovação de Coaching (Join Requests)</h2>
+      <JoinRequestsTeacherView />
+    </div>
+  </div>
 )
 const AdminDashboard = () => (
   <ProtectedPlaceholderPage
@@ -164,3 +171,4 @@ function App() {
 }
 
 export default App
+
