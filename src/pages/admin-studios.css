@@ -522,6 +522,160 @@ body.studio-page #root {
   color: var(--studio-error-ink);
 }
 
+.app-shell .marketplace-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.app-shell .moderation-action-btn {
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  padding: 8px 12px;
+  transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
+}
+
+.app-shell .moderation-action-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.app-shell .moderation-action-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.app-shell .moderation-action-btn.neutral {
+  border: 1px solid var(--studio-ghost-line);
+  background: var(--studio-field-bg);
+  color: var(--studio-ghost-ink);
+}
+
+.app-shell .moderation-action-btn.approve {
+  border: 1px solid color-mix(in srgb, var(--studio-cta-start) 48%, #ffffff 52%);
+  background: color-mix(in srgb, var(--studio-cta-start) 15%, #ffffff 85%);
+  color: #0d6b63;
+}
+
+.app-shell .moderation-action-btn.reject {
+  border: 1px solid #f2bf9b;
+  background: #fff4ea;
+  color: #8b4a22;
+}
+
+.app-shell .moderation-action-btn.delete {
+  border: 1px solid var(--studio-danger-line);
+  background: var(--studio-danger-bg);
+  color: var(--studio-danger-ink);
+}
+
+.app-shell .marketplace-modal-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.app-shell .marketplace-preview-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+}
+
+.app-shell .marketplace-modal-main-column,
+.app-shell .marketplace-modal-side-column {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.app-shell .marketplace-modal-image {
+  width: 100%;
+  border-radius: 1rem;
+  border: 1px solid var(--studio-line);
+  object-fit: cover;
+  aspect-ratio: 4 / 3;
+}
+
+.app-shell .marketplace-modal-image-empty {
+  align-items: center;
+  aspect-ratio: 4 / 3;
+  background: var(--studio-soft-bg);
+  border: 1px dashed var(--studio-soft-line);
+  border-radius: 1rem;
+  color: var(--studio-muted);
+  display: grid;
+  justify-items: center;
+}
+
+.app-shell .marketplace-modal-meta-block {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.app-shell .marketplace-modal-meta-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.app-shell .marketplace-modal-price {
+  color: var(--studio-muted);
+  font-weight: 600;
+}
+
+.app-shell .marketplace-modal-description {
+  margin: 0;
+  color: var(--studio-muted);
+}
+
+.app-shell .marketplace-modal-registered-reason {
+  margin-top: 0.25rem;
+}
+
+.app-shell .marketplace-modal-line-first {
+  margin: 0.35rem 0 0;
+}
+
+.app-shell .marketplace-modal-line-regular {
+  margin: 0.1rem 0 0;
+}
+
+.app-shell .marketplace-modal-line-subtle {
+  margin: 0.1rem 0 0;
+  color: var(--studio-muted);
+}
+
+.app-shell .marketplace-rejection-panel {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.app-shell .marketplace-rejection-title {
+  color: var(--studio-ink);
+  font-weight: 600;
+}
+
+.app-shell .marketplace-rejection-panel textarea {
+  background: var(--studio-field-bg);
+  border: 1px solid var(--studio-field-line);
+  border-radius: 0.85rem;
+  color: var(--studio-ink);
+  font: inherit;
+  padding: 0.8rem 0.9rem;
+  resize: vertical;
+  width: 100%;
+}
+
+.app-shell .marketplace-rejection-help {
+  color: var(--studio-muted);
+  font-size: 0.85rem;
+}
+
+.app-shell .marketplace-rejection-hint {
+  margin: 0;
+}
+
 .app-shell .sidebar-toggle-btn {
   width: 34px;
   height: 34px;
@@ -790,6 +944,8 @@ body.studio-page #root {
 
   .app-shell .occupancy-card-actions > * {
     flex: 1 1 100%;
+  .app-shell .marketplace-preview-grid {
+    grid-template-columns: 1fr;
   }
 }
 
