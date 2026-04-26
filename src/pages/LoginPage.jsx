@@ -1,24 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { toAppRole } from '../utils/roles'
+import { getDashboardPath } from '../utils/roles'
 import './auth.css'
 
 const allowedReturnPrefixes = ['/student/', '/teacher/', '/admin/']
-
-function getDashboardPath(currentRole) {
-  const normalizedRole = toAppRole(currentRole)
-
-  if (normalizedRole === 'admin') {
-    return '/admin/dashboard'
-  }
-
-  if (normalizedRole === 'teacher') {
-    return '/teacher/dashboard'
-  }
-
-  return '/student/dashboard'
-}
 
 function getLoginNotice(search) {
   const params = new URLSearchParams(search)
