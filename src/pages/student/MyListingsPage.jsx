@@ -18,9 +18,10 @@ import './marketplace.css'
 const NAV_ITEMS = [
   { label: 'Painel', href: '/student/dashboard' },
   { label: 'Coaching', href: '/student/coaching' },
-  { label: 'Inventario da Escola', href: '/student/inventory' },
+  { label: 'Inventário da Escola', href: '/student/inventory' },
   { label: 'Marketplace', href: '/student/marketplace' },
-  { label: 'Meus anuncios', href: '/student/marketplace/my-listings' },
+    { label: 'Conversas', href: '/student/marketplace/conversas' },
+  { label: 'Meus anúncios', href: '/student/marketplace/my-listings' },
   { label: 'Perdidos e Achados', href: '/student/lostfound' },
   { label: 'Minha Conta', href: '/student/account' },
 ]
@@ -53,7 +54,7 @@ export default function MyListingsPage() {
       setCategories(options.categories ?? [])
       setConditions(options.conditions ?? [])
     } catch (requestError) {
-      setError(requestError?.response?.data?.error || 'Nao foi possivel carregar os teus anuncios.')
+      setError(requestError?.response?.data?.error || 'Não foi possível carregar os teus anúncios.')
     } finally {
       setLoading(false)
     }
@@ -75,7 +76,7 @@ export default function MyListingsPage() {
   }
 
   async function handleDeleteListing(listing) {
-    const confirmed = window.confirm(`Queres apagar o anuncio \"${listing.title}\"?`)
+    const confirmed = window.confirm(`Queres apagar o anúncio \"${listing.title}\"?`)
 
     if (!confirmed) {
       return
@@ -137,8 +138,8 @@ export default function MyListingsPage() {
         <main className="main">
           <header className="topbar">
             <div className="topbar-left">
-              <h2>Meus anuncios</h2>
-              <p>Gere os teus anuncios ativos, edita detalhes e remove quando necessario.</p>
+              <h2>Meus anúncios</h2>
+              <p>Gere os teus anúncios ativos, edita detalhes e remove quando necessário.</p>
             </div>
             <div className="topbar-right">
               <Link className="pill" to="/student/marketplace">
@@ -149,13 +150,13 @@ export default function MyListingsPage() {
 
           <section className="content-grid">
             <article className="panel">
-              <h3>Lista de anuncios</h3>
+              <h3>Lista de anúncios</h3>
 
               {error ? <p className="error-banner">{error}</p> : null}
-              {loading ? <p className="panel-subtle">A carregar os teus anuncios...</p> : null}
+              {loading ? <p className="panel-subtle">A carregar os teus anúncios...</p> : null}
 
               {!loading && listings.length === 0 ? (
-                <p className="empty">Ainda nao tens anuncios publicados.</p>
+                <p className="empty">Ainda não tens anúncios publicados.</p>
               ) : (
                 <div className="market-listing-grid">
                   {listings.map((listing) => (
@@ -193,15 +194,15 @@ export default function MyListingsPage() {
           setIsEditOpen(false)
           setEditingListing(null)
         }}
-        title="Editar anuncio"
-        description="Atualiza o conteudo do teu anuncio"
+        title="Editar anúncio"
+        description="Atualiza o conteúdo do teu anúncio"
         size="xl"
       >
         <ListingForm
           initialValues={editingListing}
           categories={categories}
           conditions={conditions}
-          submitLabel="Guardar alteracoes"
+          submitLabel="Guardar alterações"
           busy={isSaving}
           onSubmit={handleEditSubmit}
           onCancel={() => {

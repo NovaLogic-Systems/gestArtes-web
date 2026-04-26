@@ -5,15 +5,18 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import LoginPage from './pages/LoginPage'
 import StudioManagementPage from './pages/admin/StudioManagementPage'
 import AdminUsersPage from './pages/admin/AdminUsersPage'
+import AdminMarketplaceConversationsPage from './pages/admin/AdminMarketplaceConversationsPage'
 import MarketplaceModerationPage from './pages/admin/MarketplaceModerationPage'
 import DashboardPage from './pages/student/DashboardPage'
 import JoinRequestsTeacherView from './components/JoinRequestsTeacherView'
 import AdmissionRequestsPage from './pages/teacher/AdmissionRequestsPage'
+import TeacherMarketplaceConversationsPage from './pages/teacher/TeacherMarketplaceConversationsPage'
 import InventoryPage from './pages/student/InventoryPage'
 import RentalCheckoutPage from './pages/student/RentalCheckoutPage'
 import RentalRequestsPage from './pages/student/RentalRequestsPage'
 import MarketplacePage from './pages/student/MarketplacePage'
 import MyListingsPage from './pages/student/MyListingsPage'
+import MarketplaceConversationsPage from './pages/student/MarketplaceConversationsPage'
 
 function PlaceholderPage({ title }) {
   return (
@@ -146,6 +149,7 @@ function App() {
         <Route path="/student/inventory/checkout/:itemId" element={<RentalCheckoutPage />} />
         <Route path="/student/inventory/rentals" element={<RentalRequestsPage />} />
         <Route path="/student/marketplace" element={<MarketplacePage />} />
+          <Route path="/student/marketplace/conversas" element={<MarketplaceConversationsPage />} />
         <Route path="/student/marketplace/my-listings" element={<MyListingsPage />} />
         <Route path="/student/notifications" element={<StudentSectionPage title="Notificações" />} />
         <Route path="/student/lostfound" element={<StudentSectionPage title="Perdidos e Achados" />} />
@@ -156,12 +160,14 @@ function App() {
         <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
         <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
         <Route path="/teacher/admission-requests" element={<AdmissionRequestsPage />} />
+            <Route path="/teacher/marketplace/conversas" element={<TeacherMarketplaceConversationsPage />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/studios" element={<StudioManagementPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
+            <Route path="/admin/marketplace/conversas" element={<AdminMarketplaceConversationsPage />} />
         <Route path="/admin/marketplace" element={<MarketplaceModerationPage />} />
       </Route>
 
