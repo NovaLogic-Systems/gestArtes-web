@@ -13,6 +13,7 @@ import DashboardPage from './pages/student/DashboardPage'
 import CoachingStudentPage from './pages/student/CoachingPage'
 import JoinRequestsTeacherView from './components/JoinRequestsTeacherView'
 import AdmissionRequestsPage from './pages/teacher/AdmissionRequestsPage'
+import SessionConfirmationPage from './pages/teacher/SessionConfirmationPage'
 import TeacherMarketplaceConversationsPage from './pages/teacher/TeacherMarketplaceConversationsPage'
 import InventoryPage from './pages/student/InventoryPage'
 import RentalCheckoutPage from './pages/student/RentalCheckoutPage'
@@ -218,6 +219,7 @@ function App() {
         <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
         <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
         <Route path="/teacher/admission-requests" element={<AdmissionRequestsPage />} />
+        <Route path="/teacher/sessions/confirmation" element={<SessionConfirmationPage />} />
             <Route path="/teacher/marketplace/conversas" element={<TeacherMarketplaceConversationsPage />} />
       </Route>
 
