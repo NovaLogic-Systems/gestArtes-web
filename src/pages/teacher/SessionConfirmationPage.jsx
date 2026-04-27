@@ -65,22 +65,30 @@ function isPresent(statusName) {
 
 function normalizeSessions(payload) {
   const items = Array.isArray(payload?.sessions) ? payload.sessions : []
-  return items.map((s) => ({
-    sessionId: Number(s.sessionId),
-    date: s.date || null,
-    startTime: s.startTime || null,
-    endTime: s.endTime || null,
-    studioName: String(s.studioName || '—').trim(),
-    modalityName: String(s.modalityName || '—').trim(),
-    status: String(s.status || '—').trim(),
-    students: Array.isArray(s.students) ? s.students.map((st) => ({
-      studentAccountId: Number(st.studentAccountId),
-      studentUserId: Number(st.studentUserId),
-      studentName: String(st.studentName || 'Aluno').trim(),
-      email: String(st.email || '').trim(),
-      attendanceStatus: String(st.attendanceStatus || '').trim(),
-    })) : [],
-  }))
+  return items.map((s) => {
+    const startDt = s.startTime ? new Date(s.startTime) : null
+    const endDt = s.endTime ? new Date(s.endTime) : null
+    const toHHMM = (dt) =>
+      dt && !isNaN(dt.getTime())
+        ? `${String(dt.getUTCHours()).padStart(2, '0')}:${String(dt.getUTCMinutes()).padStart(2, '0')}`
+        : null
+    return {
+      sessionId: Number(s.sessionId),
+      date: s.date || s.startTime || null,
+      startTime: toHHMM(startDt) || s.startTime || null,
+      endTime: toHHMM(endDt) || s.endTime || null,
+      studioName: String(s.studioName || '—').trim(),
+      modalityName: String(s.modalityName || '—').trim(),
+      status: String(s.status || s.statusName || '—').trim(),
+      students: Array.isArray(s.students) ? s.students.map((st) => ({
+        studentAccountId: Number(st.studentAccountId),
+        studentUserId: Number(st.studentUserId),
+        studentName: String(st.studentName || 'Aluno').trim(),
+        email: String(st.email || st.studentEmail || '').trim(),
+        attendanceStatus: String(st.attendanceStatus || '').trim(),
+      })) : [],
+    }
+  })
 }
 
 export default function SessionConfirmationPage() {
@@ -515,57 +523,55 @@ export default function SessionConfirmationPage() {
         open={noShowModal !== null}
         onClose={closeNoShowModal}
         title={`Registar falta sem aviso — ${noShowModal?.student?.studentName || 'Aluno'}`}
+        description="Esta ação regista a ausência sem aviso prévio e aplica a penalização financeira. Não pode ser desfeita."
+        footer={
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+            <Button variant="secondary" onClick={closeNoShowModal} disabled={noShowSubmitting}>
+              Cancelar
+            </Button>
+            <Button variant="danger" onClick={handleRegisterNoShow} disabled={noShowSubmitting}>
+              {noShowSubmitting ? 'A registar…' : 'Registar falta sem aviso'}
+            </Button>
+          </div>
+        }
       >
         {noShowModal && (
-          <div className="modal-form">
-            <div className="modal-form-info">
-              <p>
-                <strong>Sessão:</strong> #{noShowModal.session.sessionId} · {formatDate(noShowModal.session.date)} ·{' '}
-                {noShowModal.session.modalityName} · {noShowModal.session.studioName}
-              </p>
-              <p>
-                <strong>Aluno:</strong> {noShowModal.student.studentName}
-              </p>
-            </div>
-
-            <p className="modal-form-warning">
-              Esta ação regista a ausência do aluno sem aviso prévio e aplica uma penalização financeira conforme a regra BR-16. Esta ação não pode ser desfeita.
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <p>
+              <strong>Sessão:</strong> #{noShowModal.session.sessionId} · {formatDate(noShowModal.session.date)} · {noShowModal.session.modalityName} · {noShowModal.session.studioName}
+            </p>
+            <p>
+              <strong>Aluno:</strong> {noShowModal.student.studentName}
             </p>
 
-            <label className="form-label" htmlFor="no-show-remarks">
-              Observação <span aria-hidden="true">*</span>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <span>Observação <span aria-hidden="true">*</span></span>
+              <textarea
+                id="no-show-remarks"
+                rows={4}
+                value={noShowRemarks}
+                onChange={(e) => {
+                  setNoShowRemarks(e.target.value)
+                  if (noShowRemarksError) setNoShowRemarksError('')
+                }}
+                disabled={noShowSubmitting}
+                placeholder="Descreve a situação, tentativas de contacto, etc."
+                aria-describedby={noShowRemarksError ? 'no-show-remarks-error' : undefined}
+                style={{
+                  padding: '0.5rem',
+                  borderRadius: '8px',
+                  border: noShowRemarksError ? '1px solid #dc2626' : '1px solid var(--border)',
+                  font: 'inherit',
+                  resize: 'vertical',
+                }}
+              />
             </label>
-            <textarea
-              id="no-show-remarks"
-              className={['form-textarea', noShowRemarksError ? 'form-textarea--error' : ''].filter(Boolean).join(' ')}
-              rows={3}
-              placeholder="Descreve a situação, tentativas de contacto, etc."
-              value={noShowRemarks}
-              onChange={(e) => {
-                setNoShowRemarks(e.target.value)
-                if (noShowRemarksError) setNoShowRemarksError('')
-              }}
-              disabled={noShowSubmitting}
-              aria-describedby={noShowRemarksError ? 'no-show-remarks-error' : undefined}
-            />
+
             {noShowRemarksError && (
-              <p id="no-show-remarks-error" className="form-error" role="alert">
+              <p id="no-show-remarks-error" style={{ color: '#dc2626', margin: 0, fontSize: '0.875rem' }} role="alert">
                 {noShowRemarksError}
               </p>
             )}
-
-            <div className="modal-form-actions">
-              <Button variant="ghost" onClick={closeNoShowModal} disabled={noShowSubmitting}>
-                Cancelar
-              </Button>
-              <Button
-                variant="danger"
-                onClick={handleRegisterNoShow}
-                disabled={noShowSubmitting}
-              >
-                {noShowSubmitting ? 'A registar…' : 'Registar falta sem aviso'}
-              </Button>
-            </div>
           </div>
         )}
       </Modal>
