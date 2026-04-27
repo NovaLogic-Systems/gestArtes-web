@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { getDashboardPath } from '../utils/roles'
+import { getDashboardPath, isPathAllowedForRole } from '../utils/roles'
 import './auth.css'
 
 const allowedReturnPrefixes = ['/student/', '/teacher/', '/admin/']
@@ -68,6 +68,14 @@ export default function LoginPage() {
   const loginNotice = useMemo(() => getLoginNotice(location.search), [location.search])
   const returnPath = normalizeReturnPath(location.state?.from)
 
+  function resolveNextPath(targetRole) {
+    if (isPathAllowedForRole(targetRole, returnPath)) {
+      return returnPath
+    }
+
+    return getDashboardPath(targetRole)
+  }
+
   useEffect(() => {
     document.body.classList.add('auth-page')
 
@@ -83,7 +91,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      navigate(returnPath || getDashboardPath(role), { replace: true })
+      navigate(resolveNextPath(role), { replace: true })
     }
   }, [isAuthenticated, loading, navigate, returnPath, role])
 
@@ -104,7 +112,7 @@ export default function LoginPage() {
       })
 
       const nextRole = currentUser?.role || role
-      navigate(returnPath || getDashboardPath(nextRole), { replace: true })
+      navigate(resolveNextPath(nextRole), { replace: true })
     } catch (requestError) {
       const backendMessage = requestError?.response?.data?.error
       const message =

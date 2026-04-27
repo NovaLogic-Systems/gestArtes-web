@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { getMarketplaceListingById, listMarketplaceListings } from '../../services/marketplace'
+import { maskEmail, maskPhone } from '../../utils/masking'
 import './DashboardPage.css'
 import './marketplace.css'
 
@@ -174,10 +175,10 @@ export default function MarketplaceConversationsPage() {
                           <strong>Vendedor:</strong> {sellerName}
                         </p>
                         <p>
-                          <strong>Email:</strong> {seller.email || 'Sem email público'}
+                          <strong>Email:</strong> {maskEmail(seller.email) || 'Sem email público'}
                         </p>
                         <p>
-                          <strong>Telefone:</strong> {seller.phoneNumber || 'Sem telefone público'}
+                          <strong>Telefone:</strong> {maskPhone(seller.phoneNumber) || 'Sem telefone público'}
                         </p>
 
                         <div className="market-listing-actions">
