@@ -69,3 +69,16 @@ export function hasRoleAccess(currentRole, allowedRoles = []) {
 export function getDashboardPath(currentRole) {
   return DASHBOARD_PATHS[toAppRole(currentRole)] ?? DASHBOARD_PATHS.student
 }
+
+export function isPathAllowedForRole(currentRole, path) {
+  const normalizedRole = toAppRole(currentRole)
+  const candidatePath = String(path || '').trim()
+
+  if (!normalizedRole || !candidatePath.startsWith('/')) {
+    return false
+  }
+
+  const sectionRoot = getDashboardPath(normalizedRole).replace(/\/dashboard$/, '')
+
+  return candidatePath === sectionRoot || candidatePath.startsWith(`${sectionRoot}/`)
+}
