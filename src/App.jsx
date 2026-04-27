@@ -10,6 +10,7 @@ import AdminUsersPage from './pages/admin/AdminUsersPage'
 import AdminMarketplaceConversationsPage from './pages/admin/AdminMarketplaceConversationsPage'
 import MarketplaceModerationPage from './pages/admin/MarketplaceModerationPage'
 import DashboardPage from './pages/student/DashboardPage'
+import CoachingStudentPage from './pages/student/CoachingPage'
 import JoinRequestsTeacherView from './components/JoinRequestsTeacherView'
 import AdmissionRequestsPage from './pages/teacher/AdmissionRequestsPage'
 import TeacherMarketplaceConversationsPage from './pages/teacher/TeacherMarketplaceConversationsPage'
@@ -169,7 +170,7 @@ function ProtectedPlaceholderPage({ title, actionLink }) {
 }
 
 const StudentSectionPage = ({ title }) => <PlaceholderPage title={title} />
-const CoachingPage = () => <ProtectedPlaceholderPage title="Coaching" />
+const CoachingPage = () => <CoachingStudentPage />
 const TeacherDashboard = () => (
   <div>
     <ProtectedPlaceholderPage
