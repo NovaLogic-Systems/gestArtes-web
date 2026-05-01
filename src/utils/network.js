@@ -6,7 +6,15 @@
  */
 
 function readConfiguredApiUrl() {
-  return String(import.meta.env.VITE_API_URL || '/api').trim() || '/api'
+  // Em desenvolvimento, usar proxy do Vite para evitar problemas CORS/SSL
+  // Em produção, usar URL absoluta do .env
+  const configured = String(import.meta.env.VITE_API_URL || '').trim()
+  
+  if (import.meta.env.MODE === 'development' && configured.startsWith('https://')) {
+    return '/api'
+  }
+  
+  return configured || '/api'
 }
 
 export function getApiBaseUrl() {
