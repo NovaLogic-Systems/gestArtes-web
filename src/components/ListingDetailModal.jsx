@@ -1,3 +1,10 @@
+/**
+ * @file src/components/ListingDetailModal.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import { resolveMarketplacePhotoUrl } from '../utils/marketplace-photo-url'
 import Modal from './ui/Modal'
 

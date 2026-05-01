@@ -1,3 +1,10 @@
+/**
+ * @file src/services/studioManagementService.js
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import api from './api'
 import { uniqueNames } from '../utils/strings'
 

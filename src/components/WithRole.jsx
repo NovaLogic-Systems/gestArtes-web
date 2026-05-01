@@ -1,3 +1,10 @@
+/**
+ * @file src/components/WithRole.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import { useAuth } from '../hooks/useAuth'
 import { hasRoleAccess, toAppRole } from '../utils/roles'
 

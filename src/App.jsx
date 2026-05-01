@@ -1,4 +1,11 @@
-﻿import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+﻿/**
+ * @file src/App.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
+import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import { useAuth } from './hooks/useAuth'
 import { getDashboardPath, toAppRole } from './utils/roles'

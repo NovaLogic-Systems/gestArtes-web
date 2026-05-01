@@ -1,3 +1,10 @@
+/**
+ * @file src/components/admin/StudioOccupancyCard.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import React from 'react'
 import Badge from '../ui/Badge'
 

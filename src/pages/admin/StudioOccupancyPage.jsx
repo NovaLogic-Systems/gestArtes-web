@@ -1,4 +1,11 @@
-﻿import { useState, useEffect, useMemo } from 'react'
+﻿/**
+ * @file src/pages/admin/StudioOccupancyPage.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
+import { useState, useEffect, useMemo } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import StudioOccupancyPanel from '../../components/admin/StudioOccupancyPanel'

@@ -1,3 +1,10 @@
+/**
+ * @file src/pages/admin/AdminUsersPage.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import WithRole from '../../components/WithRole'
