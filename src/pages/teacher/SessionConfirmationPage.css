@@ -1,0 +1,499 @@
+.teacher-admission-requests .page-content {
+  display: grid;
+  gap: 14px;
+}
+
+.teacher-admission-requests .error-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff3f5;
+  border: 1px solid #f5c6cc;
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: #8b2e39;
+  font-size: 0.88rem;
+}
+
+.teacher-admission-requests .retry-btn {
+  margin-left: auto;
+  border: 1px solid #e5b0b9;
+  border-radius: 999px;
+  background: #fff;
+  color: #8b2e39;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.teacher-admission-requests .retry-btn:hover {
+  background: #ffeef0;
+}
+
+.teacher-admission-requests .sessions-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.teacher-admission-requests .panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.teacher-admission-requests .empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--muted);
+}
+
+.teacher-admission-requests .empty-state-icon {
+  font-size: 2.5rem;
+  margin: 0 0 12px;
+  color: var(--teal);
+}
+
+.teacher-admission-requests .empty-state h3 {
+  margin: 0 0 8px;
+  color: var(--ink);
+  font-size: 1.1rem;
+}
+
+.teacher-admission-requests .empty-state p {
+  margin: 0;
+  font-size: 0.9rem;
+  max-width: 360px;
+  margin-inline: auto;
+}
+
+/* Session card */
+
+.teacher-admission-requests .session-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.teacher-admission-requests .session-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.teacher-admission-requests .session-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.teacher-admission-requests .session-ref {
+  font-weight: 700;
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+
+.teacher-admission-requests .session-detail {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.teacher-admission-requests .session-detail::before {
+  content: '·';
+  margin-right: 8px;
+  color: var(--line);
+}
+
+.teacher-admission-requests .session-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #7a5c00;
+  background: #fff9e6;
+  border: 1px solid #f5e4a0;
+  border-radius: 8px;
+  padding: 6px 10px;
+  display: inline-block;
+}
+
+/* Attendance list */
+
+.teacher-admission-requests .attendance-list {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.teacher-admission-requests .attendance-list-header {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 14px;
+  background: #f8f5fb;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.teacher-admission-requests .attendance-actions-col {
+  min-width: 130px;
+  text-align: right;
+}
+
+.teacher-admission-requests .attendance-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  transition: background 0.1s;
+}
+
+.teacher-admission-requests .attendance-row:last-child {
+  border-bottom: 0;
+}
+
+.teacher-admission-requests .attendance-row--noshow {
+  background: #fff7f5;
+}
+
+.teacher-admission-requests .attendance-row--present {
+  background: #f4fbf8;
+}
+
+.teacher-admission-requests .attendance-row--empty {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  padding: 16px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.teacher-admission-requests .attendance-student {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.teacher-admission-requests .attendance-name {
+  font-weight: 600;
+  color: var(--ink);
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teacher-admission-requests .attendance-email {
+  font-size: 0.78rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teacher-admission-requests .attendance-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+  min-width: 130px;
+}
+
+.teacher-admission-requests .attendance-btn {
+  border-radius: 999px;
+  border: 1px solid;
+  padding: 5px 11px;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, opacity 0.12s;
+}
+
+.teacher-admission-requests .attendance-btn--noshow {
+  border-color: #f5c0b0;
+  background: #fff5f0;
+  color: #8c3010;
+}
+
+.teacher-admission-requests .attendance-btn--noshow:hover {
+  background: #fce4d9;
+}
+
+.teacher-admission-requests .attendance-action-done {
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.teacher-admission-requests .attendance-action-done--noshow {
+  background: #fff0ee;
+  color: #8c3010;
+}
+
+.teacher-admission-requests .attendance-action-done--present {
+  background: #ecfbf4;
+  color: #0a6e4e;
+}
+
+/* Notification dropdown */
+
+.teacher-admission-requests .notif-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #e84a3a;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.teacher-admission-requests .notif-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: min(360px, 90vw);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 18px 36px rgba(20, 14, 30, 0.22);
+  z-index: 50;
+  overflow: hidden;
+}
+
+.teacher-admission-requests .notif-dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--ink);
+}
+
+.teacher-admission-requests .notif-dropdown-body {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.teacher-admission-requests .notif-empty {
+  margin: 0;
+  padding: 16px;
+  text-align: center;
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+
+.teacher-admission-requests .notif-error {
+  color: #8b2e39;
+}
+
+.teacher-admission-requests .notif-item {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.teacher-admission-requests .notif-item:last-child {
+  border-bottom: 0;
+}
+
+.teacher-admission-requests .notif-item--unread {
+  background: #f8f3ff;
+}
+
+.teacher-admission-requests .notif-title {
+  margin: 0 0 2px;
+  font-weight: 600;
+  font-size: 0.86rem;
+  color: var(--ink);
+}
+
+.teacher-admission-requests .notif-message {
+  margin: 0 0 4px;
+  font-size: 0.82rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.teacher-admission-requests .notif-date {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+/* Sidebar footer */
+
+.teacher-admission-requests .sidebar-footer {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.teacher-admission-requests .sidebar-user {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink);
+  padding: 8px 14px 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teacher-admission-requests .logout-link {
+  color: #6d6480;
+}
+
+.teacher-admission-requests .logout-link:hover {
+  color: #2e2942;
+}
+
+.teacher-admission-requests .menu-toggle {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #d7ccdf;
+  border-radius: 10px;
+  background: #fff;
+  color: #3f3558;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-family: inherit;
+}
+
+.teacher-admission-requests .menu-toggle:hover {
+  background: var(--lavender);
+}
+
+/* Modal form */
+
+.teacher-admission-requests .modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.teacher-admission-requests .modal-form-info {
+  background: #f8f5fb;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  color: var(--ink);
+}
+
+.teacher-admission-requests .modal-form-info p {
+  margin: 0 0 4px;
+}
+
+.teacher-admission-requests .modal-form-info p:last-child {
+  margin: 0;
+}
+
+.teacher-admission-requests .modal-form-warning {
+  margin: 0;
+  font-size: 0.84rem;
+  color: #7a3a00;
+  background: #fff7eb;
+  border: 1px solid #f5dcb0;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.teacher-admission-requests .form-label {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--ink);
+  display: block;
+}
+
+.teacher-admission-requests .form-textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d7ccdf;
+  border-radius: 10px;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 0.88rem;
+  color: var(--ink);
+  background: #fff;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.teacher-admission-requests .form-textarea:focus {
+  outline: 2px solid var(--teal);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+.teacher-admission-requests .form-textarea--error {
+  border-color: #e05050;
+}
+
+.teacher-admission-requests .form-error {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #8b2e39;
+  font-weight: 500;
+}
+
+.teacher-admission-requests .modal-form-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+/* Responsive */
+
+@media (max-width: 600px) {
+  .teacher-admission-requests .attendance-list-header {
+    grid-template-columns: 1fr auto;
+  }
+
+  .teacher-admission-requests .attendance-list-header .attendance-actions-col {
+    display: none;
+  }
+
+  .teacher-admission-requests .attendance-row {
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+  }
+
+  .teacher-admission-requests .attendance-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    min-width: 0;
+  }
+
+  .teacher-admission-requests .session-card-header {
+    flex-direction: column;
+  }
+}
