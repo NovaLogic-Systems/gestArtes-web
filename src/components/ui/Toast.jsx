@@ -1,3 +1,10 @@
+/**
+ * @file src/components/ui/Toast.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import { createPortal } from 'react-dom'
 import { cn } from './shared'
 

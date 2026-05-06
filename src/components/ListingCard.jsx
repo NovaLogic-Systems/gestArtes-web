@@ -1,3 +1,10 @@
+/**
+ * @file src/components/ListingCard.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import { resolveMarketplacePhotoUrl } from '../utils/marketplace-photo-url'
 
 function formatMoney(value) {

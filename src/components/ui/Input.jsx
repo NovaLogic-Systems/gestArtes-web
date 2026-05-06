@@ -1,3 +1,10 @@
+/**
+ * @file src/components/ui/Input.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import { forwardRef, useId } from 'react'
 import { cn } from './shared'
 

@@ -1,3 +1,10 @@
+/**
+ * @file src/components/admin/StudioOccupancyPanel.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import React, { useEffect, useState } from 'react'
 import studioOccupancyService from '../../services/studioOccupancyService'
 import KPICard from '../ui/KPICard'

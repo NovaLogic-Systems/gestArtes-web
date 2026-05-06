@@ -1,3 +1,10 @@
+/**
+ * @file src/services/coaching.js
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import api from './api'
 
 export async function getAvailableSlots({ weekStart, teacherId, modalityId } = {}) {

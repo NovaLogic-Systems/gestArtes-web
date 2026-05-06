@@ -1,3 +1,10 @@
+/**
+ * @file src/services/notificationPreviewService.js
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import api from './api'
 
 function mapNotification(item) {

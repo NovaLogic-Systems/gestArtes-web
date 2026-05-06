@@ -1,3 +1,10 @@
+/**
+ * @file src/utils/roles.js
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 export const ROLE_HIERARCHY = Object.freeze({
   student: 1,
   teacher: 2,

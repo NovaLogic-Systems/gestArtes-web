@@ -1,3 +1,10 @@
+/**
+ * @file src/components/ProtectedRoute.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { hasRoleAccess, normalizeRoleList, toAppRole } from '../utils/roles'
