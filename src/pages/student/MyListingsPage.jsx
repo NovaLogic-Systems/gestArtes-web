@@ -27,7 +27,7 @@ const NAV_ITEMS = [
   { label: 'Coaching', href: '/student/coaching' },
   { label: 'Inventário da Escola', href: '/student/inventory' },
   { label: 'Marketplace', href: '/student/marketplace' },
-    { label: 'Conversas', href: '/student/marketplace/conversas' },
+  { label: 'Conversas', href: '/student/marketplace/conversas' },
   { label: 'Meus anúncios', href: '/student/marketplace/my-listings' },
   { label: 'Perdidos e Achados', href: '/student/lostfound' },
   { label: 'Minha Conta', href: '/student/account' },
@@ -83,7 +83,7 @@ export default function MyListingsPage() {
   }
 
   async function handleDeleteListing(listing) {
-    const confirmed = window.confirm(`Queres apagar o anúncio \"${listing.title}\"?`)
+    const confirmed = window.confirm(`Queres apagar o anúncio "${listing.title}"?`)
 
     if (!confirmed) {
       return

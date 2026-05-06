@@ -9,6 +9,7 @@ import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import fs from 'node:fs'
 import path from 'node:path'
+import process from 'node:process'
 
 function parseBoolean(value, fallback) {
   if (value === undefined || value === null || value === '') return fallback

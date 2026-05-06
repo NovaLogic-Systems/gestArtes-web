@@ -5,7 +5,7 @@
  * @project GestArtes - Projeto 50+10 para Entartes
  */
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { getDashboardPath, isPathAllowedForRole } from '../utils/roles'
@@ -75,13 +75,16 @@ export default function LoginPage() {
   const loginNotice = useMemo(() => getLoginNotice(location.search), [location.search])
   const returnPath = normalizeReturnPath(location.state?.from)
 
-  function resolveNextPath(targetRole) {
-    if (isPathAllowedForRole(targetRole, returnPath)) {
-      return returnPath
-    }
+  const resolveNextPath = useCallback(
+    (targetRole) => {
+      if (isPathAllowedForRole(targetRole, returnPath)) {
+        return returnPath
+      }
 
-    return getDashboardPath(targetRole)
-  }
+      return getDashboardPath(targetRole)
+    },
+    [returnPath],
+  )
 
   useEffect(() => {
     document.body.classList.add('auth-page')
@@ -100,7 +103,7 @@ export default function LoginPage() {
     if (!loading && isAuthenticated) {
       navigate(resolveNextPath(role), { replace: true })
     }
-  }, [isAuthenticated, loading, navigate, returnPath, role])
+  }, [isAuthenticated, loading, navigate, resolveNextPath, role])
 
   async function handleSubmit(event) {
     event.preventDefault()
