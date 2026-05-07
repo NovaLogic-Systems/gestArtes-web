@@ -254,6 +254,7 @@
 }
 
 @media (max-width: 720px) {
+
   .student-notifications-page .notifications-page-header,
   .student-notifications-page .notification-page-list li {
     grid-template-columns: 1fr;

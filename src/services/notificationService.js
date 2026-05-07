@@ -104,4 +104,12 @@ const notificationService = {
   },
 }
 
+export const getNotifications = async () => {
+  const items = await notificationService.list()
+  return { data: items }
+}
+
+export const markAsRead = (id) => notificationService.markAsRead(id)
+export const deleteNotification = (id) => notificationService.remove(id)
+
 export default notificationService

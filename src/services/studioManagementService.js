@@ -1,3 +1,10 @@
+/**
+ * @file src/services/studioManagementService.js
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import api from './api'
 import { uniqueNames } from '../utils/strings'
 
@@ -7,6 +14,17 @@ const LOCAL_OPTIONS_KEY = 'gestartes:studios:local-options'
 function normalizeList(value) {
   if (Array.isArray(value)) {
     return value
+      .map((entry) => {
+        if (typeof entry === 'string') {
+          return entry
+        }
+
+        if (entry && typeof entry === 'object') {
+          return entry.modalityName || entry.name || entry.label || entry.value || ''
+        }
+
+        return String(entry || '')
+      })
       .map((entry) => String(entry || '').trim())
       .filter(Boolean)
   }
@@ -28,7 +46,7 @@ function formatOptionValues(values) {
         return entry
       }
 
-      return entry?.name || entry?.label || entry?.value || ''
+      return entry?.name || entry?.label || entry?.value || entry?.modalityName || ''
     }),
   )
 }
@@ -119,14 +137,6 @@ function readLocalJson(key, fallbackValue) {
   }
 }
 
-function saveLocalJson(key, value) {
-  if (typeof window === 'undefined') {
-    return
-  }
-
-  window.localStorage.setItem(key, JSON.stringify(value))
-}
-
 function loadLocalStudios() {
   const parsed = readLocalJson(LOCAL_STUDIOS_KEY, [])
   if (!Array.isArray(parsed)) {
@@ -136,10 +146,6 @@ function loadLocalStudios() {
   return parsed.map(formatStudio)
 }
 
-function saveLocalStudios(studios) {
-  saveLocalJson(LOCAL_STUDIOS_KEY, studios)
-}
-
 function loadLocalOptions() {
   const parsed = readLocalJson(LOCAL_OPTIONS_KEY, { formats: [], modalities: [] })
 
@@ -147,27 +153,6 @@ function loadLocalOptions() {
     formats: formatOptionValues(parsed?.formats),
     modalities: formatOptionValues(parsed?.modalities),
   }
-}
-
-function saveLocalOptions(options) {
-  saveLocalJson(LOCAL_OPTIONS_KEY, {
-    formats: formatOptionValues(options?.formats),
-    modalities: formatOptionValues(options?.modalities),
-  })
-}
-
-function createLocalStudioId(studios) {
-  const highest = studios.reduce((maxValue, studio) => {
-    const parsed = Number(String(studio.id || '').replace(/\D/g, ''))
-
-    if (!Number.isFinite(parsed)) {
-      return maxValue
-    }
-
-    return Math.max(maxValue, parsed)
-  }, 0)
-
-  return `E${highest + 1}`
 }
 
 function parseStudiosPayload(data) {
@@ -208,13 +193,8 @@ function deriveOptionsFromStudios(studios) {
 
 const studioManagementService = {
   async listStudios() {
-    try {
-      const response = await api.get('/admin/studios')
-      const studios = parseStudiosPayload(response.data)
-      return studios
-    } catch {
-      return loadLocalStudios()
-    }
+    const response = await api.get('/admin/studios')
+    return parseStudiosPayload(response.data)
   },
 
   async listStudioOptions() {
@@ -247,61 +227,16 @@ const studioManagementService = {
 
   async createStudio(payload) {
     const normalized = normalizeStudioPayload(payload)
-
-    try {
-      await api.post('/admin/studios', normalized)
-      return
-    } catch {
-      const studios = loadLocalStudios()
-      const nextStudio = formatStudio({
-        id: createLocalStudioId(studios),
-        name: normalized.studioName,
-        capacity: normalized.capacity,
-        formats: normalized.formats,
-        modalities: normalized.modalities,
-      })
-
-      saveLocalStudios([nextStudio, ...studios])
-    }
+    await api.post('/admin/studios', normalized)
   },
 
   async updateStudio(studioId, payload) {
     const normalized = normalizeStudioPayload(payload)
-
-    try {
-      await api.patch(`/admin/studios/${studioId}`, normalized)
-      return
-    } catch {
-      const studios = loadLocalStudios()
-      const targetId = String(studioId)
-
-      const updated = studios.map((studio) => {
-        if (String(studio.id) !== targetId) {
-          return studio
-        }
-
-        return formatStudio({
-          id: studio.id,
-          name: normalized.studioName,
-          capacity: normalized.capacity,
-          formats: normalized.formats,
-          modalities: normalized.modalities,
-        })
-      })
-
-      saveLocalStudios(updated)
-    }
+    await api.patch(`/admin/studios/${studioId}`, normalized)
   },
 
   async deleteStudio(studioId) {
-    try {
-      await api.delete(`/admin/studios/${studioId}`)
-      return
-    } catch {
-      const targetId = String(studioId)
-      const studios = loadLocalStudios()
-      saveLocalStudios(studios.filter((studio) => String(studio.id) !== targetId))
-    }
+    await api.delete(`/admin/studios/${studioId}`)
   },
 
   async createStudioOption({ type, name }) {
@@ -312,20 +247,12 @@ const studioManagementService = {
       throw new Error('Nome inválido.')
     }
 
-    try {
-      await api.post('/admin/studios/options', {
-        type: normalizedType,
-        name: normalizedName,
-      })
+    await api.post('/admin/studios/options', {
+      type: normalizedType,
+      name: normalizedName,
+    })
 
-      return normalizedName
-    } catch {
-      const options = loadLocalOptions()
-      options[normalizedType] = uniqueNames([...(options[normalizedType] || []), normalizedName])
-      saveLocalOptions(options)
-
-      return normalizedName
-    }
+    return normalizedName
   },
 }
 

@@ -3,7 +3,25 @@ import { Link } from 'react-router-dom'
 import notificationService, { formatNotificationDate } from '../services/notificationService'
 import { subscribeToNotifications } from '../services/realtimeNotifications'
 
-export default function NotificationsBell({ pageLink = '/student/notifications' }) {
+function BellGlyph({ unreadCount }) {
+  return (
+    <span className="notifications-bell-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" focusable="false">
+        <path d="M12 22a2.7 2.7 0 0 0 2.63-2h-5.26A2.7 2.7 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.25-6.78V3a1.75 1.75 0 0 0-3.5 0v1.22A7 7 0 0 0 5 11v5l-1.3 1.3A1 1 0 0 0 4.41 19h15.18a1 1 0 0 0 .71-1.7L19 16Zm-2 .59.41.41H6.59L7 16.59V11a5 5 0 0 1 10 0v5.59Z" />
+      </svg>
+      {unreadCount > 0 ? <strong className="notifications-count-badge">{unreadCount}</strong> : null}
+    </span>
+  )
+}
+
+export default function NotificationsBell({
+  pageLink = '/student/notifications',
+  onClick,
+  count,
+  children = 'Notificações',
+  ...buttonProps
+}) {
+  const controlledByParent = typeof onClick === 'function'
   const [open, setOpen] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -12,6 +30,7 @@ export default function NotificationsBell({ pageLink = '/student/notifications' 
   const [unreadCount, setUnreadCount] = useState(0)
   const rootRef = useRef(null)
 
+  const displayCount = typeof count === 'number' ? count : unreadCount
   const previewItems = useMemo(() => notifications.slice(0, 5), [notifications])
 
   const loadPreview = useCallback(async () => {
@@ -31,19 +50,25 @@ export default function NotificationsBell({ pageLink = '/student/notifications' 
   }, [])
 
   useEffect(() => {
-    void loadPreview()
-  }, [loadPreview])
+    if (!controlledByParent) {
+      void loadPreview()
+    }
+  }, [controlledByParent, loadPreview])
 
   useEffect(() => {
+    if (controlledByParent) {
+      return undefined
+    }
+
     return subscribeToNotifications((notification) => {
       setNotifications((current) => [notification, ...current.filter((item) => item.id !== notification.id)])
       setUnreadCount((current) => current + (notification.isRead ? 0 : 1))
       setLoaded(true)
     })
-  }, [])
+  }, [controlledByParent])
 
   useEffect(() => {
-    if (!open) {
+    if (!open || controlledByParent) {
       return undefined
     }
 
@@ -55,9 +80,14 @@ export default function NotificationsBell({ pageLink = '/student/notifications' 
 
     document.addEventListener('mousedown', handleOutsideClick)
     return () => document.removeEventListener('mousedown', handleOutsideClick)
-  }, [open])
+  }, [controlledByParent, open])
 
-  const handleOpen = () => {
+  const handleOpen = (event) => {
+    if (controlledByParent) {
+      onClick(event)
+      return
+    }
+
     const nextOpen = !open
     setOpen(nextOpen)
 
@@ -92,19 +122,15 @@ export default function NotificationsBell({ pageLink = '/student/notifications' 
         type="button"
         className="pill notifications-pill"
         onClick={handleOpen}
-        aria-expanded={open}
-        aria-label={`Notificacoes, ${unreadCount} por ler`}
+        aria-expanded={controlledByParent ? undefined : open}
+        aria-label={`Notificacoes, ${displayCount} por ler`}
+        {...buttonProps}
       >
-        <span>Notificações</span>
-        <span className="notifications-bell-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" focusable="false">
-            <path d="M12 22a2.7 2.7 0 0 0 2.63-2h-5.26A2.7 2.7 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.25-6.78V3a1.75 1.75 0 0 0-3.5 0v1.22A7 7 0 0 0 5 11v5l-1.3 1.3A1 1 0 0 0 4.41 19h15.18a1 1 0 0 0 .71-1.7L19 16Zm-2 .59.41.41H6.59L7 16.59V11a5 5 0 0 1 10 0v5.59Z" />
-          </svg>
-          {unreadCount > 0 ? <strong className="notifications-count-badge">{unreadCount}</strong> : null}
-        </span>
+        <span>{children}</span>
+        <BellGlyph unreadCount={displayCount} />
       </button>
 
-      {open ? (
+      {!controlledByParent && open ? (
         <div className="notifications-popover">
           <div className="notifications-popover-header">
             <strong>Notificações</strong>
@@ -138,3 +164,4 @@ export default function NotificationsBell({ pageLink = '/student/notifications' 
     </div>
   )
 }
+

@@ -1,19 +1,34 @@
+/**
+ * @file src/context/AuthContext.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AuthContext } from './auth-context'
-import api, { setUnauthorizedHandler } from '../services/api'
-import { clearAccessToken, setAccessToken } from '../services/tokenStore'
+import api, {
+  clearAccessToken,
+  getAccessToken,
+  setAccessToken,
+  setUnauthorizedHandler,
+} from '../services/api'
+
+export { AuthContext }
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [role, setRole] = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [unreadCount, setUnreadCount] = useState(0)
 
   const clearSession = useCallback(() => {
     clearAccessToken()
     setUser(null)
     setRole(null)
     setIsAuthenticated(false)
+    setUnreadCount(0)
   }, [])
 
   const loadSession = useCallback(async () => {
@@ -67,7 +82,12 @@ export function AuthProvider({ children }) {
   }, [clearSession])
 
   useEffect(() => {
-    loadSession()
+    if (!getAccessToken()) {
+      setLoading(false)
+      return
+    }
+
+    void loadSession()
   }, [loadSession])
 
   useEffect(() => {
@@ -94,8 +114,11 @@ export function AuthProvider({ children }) {
       login,
       logout,
       reloadSession: loadSession,
+      loadSession,
+      unreadCount,
+      setUnreadCount,
     }),
-    [user, role, isAuthenticated, loading, login, logout, loadSession],
+    [user, role, isAuthenticated, loading, login, logout, loadSession, unreadCount],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

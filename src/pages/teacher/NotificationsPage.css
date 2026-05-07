@@ -1,96 +1,274 @@
-.notifications-page {
-  padding: 20px;
+.teacher-notifications-page .notifications-root {
+  position: relative;
 }
 
-.notifications-header {
+.teacher-notifications-page .notifications-pill,
+.teacher-dashboard .notifications-pill {
+  align-items: center;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 8px;
+  height: 48px;
+  padding: 8px 12px 8px 14px;
+}
+
+.teacher-notifications-page .notifications-bell-icon,
+.teacher-dashboard .notifications-bell-icon {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #f2c2af;
+  border-radius: 50%;
+  color: #8c402a;
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  position: relative;
+  width: 28px;
+}
+
+.teacher-notifications-page .notifications-bell-icon svg,
+.teacher-dashboard .notifications-bell-icon svg {
+  fill: currentColor;
+  height: 15px;
+  width: 15px;
+}
+
+.teacher-notifications-page .notifications-count-badge,
+.teacher-dashboard .notifications-count-badge {
+  align-items: center;
+  background: #c7374f;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 0.68rem;
+  font-weight: 700;
+  justify-content: center;
+  line-height: 1;
+  min-width: 18px;
+  padding: 2px 5px;
+  position: absolute;
+  right: -8px;
+  top: -7px;
+}
+
+.teacher-dashboard .notifications-popover {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--soft-shadow);
+  color: var(--ink);
+  min-width: min(340px, calc(100vw - 32px));
+  padding: 12px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 50;
+}
+
+.teacher-dashboard .notifications-popover-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.teacher-dashboard .notifications-state {
+  color: var(--muted);
+  margin: 10px 0;
+}
+
+.teacher-dashboard .notifications-state.error {
+  color: #8b2e39;
+}
+
+.teacher-dashboard .notifications-list {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.teacher-dashboard .notifications-item {
+  border: 1px solid #efe8f7;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.teacher-dashboard .notifications-item button {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: block;
+  font: inherit;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.teacher-dashboard .notifications-item.unread {
+  background: #fff3ee;
+  border-color: #f2c2af;
+}
+
+.teacher-dashboard .notifications-item strong {
+  display: block;
+  font-size: 0.9rem;
+}
+
+.teacher-dashboard .notifications-item p {
+  color: #4e4664;
+  font-size: 0.86rem;
+  margin: 4px 0;
+}
+
+.teacher-dashboard .notifications-item small {
+  color: var(--muted);
+}
+
+.teacher-dashboard .notifications-more-link {
+  color: #8c402a;
+  display: inline-flex;
+  font-weight: 700;
+  margin-top: 10px;
+  text-decoration: none;
+}
+
+.teacher-notifications-page .notifications-page-header {
   align-items: flex-start;
   display: flex;
-  gap: 1rem;
+  gap: 16px;
   justify-content: space-between;
-  margin-bottom: 20px;
-}
-
-.notifications-back-button {
-  flex: 0 0 auto;
-  margin-top: 10px;
-}
-
-.filter-tabs {
-  margin-bottom: 20px;
-}
-
-.filter-tabs button {
-  margin-right: 10px;
-  padding: 8px 12px;
-  border: 1px solid #ccc;
-  background-color: #f0f0f0;
-  cursor: pointer;
-}
-
-.filter-tabs button.active {
-  background-color: #007bff;
-  color: white;
-}
-
-.notifications-page .notifications-list .notification-item {
-  --ink: #1f1c2e;
-  --muted: #6d6480;
-  --line: #e2d9eb;
-  --panel: #ffffff;
-  --teal: #0b9d8f;
-  --teal-dark: #08786d;
-  --coral: #f08a5d;
-  --iris: #6f5ca5;
-  --lavender: #f5edfb;
-  --soft-shadow: 0 14px 36px rgba(31, 28, 46, 0.12);
-  --radius: 16px;
-
-  background-color: #f8f4fb;
-  background-image:
-    radial-gradient(circle at 18% 18%, rgba(111, 92, 165, 0.16), transparent 26%),
-    radial-gradient(circle at 82% 16%, rgba(11, 157, 143, 0.16), transparent 22%),
-    radial-gradient(circle at 15% 84%, rgba(240, 138, 93, 0.14), transparent 24%),
-    linear-gradient(150deg, #fdf8f6 0%, #f7f0fb 46%, #effaf8 100%);
-
-  color: var(--ink);
-  border: 1px solid var(--line);
-  box-shadow: var(--soft-shadow);
-  border-radius: var(--radius);
-  padding: 22px 18px;
   margin-bottom: 14px;
 }
 
-.notifications-page .notifications-list .notification-item.read {
-  background-color: #f8f4fb;
+.teacher-notifications-page .notifications-page-header h3 {
+  margin: 0;
 }
 
-.notification-item .actions {
-  margin-top: 14px;
+.teacher-notifications-page .notifications-page-header p {
+  color: var(--muted);
+  margin: 4px 0 0;
 }
 
-.notification-item .actions button {
-  margin-right: 10px;
-  padding: 5px 10px;
-  border: 1px solid #ccc;
-  background-color: #e0e0e0;
+.teacher-notifications-page .notification-filter {
+  background: #f7f0fb;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+}
+
+.teacher-notifications-page .notification-filter button {
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: #4c4666;
   cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 7px 11px;
 }
 
-.notification-item .actions .mark-read-button.is-read {
-  background: #e5e7eb !important;
-  border-color: #d1d5db !important;
-  color: #6b7280 !important;
-  box-shadow: none !important;
+.teacher-notifications-page .notification-filter button.active {
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(31, 28, 46, 0.12);
+  color: #0f6a62;
+  font-weight: 700;
 }
 
-@media (max-width: 640px) {
-  .notifications-header {
-    align-items: stretch;
-    flex-direction: column;
+.teacher-notifications-page .notification-page-list {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.teacher-notifications-page .notification-page-list li {
+  align-items: stretch;
+  background: #fff;
+  border: 1px solid #efe8f7;
+  border-radius: 12px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr auto;
+  padding: 12px;
+}
+
+.teacher-notifications-page .notification-page-list li.unread {
+  background: #fff8f5;
+  border-color: #f2c2af;
+}
+
+.teacher-notifications-page .notification-main {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+  font: inherit;
+  min-width: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.teacher-notifications-page .notification-main p {
+  color: #4e4664;
+  margin: 0;
+}
+
+.teacher-notifications-page .notification-main small {
+  color: var(--muted);
+}
+
+.teacher-notifications-page .notification-type {
+  color: #0f6a62;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.teacher-notifications-page .notification-delete {
+  align-self: center;
+  background: #fff3f5;
+  border: 1px solid #f3c6cc;
+  border-radius: 999px;
+  color: #8b2e39;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.84rem;
+  padding: 8px 12px;
+}
+
+.teacher-notifications-page .error-banner {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+@media (max-width: 720px) {
+
+  .teacher-notifications-page .notifications-page-header,
+  .teacher-notifications-page .notification-page-list li {
+    grid-template-columns: 1fr;
   }
 
-  .notifications-back-button {
-    margin-top: 0;
-    width: fit-content;
+  .teacher-notifications-page .notifications-page-header {
+    display: grid;
+  }
+
+  .teacher-notifications-page .notification-filter {
+    border-radius: 14px;
+  }
+
+  .teacher-notifications-page .notification-delete {
+    justify-self: flex-start;
   }
 }

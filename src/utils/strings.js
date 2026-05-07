@@ -1,3 +1,10 @@
+/**
+ * @file src/utils/strings.js
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 export function uniqueNames(values) {
 	if (!Array.isArray(values)) {
 		return []

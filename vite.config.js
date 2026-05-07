@@ -1,3 +1,10 @@
+/**
+ * @file vite.config.js
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import fs from 'node:fs'
@@ -11,7 +18,10 @@ function parseBoolean(value, fallback = false) {
     return fallback
   }
 
-  return ['1', 'true', 'yes', 'on'].includes(String(value).trim().toLowerCase())
+  const normalized = String(value).trim().toLowerCase()
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false
+  return fallback
 }
 
 function resolveOptionalPath(value) {
@@ -22,14 +32,13 @@ function resolveOptionalPath(value) {
   return path.resolve(configDir, value)
 }
 
-// https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, configDir, '')
   const enableHttps = parseBoolean(env.VITE_ENABLE_HTTPS, false)
   const sslKeyPath = resolveOptionalPath(env.VITE_SSL_KEY_PATH)
   const sslCertPath = resolveOptionalPath(env.VITE_SSL_CERT_PATH)
   const hasSslFiles = sslKeyPath && sslCertPath && fs.existsSync(sslKeyPath) && fs.existsSync(sslCertPath)
-  const apiProxyTarget = env.VITE_API_PROXY_TARGET || 'https://localhost:3001'
+  const apiProxyTarget = env.VITE_API_PROXY_TARGET || env.VITE_API_URL || 'https://localhost:3001'
 
   return {
     plugins: [react()],
@@ -46,7 +55,12 @@ export default defineConfig(({ mode }) => {
           target: apiProxyTarget,
           changeOrigin: true,
           secure: false,
-          rewrite: (path) => path.replace(/^\/api/, ''),
+          rewrite: (requestPath) => requestPath.replace(/^\/api/, ''),
+        },
+        '/uploads': {
+          target: apiProxyTarget,
+          changeOrigin: true,
+          secure: false,
         },
         '/socket.io': {
           target: apiProxyTarget,
