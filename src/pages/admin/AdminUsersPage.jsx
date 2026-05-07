@@ -1,8 +1,16 @@
+/**
+ * @file src/pages/admin/AdminUsersPage.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import WithRole from '../../components/WithRole'
 import { useAuth } from '../../hooks/useAuth'
 import adminUsersService from '../../services/adminUsersService'
+import { maskEmail } from '../../utils/masking'
 import { ADMIN_ROLE_OPTIONS, toAppRole } from '../../utils/roles'
 import '../admin-studios.css'
 
@@ -61,7 +69,7 @@ export default function AdminUsersPage() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
-  const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'Utilizador'
+  const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || maskEmail(user?.email) || 'Utilizador'
   const sidebarActivePath = location.pathname
   const sidebarHidden = isMobile || sidebarCollapsed
   const appShellClassName = ['app-shell', sidebarHidden ? 'sidebar-hidden' : '']
@@ -159,7 +167,7 @@ export default function AdminUsersPage() {
       }
 
       const createdUser = await adminUsersService.createUser(payload)
-      setNotice(`Utilizador ${createdUser.email} criado com sucesso.`)
+      setNotice(`Utilizador ${maskEmail(createdUser.email)} criado com sucesso.`)
       setForm(emptyForm)
       await loadUsers()
     } catch (requestError) {
@@ -296,7 +304,7 @@ export default function AdminUsersPage() {
                       users.map((entry) => (
                         <tr key={entry.userId}>
                           <td>{[entry.firstName, entry.lastName].filter(Boolean).join(' ') || '—'}</td>
-                          <td>{entry.email || '—'}</td>
+                          <td>{maskEmail(entry.email) || '—'}</td>
                           <td>{entry.roleLabel || entry.role || '—'}</td>
                           <td>{entry.isActive ? 'Ativo' : 'Inativo'}</td>
                           <td>{formatDate(entry.createdAt)}</td>

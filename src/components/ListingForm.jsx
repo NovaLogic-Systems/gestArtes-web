@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+/**
+ * @file src/components/ListingForm.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
+import { useEffect, useMemo, useReducer } from 'react'
+import { resolveMarketplacePhotoUrl } from '../utils/marketplace-photo-url'
 
 const DEFAULT_VALUES = {
   title: '',
@@ -7,6 +15,38 @@ const DEFAULT_VALUES = {
   categoryId: '',
   conditionId: '',
   location: '',
+}
+
+const INITIAL_STATE = {
+  values: DEFAULT_VALUES,
+  selectedFile: null,
+  previewUrl: '',
+  error: '',
+}
+
+function formReducer(state, action) {
+  switch (action.type) {
+    case 'SET_FORM_STATE':
+      return {
+        ...state,
+        values: action.payload.values,
+        previewUrl: action.payload.previewUrl,
+        selectedFile: action.payload.selectedFile,
+        error: action.payload.error,
+      }
+    case 'SET_VALUES':
+      return { ...state, values: action.payload }
+    case 'SET_SELECTED_FILE':
+      return { ...state, selectedFile: action.payload }
+    case 'SET_PREVIEW_URL':
+      return { ...state, previewUrl: action.payload }
+    case 'SET_ERROR':
+      return { ...state, error: action.payload }
+    case 'RESET_ERROR':
+      return { ...state, error: '' }
+    default:
+      return state
+  }
 }
 
 export default function ListingForm({
@@ -18,22 +58,25 @@ export default function ListingForm({
   onSubmit,
   onCancel,
 }) {
-  const [values, setValues] = useState(DEFAULT_VALUES)
-  const [selectedFile, setSelectedFile] = useState(null)
-  const [previewUrl, setPreviewUrl] = useState('')
-  const [error, setError] = useState('')
+  const [formState, dispatch] = useReducer(formReducer, INITIAL_STATE)
+  const { values, selectedFile, previewUrl, error } = formState
 
   useEffect(() => {
-    setValues({
-      ...DEFAULT_VALUES,
-      ...initialValues,
-      price: initialValues?.price ?? '',
-      categoryId: initialValues?.categoryId ?? initialValues?.category?.categoryId ?? '',
-      conditionId: initialValues?.conditionId ?? initialValues?.condition?.conditionId ?? '',
+    dispatch({
+      type: 'SET_FORM_STATE',
+      payload: {
+        values: {
+          ...DEFAULT_VALUES,
+          ...initialValues,
+          price: initialValues?.price ?? '',
+          categoryId: initialValues?.categoryId ?? initialValues?.category?.categoryId ?? '',
+          conditionId: initialValues?.conditionId ?? initialValues?.condition?.conditionId ?? '',
+        },
+        previewUrl: resolveMarketplacePhotoUrl(initialValues?.photoUrl),
+        selectedFile: null,
+        error: '',
+      },
     })
-    setPreviewUrl(initialValues?.photoUrl || '')
-    setSelectedFile(null)
-    setError('')
   }, [initialValues])
 
   useEffect(() => {
@@ -42,7 +85,7 @@ export default function ListingForm({
     }
 
     const objectUrl = URL.createObjectURL(selectedFile)
-    setPreviewUrl(objectUrl)
+    dispatch({ type: 'SET_PREVIEW_URL', payload: objectUrl })
 
     return () => {
       URL.revokeObjectURL(objectUrl)
@@ -75,15 +118,18 @@ export default function ListingForm({
   }, [conditions, values.conditionId])
 
   function handleChange(field, value) {
-    setValues((current) => ({
-      ...current,
-      [field]: value,
-    }))
+    dispatch({
+      type: 'SET_VALUES',
+      payload: {
+        ...values,
+        [field]: value,
+      },
+    })
   }
 
   async function handleSubmit(event) {
     event.preventDefault()
-    setError('')
+    dispatch({ type: 'RESET_ERROR' })
 
     try {
       await onSubmit?.(
@@ -96,7 +142,7 @@ export default function ListingForm({
         selectedFile,
       )
     } catch (submitError) {
-      setError(submitError?.message || 'Nao foi possivel guardar o anuncio.')
+      dispatch({ type: 'SET_ERROR', payload: submitError?.message || 'Nao foi possivel guardar o anuncio.' })
     }
   }
 
@@ -176,7 +222,7 @@ export default function ListingForm({
           <input
             type="file"
             accept="image/png,image/jpeg,image/webp"
-            onChange={(event) => setSelectedFile(event.target.files?.[0] || null)}
+            onChange={(event) => dispatch({ type: 'SET_SELECTED_FILE', payload: event.target.files?.[0] || null })}
           />
         </label>
 

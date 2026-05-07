@@ -1,24 +1,17 @@
-import { useEffect, useMemo, useState } from 'react'
+/**
+ * @file src/pages/LoginPage.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { toAppRole } from '../utils/roles'
+import { getDashboardPath, isPathAllowedForRole } from '../utils/roles'
 import './auth.css'
 
 const allowedReturnPrefixes = ['/student/', '/teacher/', '/admin/']
-
-function getDashboardPath(currentRole) {
-  const normalizedRole = toAppRole(currentRole)
-
-  if (normalizedRole === 'admin') {
-    return '/admin/dashboard'
-  }
-
-  if (normalizedRole === 'teacher') {
-    return '/teacher/dashboard'
-  }
-
-  return '/student/dashboard'
-}
 
 function getLoginNotice(search) {
   const params = new URLSearchParams(search)
@@ -82,6 +75,17 @@ export default function LoginPage() {
   const loginNotice = useMemo(() => getLoginNotice(location.search), [location.search])
   const returnPath = normalizeReturnPath(location.state?.from)
 
+  const resolveNextPath = useCallback(
+    (targetRole) => {
+      if (isPathAllowedForRole(targetRole, returnPath)) {
+        return returnPath
+      }
+
+      return getDashboardPath(targetRole)
+    },
+    [returnPath],
+  )
+
   useEffect(() => {
     document.body.classList.add('auth-page')
 
@@ -97,9 +101,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      navigate(returnPath || getDashboardPath(role), { replace: true })
+      navigate(resolveNextPath(role), { replace: true })
     }
-  }, [isAuthenticated, loading, navigate, returnPath, role])
+  }, [isAuthenticated, loading, navigate, resolveNextPath, role])
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -118,7 +122,7 @@ export default function LoginPage() {
       })
 
       const nextRole = currentUser?.role || role
-      navigate(returnPath || getDashboardPath(nextRole), { replace: true })
+      navigate(resolveNextPath(nextRole), { replace: true })
     } catch (requestError) {
       const backendMessage = requestError?.response?.data?.error
       const message =

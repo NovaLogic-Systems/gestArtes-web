@@ -1,6 +1,18 @@
+/**
+ * @file src/context/AuthContext.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AuthContext } from './auth-context'
-import api, { setUnauthorizedHandler } from '../services/api'
+import api, {
+  clearAccessToken,
+  getAccessToken,
+  setAccessToken,
+  setUnauthorizedHandler,
+} from '../services/api'
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -9,6 +21,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   const clearSession = useCallback(() => {
+    clearAccessToken()
     setUser(null)
     setRole(null)
     setIsAuthenticated(false)
@@ -26,6 +39,8 @@ export function AuthProvider({ children }) {
       setRole(currentRole)
       setIsAuthenticated(Boolean(currentUser && currentRole))
     } catch {
+      // Se o access token expirou, o interceptor tenta refresh; se falhar,
+      // limpamos estado local para evitar UI incoerente.
       clearSession()
     } finally {
       setLoading(false)
@@ -34,8 +49,11 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async ({ email, password }) => {
     const response = await api.post('/auth/login', { email, password }, { skipAuthHandler: true })
+    const nextAccessToken = response.data?.accessToken ?? null
     const currentUser = response.data?.user ?? null
     const currentRole = response.data?.role ?? currentUser?.role ?? null
+
+    setAccessToken(nextAccessToken)
 
     setUser(currentUser)
     setRole(currentRole)
@@ -55,6 +73,13 @@ export function AuthProvider({ children }) {
   }, [clearSession])
 
   useEffect(() => {
+    const token = getAccessToken()
+
+    if (!token) {
+      setLoading(false)
+      return
+    }
+
     loadSession()
   }, [loadSession])
 
