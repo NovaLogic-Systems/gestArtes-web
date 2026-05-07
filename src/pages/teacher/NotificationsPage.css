@@ -1,0 +1,96 @@
+.notifications-page {
+  padding: 20px;
+}
+
+.notifications-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.notifications-back-button {
+  flex: 0 0 auto;
+  margin-top: 10px;
+}
+
+.filter-tabs {
+  margin-bottom: 20px;
+}
+
+.filter-tabs button {
+  margin-right: 10px;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  background-color: #f0f0f0;
+  cursor: pointer;
+}
+
+.filter-tabs button.active {
+  background-color: #007bff;
+  color: white;
+}
+
+.notifications-page .notifications-list .notification-item {
+  --ink: #1f1c2e;
+  --muted: #6d6480;
+  --line: #e2d9eb;
+  --panel: #ffffff;
+  --teal: #0b9d8f;
+  --teal-dark: #08786d;
+  --coral: #f08a5d;
+  --iris: #6f5ca5;
+  --lavender: #f5edfb;
+  --soft-shadow: 0 14px 36px rgba(31, 28, 46, 0.12);
+  --radius: 16px;
+
+  background-color: #f8f4fb;
+  background-image:
+    radial-gradient(circle at 18% 18%, rgba(111, 92, 165, 0.16), transparent 26%),
+    radial-gradient(circle at 82% 16%, rgba(11, 157, 143, 0.16), transparent 22%),
+    radial-gradient(circle at 15% 84%, rgba(240, 138, 93, 0.14), transparent 24%),
+    linear-gradient(150deg, #fdf8f6 0%, #f7f0fb 46%, #effaf8 100%);
+
+  color: var(--ink);
+  border: 1px solid var(--line);
+  box-shadow: var(--soft-shadow);
+  border-radius: var(--radius);
+  padding: 22px 18px;
+  margin-bottom: 14px;
+}
+
+.notifications-page .notifications-list .notification-item.read {
+  background-color: #f8f4fb;
+}
+
+.notification-item .actions {
+  margin-top: 14px;
+}
+
+.notification-item .actions button {
+  margin-right: 10px;
+  padding: 5px 10px;
+  border: 1px solid #ccc;
+  background-color: #e0e0e0;
+  cursor: pointer;
+}
+
+.notification-item .actions .mark-read-button.is-read {
+  background: #e5e7eb !important;
+  border-color: #d1d5db !important;
+  color: #6b7280 !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 640px) {
+  .notifications-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .notifications-back-button {
+    margin-top: 0;
+    width: fit-content;
+  }
+}

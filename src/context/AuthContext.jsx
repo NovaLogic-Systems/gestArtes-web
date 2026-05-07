@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AuthContext } from './auth-context'
 import api, { setUnauthorizedHandler } from '../services/api'
+import { clearAccessToken, setAccessToken } from '../services/tokenStore'
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -9,6 +10,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   const clearSession = useCallback(() => {
+    clearAccessToken()
     setUser(null)
     setRole(null)
     setIsAuthenticated(false)
@@ -18,7 +20,16 @@ export function AuthProvider({ children }) {
     setLoading(true)
 
     try {
-      const response = await api.get('/auth/me')
+      let response
+
+      try {
+        response = await api.get('/auth/me', { skipAuthHandler: true })
+      } catch {
+        const refreshResponse = await api.post('/auth/refresh', null, { skipAuthHandler: true })
+        setAccessToken(refreshResponse.data?.accessToken)
+        response = refreshResponse
+      }
+
       const currentUser = response.data?.user ?? response.data ?? null
       const currentRole = response.data?.role ?? currentUser?.role ?? null
 
@@ -37,6 +48,7 @@ export function AuthProvider({ children }) {
     const currentUser = response.data?.user ?? null
     const currentRole = response.data?.role ?? currentUser?.role ?? null
 
+    setAccessToken(response.data?.accessToken)
     setUser(currentUser)
     setRole(currentRole)
     setIsAuthenticated(Boolean(currentUser && currentRole))

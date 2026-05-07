@@ -4,8 +4,10 @@ import api from '../../services/api'
 import notificationPreviewService from '../../services/notificationPreviewService'
 import { useAuth } from '../../hooks/useAuth'
 import KPICard from '../../components/KPICard'
+import NotificationsBell from '../../components/NotificationsBell'
 import QuickActions from '../../components/QuickActions'
 import './DashboardPage.css'
+import './NotificationsPage.css'
 
 const NAV_ITEMS = [
   { label: 'Painel', href: '/student/dashboard' },
@@ -152,8 +154,6 @@ export default function DashboardPage() {
     loadDashboard()
   }, [loadDashboard])
 
-  const unreadNotifications = notificationPreview?.unreadCount ?? 0
-
   const scheduleRows = useMemo(() => {
     const rows = schedulePreview
     const term = searchTerm.trim().toLowerCase()
@@ -270,9 +270,7 @@ export default function DashboardPage() {
               <Link className="pill" to="/student/account">
                 Minha Conta
               </Link>
-              <Link className="pill" to="/student/notifications">
-                Notificações {unreadNotifications}
-              </Link>
+              <NotificationsBell />
             </div>
           </header>
 
