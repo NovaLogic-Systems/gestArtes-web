@@ -1,3 +1,10 @@
+/**
+ * @file src/services/studioManagementService.js
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import api from './api'
 import { uniqueNames } from '../utils/strings'
 
@@ -130,14 +137,6 @@ function readLocalJson(key, fallbackValue) {
   }
 }
 
-function saveLocalJson(key, value) {
-  if (typeof window === 'undefined') {
-    return
-  }
-
-  window.localStorage.setItem(key, JSON.stringify(value))
-}
-
 function loadLocalStudios() {
   const parsed = readLocalJson(LOCAL_STUDIOS_KEY, [])
   if (!Array.isArray(parsed)) {
@@ -147,10 +146,6 @@ function loadLocalStudios() {
   return parsed.map(formatStudio)
 }
 
-function saveLocalStudios(studios) {
-  saveLocalJson(LOCAL_STUDIOS_KEY, studios)
-}
-
 function loadLocalOptions() {
   const parsed = readLocalJson(LOCAL_OPTIONS_KEY, { formats: [], modalities: [] })
 
@@ -158,27 +153,6 @@ function loadLocalOptions() {
     formats: formatOptionValues(parsed?.formats),
     modalities: formatOptionValues(parsed?.modalities),
   }
-}
-
-function saveLocalOptions(options) {
-  saveLocalJson(LOCAL_OPTIONS_KEY, {
-    formats: formatOptionValues(options?.formats),
-    modalities: formatOptionValues(options?.modalities),
-  })
-}
-
-function createLocalStudioId(studios) {
-  const highest = studios.reduce((maxValue, studio) => {
-    const parsed = Number(String(studio.id || '').replace(/\D/g, ''))
-
-    if (!Number.isFinite(parsed)) {
-      return maxValue
-    }
-
-    return Math.max(maxValue, parsed)
-  }, 0)
-
-  return `E${highest + 1}`
 }
 
 function parseStudiosPayload(data) {

@@ -1,6 +1,14 @@
+/**
+ * @file src/pages/admin/StudioManagementPage.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import WithRole from '../../components/WithRole'
 import notificationPreviewService from '../../services/notificationPreviewService'
 import studioManagementService from '../../services/studioManagementService'
 import { uniqueNames } from '../../utils/strings'
@@ -640,9 +648,11 @@ function StudioManagementPage() {
                               <button type="button" className="ghost-btn" onClick={() => startEditStudio(studio)}>
                                 Editar
                               </button>
-                              <button type="button" className="danger-btn" onClick={() => handleDeleteStudio(studio)}>
-                                Apagar
-                              </button>
+                              <WithRole roles={['admin']}>
+                                <button type="button" className="danger-btn" onClick={() => handleDeleteStudio(studio)}>
+                                  Apagar
+                                </button>
+                              </WithRole>
                             </div>
                           </td>
                         </tr>
@@ -668,16 +678,23 @@ function StudioManagementPage() {
             <article ref={formRef} className="panel">
               <div className="panel-header">
                 <h3 style={{ margin: 0 }}>{editingStudioId ? 'Editar estúdio' : 'Novo estúdio'}</h3>
-                <button
-                  type="button"
-                  className="ghost-btn"
-                  onClick={() => {
-                    setIsStudioFormVisible(false)
-                    resetForm()
-                  }}
-                >
-                  Fechar
-                </button>
+                <div className="card-actions">
+                  {editingStudioId ? (
+                    <Link className="danger-btn" to={`/admin/studio-occupancy?studioId=${encodeURIComponent(editingStudioId)}`}>
+                      Bloquear
+                    </Link>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="ghost-btn"
+                    onClick={() => {
+                      setIsStudioFormVisible(false)
+                      resetForm()
+                    }}
+                  >
+                    Fechar
+                  </button>
+                </div>
               </div>
 
               <p>

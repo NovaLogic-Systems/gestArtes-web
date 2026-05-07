@@ -1,3 +1,10 @@
+/**
+ * @file src/components/layout/Sidebar.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import { cn } from '../ui/shared'
 
 function Sidebar({

@@ -1,4 +1,11 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+﻿/**
+ * @file src/pages/student/DashboardPage.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'

@@ -1,3 +1,10 @@
+/**
+ * @file src/components/ListingForm.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import { useEffect, useMemo, useReducer } from 'react'
 import { resolveMarketplacePhotoUrl } from '../utils/marketplace-photo-url'
 

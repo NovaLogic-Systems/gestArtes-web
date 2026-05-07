@@ -1,3 +1,12 @@
+/**
+ * @file src/utils/marketplace-photo-url.js
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
+import { getApiOrigin } from './network'
+
 function decodeHtmlEntities(value) {
   return String(value || '')
     .replace(/&#x2F;/gi, '/')
@@ -22,7 +31,7 @@ export function resolveMarketplacePhotoUrl(rawValue) {
   const apiBase = String(import.meta.env.VITE_API_URL || '').trim()
 
   if (apiBase.startsWith('http://') || apiBase.startsWith('https://')) {
-    const apiOrigin = apiBase.replace(/\/api\/?$/i, '')
+    const apiOrigin = getApiOrigin()
 
     return raw.startsWith('/') ? `${apiOrigin}${raw}` : `${apiOrigin}/${raw}`
   }

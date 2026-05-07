@@ -1,3 +1,10 @@
+/**
+ * @file src/components/QuickActions.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import { Link } from 'react-router-dom'
 import Button from './ui/Button'
 

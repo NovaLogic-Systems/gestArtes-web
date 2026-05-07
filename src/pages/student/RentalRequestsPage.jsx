@@ -1,3 +1,10 @@
+/**
+ * @file src/pages/student/RentalRequestsPage.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import Badge from '../../components/ui/Badge'

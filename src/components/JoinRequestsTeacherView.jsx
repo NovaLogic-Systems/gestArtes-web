@@ -1,4 +1,11 @@
-﻿import { useCallback, useEffect, useMemo, useState } from 'react'
+﻿/**
+ * @file src/components/JoinRequestsTeacherView.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import api from '../services/api'
 import Badge from './ui/Badge'
 import Button from './ui/Button'
