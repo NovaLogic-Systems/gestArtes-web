@@ -1,15 +1,26 @@
-﻿import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+﻿/**
+ * @file src/App.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
+import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import { useAuth } from './hooks/useAuth'
+import { getDashboardPath, toAppRole } from './utils/roles'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import LoginPage from './pages/LoginPage'
 import StudioManagementPage from './pages/admin/StudioManagementPage'
+import StudioOccupancyPage from './pages/admin/StudioOccupancyPage'
 import AdminUsersPage from './pages/admin/AdminUsersPage'
 import AdminMarketplaceConversationsPage from './pages/admin/AdminMarketplaceConversationsPage'
 import MarketplaceModerationPage from './pages/admin/MarketplaceModerationPage'
 import DashboardPage from './pages/student/DashboardPage'
+import CoachingStudentPage from './pages/student/CoachingPage'
 import JoinRequestsTeacherView from './components/JoinRequestsTeacherView'
 import AdmissionRequestsPage from './pages/teacher/AdmissionRequestsPage'
+import SessionConfirmationPage from './pages/teacher/SessionConfirmationPage'
 import TeacherMarketplaceConversationsPage from './pages/teacher/TeacherMarketplaceConversationsPage'
 import InventoryPage from './pages/student/InventoryPage'
 import RentalCheckoutPage from './pages/student/RentalCheckoutPage'
@@ -17,6 +28,8 @@ import RentalRequestsPage from './pages/student/RentalRequestsPage'
 import MarketplacePage from './pages/student/MarketplacePage'
 import MyListingsPage from './pages/student/MyListingsPage'
 import MarketplaceConversationsPage from './pages/student/MarketplaceConversationsPage'
+import TeacherLayout from './components/layout/teacher/TeacherLayout';
+import NotificationsPage from './pages/teacher/NotificationsPage';
 
 function PlaceholderPage({ title }) {
   return (
@@ -29,12 +42,67 @@ function PlaceholderPage({ title }) {
 }
 
 function UnauthorizedPage() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const { loading, role, user } = useAuth()
+  const currentRole = toAppRole(role || user?.role)
+  const dashboardPath = getDashboardPath(currentRole)
+  const requestedPath = typeof location.state?.from === 'string' ? location.state.from : ''
+  const allowedRoles = Array.isArray(location.state?.allowedRoles) ? location.state.allowedRoles.filter(Boolean) : []
+  const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'a tua conta'
+
   return (
-    <main style={{ display: 'grid', minHeight: '100vh', placeItems: 'center', padding: '2rem' }}>
-      <section style={{ maxWidth: 420, textAlign: 'center' }}>
-        <h1 style={{ marginBottom: '0.5rem' }}>Acesso negado</h1>
-        <p style={{ color: '#555', marginTop: 0 }}>Não tens permissão para aceder a esta página.</p>
-        <Link to="/login">Voltar para login</Link>
+    <main className="auth-shell">
+      <div aria-hidden="true" className="auth-orb auth-orb-a" />
+      <div aria-hidden="true" className="auth-orb auth-orb-b" />
+
+      <section className="auth-card auth-card-recovery" aria-labelledby="unauthorized-title">
+        <div className="auth-login-brand">
+          <h1 id="unauthorized-title" className="auth-title-sm">
+            Acesso não autorizado
+          </h1>
+          <p className="auth-copy">A tua sessão continua ativa, mas esta área não está disponível para o teu perfil.</p>
+        </div>
+
+        <div className="auth-login-form" style={{ alignItems: 'stretch', textAlign: 'left', width: '100%' }}>
+          <p className="auth-status auth-status-info" role="status" aria-live="polite" style={{ width: '100%' }}>
+            {loading
+              ? 'A confirmar a tua sessão...'
+              : requestedPath
+                ? `${displayName} (${String(currentRole || 'sem role').toUpperCase()}) não tem acesso a ${requestedPath}.`
+                : `${displayName} (${String(currentRole || 'sem role').toUpperCase()}) não tem acesso a esta página.`}
+          </p>
+
+          {allowedRoles.length ? (
+            <p className="auth-copy" style={{ maxWidth: 'none', textAlign: 'left' }}>
+              Funções permitidas: {allowedRoles.join(', ')}.
+            </p>
+          ) : null}
+
+          <div style={{ display: 'grid', gap: '0.75rem' }}>
+            {currentRole ? (
+              <button
+                type="button"
+                className="auth-button"
+                onClick={() => navigate(dashboardPath, { replace: true })}
+              >
+                Ir para o meu painel
+              </button>
+            ) : (
+              <Link
+                className="auth-button"
+                to="/login"
+                style={{ alignItems: 'center', display: 'inline-flex', justifyContent: 'center', textDecoration: 'none' }}
+              >
+                Ir para login
+              </Link>
+            )}
+
+            <Link className="auth-footer-link" to="/login" style={{ textAlign: 'center' }}>
+              Voltar para login
+            </Link>
+          </div>
+        </div>
       </section>
     </main>
   )
@@ -112,9 +180,9 @@ function ProtectedPlaceholderPage({ title, actionLink }) {
 }
 
 const StudentSectionPage = ({ title }) => <PlaceholderPage title={title} />
-const CoachingPage = () => <ProtectedPlaceholderPage title="Coaching" />
+const CoachingPage = () => <CoachingStudentPage />
 const TeacherDashboard = () => (
-  <div>
+  <TeacherLayout>
     <ProtectedPlaceholderPage
       title="Teacher Dashboard"
       actionLink={{ to: '/teacher/admission-requests', label: 'Pedidos de admissão' }}
@@ -123,7 +191,7 @@ const TeacherDashboard = () => (
       <h2 style={{ marginBottom: '1rem' }}>Aprovação de Coaching (Join Requests)</h2>
       <JoinRequestsTeacherView />
     </div>
-  </div>
+  </TeacherLayout>
 )
 const AdminDashboard = () => (
   <ProtectedPlaceholderPage
@@ -160,12 +228,15 @@ function App() {
         <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
         <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
         <Route path="/teacher/admission-requests" element={<AdmissionRequestsPage />} />
-            <Route path="/teacher/marketplace/conversas" element={<TeacherMarketplaceConversationsPage />} />
+        <Route path="/teacher/sessions/confirmation" element={<SessionConfirmationPage />} />
+        <Route path="/teacher/marketplace/conversas" element={<TeacherMarketplaceConversationsPage />} />
+        <Route path="/teacher/notifications" element={<NotificationsPage />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/studios" element={<StudioManagementPage />} />
+        <Route path="/admin/studio-occupancy" element={<StudioOccupancyPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
             <Route path="/admin/marketplace/conversas" element={<AdminMarketplaceConversationsPage />} />
         <Route path="/admin/marketplace" element={<MarketplaceModerationPage />} />

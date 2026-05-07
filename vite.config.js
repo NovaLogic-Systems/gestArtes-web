@@ -33,7 +33,6 @@ export default defineConfig(({ mode }) => {
     const keyPath = env.VITE_SSL_KEY_PATH
     const certPath = env.VITE_SSL_CERT_PATH
     if (!keyPath || !certPath) return undefined
-
     try {
       return {
         key: fs.readFileSync(path.resolve(process.cwd(), keyPath)),

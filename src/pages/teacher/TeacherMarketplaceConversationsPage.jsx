@@ -1,7 +1,15 @@
+/**
+ * @file src/pages/teacher/TeacherMarketplaceConversationsPage.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { getMarketplaceListingById, listMarketplaceListings } from '../../services/marketplace'
+import { maskEmail, maskPhone } from '../../utils/masking'
 import '../student/DashboardPage.css'
 import '../student/marketplace.css'
 
@@ -174,10 +182,10 @@ export default function TeacherMarketplaceConversationsPage() {
                           <strong>Aluno:</strong> {buyerName}
                         </p>
                         <p>
-                          <strong>Email:</strong> {buyer.email || 'Sem email público'}
+                          <strong>Email:</strong> {maskEmail(buyer.email) || 'Sem email público'}
                         </p>
                         <p>
-                          <strong>Telefone:</strong> {buyer.phoneNumber || 'Sem telefone público'}
+                          <strong>Telefone:</strong> {maskPhone(buyer.phoneNumber) || 'Sem telefone público'}
                         </p>
 
                         <div className="market-listing-actions">

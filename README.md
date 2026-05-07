@@ -43,6 +43,7 @@ npm install
 
 ```env
 VITE_API_URL=http://localhost:3001
+VITE_ENABLE_HTTPS=false
 ```
 
 ## Scripts
@@ -60,7 +61,7 @@ npm run dev
 
 Web disponível em `http://localhost:5173`
 
-> ⚠️ A API `gestArtes-api` tem de estar a correr em `http://localhost:3001` para o frontend funcionar corretamente.
+> ⚠️ A API `gestArtes-api` pode correr em HTTP ou HTTPS. Se ativares HTTPS, ajusta `VITE_API_URL` para `https://...` e usa `VITE_ENABLE_HTTPS=true` apenas se quiseres também o Vite dev server em HTTPS.
 
 ## Observações
 

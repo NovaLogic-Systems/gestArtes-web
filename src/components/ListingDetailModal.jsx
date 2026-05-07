@@ -1,3 +1,10 @@
+/**
+ * @file src/components/ListingDetailModal.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import { resolveMarketplacePhotoUrl } from '../utils/marketplace-photo-url'
 import Modal from './ui/Modal'
 
@@ -23,8 +30,8 @@ export default function ListingDetailModal({ open, listing, onClose }) {
     >
       <div className="market-detail-grid">
         <div>
-          {listing?.photoUrl ? (
-            <img className="market-detail-image" src={listing.photoUrl} alt={listing.title || 'Anúncio'} />
+          {photoUrl ? (
+            <img className="market-detail-image" src={photoUrl} alt={listing.title || 'Anúncio'} />
           ) : (
             <div className="market-detail-image market-detail-image-empty">Sem imagem</div>
           )}

@@ -1,3 +1,10 @@
+/**
+ * @file src/components/InventoryItemCard.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import Badge from './ui/Badge'
 import Button from './ui/Button'
 
