@@ -30,8 +30,8 @@ export default function ListingDetailModal({ open, listing, onClose }) {
     >
       <div className="market-detail-grid">
         <div>
-          {listing?.photoUrl ? (
-            <img className="market-detail-image" src={listing.photoUrl} alt={listing.title || 'Anúncio'} />
+          {photoUrl ? (
+            <img className="market-detail-image" src={photoUrl} alt={listing.title || 'Anúncio'} />
           ) : (
             <div className="market-detail-image market-detail-image-empty">Sem imagem</div>
           )}

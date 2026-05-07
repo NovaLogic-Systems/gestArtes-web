@@ -5,4 +5,4 @@
  * @project GestArtes - Projeto 50+10 para Entartes
  */
 
-export { default, KPICard } from './ui/KPICard'
+export { default } from './ui/KPICard'

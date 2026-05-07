@@ -617,19 +617,17 @@ export default function CoachingPage() {
   // ── Grid rendering ─────────────────────────────────────────────────
   const teachers = slotsData?.teachers ?? []
   const modalities = slotsData?.modalities ?? []
-  const studios = slotsData?.studios ?? []
-  const availabilityWindows = slotsData?.availabilityWindows ?? []
 
   // Build a map: date → teacherId → windows
   const windowMap = useMemo(() => {
     const map = new Map()
-    for (const win of availabilityWindows) {
+    for (const win of slotsData?.availabilityWindows ?? []) {
       const key = `${win.date}__${win.teacherId}`
       if (!map.has(key)) map.set(key, [])
       map.get(key).push(win)
     }
     return map
-  }, [availabilityWindows])
+  }, [slotsData?.availabilityWindows])
 
   // Visible days Mon-Fri (indices 0-4 = Mon-Fri in the weekDates array starting Mon)
   const visibleDates = weekDates.slice(0, 5)
