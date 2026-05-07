@@ -1,6 +1,14 @@
-﻿import { useMemo, useState, useEffect } from 'react'
+﻿/**
+ * @file src/components/JoinSessionButton.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
+import { useMemo, useState, useEffect } from 'react'
 import { io } from 'socket.io-client'
-import api from '../services/api'
+import api, { getAccessToken } from '../services/api'
+import { getSocketUrl } from '../utils/network'
 import Button from './ui/Button'
 import Badge from './ui/Badge'
 import Modal from './ui/Modal'
@@ -71,8 +79,16 @@ export default function JoinSessionButton({
 
   useEffect(() => {
     if (!sessionId) return
-    const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
-    const socket = io(socketUrl, { withCredentials: true })
+    const socketUrl = getSocketUrl()
+
+    if (!socketUrl) return undefined
+
+    const socket = io(socketUrl, {
+      withCredentials: true,
+      auth: {
+        accessToken: getAccessToken(),
+      },
+    })
 
     socket.on('notification', () => {
       api.get('/coaching/join-requests/my')
