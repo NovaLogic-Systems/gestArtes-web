@@ -50,13 +50,18 @@ export default defineConfig(({ mode }) => {
       https: loadHttps(),
       proxy: {
         '/api': {
-          target: env.VITE_API_URL || 'http://localhost:3001',
+          target: env.VITE_API_URL || 'https://localhost:3001',
           changeOrigin: true,
           secure: false,
           rewrite: (p) => p.replace(/^\/api/, ''),
         },
+        '/uploads': {
+          target: env.VITE_API_URL || 'https://localhost:3001',
+          changeOrigin: true,
+          secure: false,
+        },
         '/socket.io': {
-          target: env.VITE_API_URL || 'http://localhost:3001',
+          target: env.VITE_API_URL || 'https://localhost:3001',
           changeOrigin: true,
           secure: false,
           ws: true,
