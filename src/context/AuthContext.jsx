@@ -14,15 +14,15 @@ import api, {
   setAccessToken,
   setUnauthorizedHandler,
 } from '../services/api'
-import { io } from 'socket.io-client';
-import toast from 'react-hot-toast';
+import { io } from 'socket.io-client'
+import toast from 'react-hot-toast'
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [role, setRole] = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0)
 
   const clearSession = useCallback(() => {
     clearAccessToken()
@@ -103,33 +103,27 @@ export function AuthProvider({ children }) {
   }, [clearSession])
 
   useEffect(() => {
-    if (isAuthenticated && user?.id) {
-      const socket = io(import.meta.env.VITE_API_BASE_URL, {
-        auth: {
-          token: getAccessToken(),
-        },
-      });
-
-      socket.on('connect', () => {
-        console.log('Socket.IO connected');
-      });
-
-      socket.on('notification', (data) => {
-        if (data.recipientId === user.id) {
-          setUnreadCount((prev) => prev + 1);
-          toast(data.message);
-        }
-      });
-
-      socket.on('disconnect', () => {
-        console.log('Socket.IO disconnected');
-      });
-
-      return () => {
-        socket.disconnect();
-      };
+    if (!isAuthenticated || !user?.id) {
+      return undefined
     }
-  }, [isAuthenticated, user?.id]);
+
+    const socket = io(import.meta.env.VITE_API_BASE_URL, {
+      auth: {
+        token: getAccessToken(),
+      },
+    })
+
+    socket.on('notification', (data) => {
+      if (data.recipientId === user.id) {
+        setUnreadCount((prev) => prev + 1)
+        toast(data.message)
+      }
+    })
+
+    return () => {
+      socket.disconnect()
+    }
+  }, [isAuthenticated, user?.id])
 
   const value = useMemo(
     () => ({
@@ -139,6 +133,7 @@ export function AuthProvider({ children }) {
       loading,
       login,
       logout,
+      reloadSession: loadSession,
       loadSession,
       unreadCount,
       setUnreadCount,
