@@ -94,7 +94,7 @@ function Table({
 												color: 'var(--text-h)',
 												padding: resolvedCellPadding,
 												textAlign: column.align ?? 'left',
-												verticalAlign: 'top',
+												verticalAlign: column.verticalAlign ?? 'top',
 											}}
 										>
 											{column.render ? column.render(row, index) : row[column.key]}
