@@ -1,3 +1,10 @@
+/**
+ * @file src/components/ui/CountdownBadge.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import Badge from './Badge'
 
 function CountdownBadge({ value, label, tone = 'info', className, ...props }) {

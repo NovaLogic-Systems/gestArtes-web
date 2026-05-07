@@ -107,6 +107,8 @@
 .market-page .search {
   width: 100%;
   border-radius: 12px;
+  box-sizing: border-box;
+  display: block;
 }
 
 .market-page .market-filters input:focus,
@@ -232,6 +234,13 @@
   font-size: 1.05rem;
 }
 
+.market-listing-condition {
+  color: #4c4666;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 0;
+}
+
 .market-listing-meta {
   color: #6d6480;
   font-size: 0.85rem;
@@ -321,6 +330,47 @@
   color: #0c7f75;
   text-decoration: underline;
   font-weight: 600;
+}
+
+.market-r02-note {
+  margin-bottom: 0.9rem;
+}
+
+.market-page .market-conversations-search {
+  display: block;
+  margin-bottom: 0.85rem;
+}
+
+.market-page .market-conversations-search .search {
+  width: 100%;
+  min-width: 0;
+}
+
+.market-conversations-grid {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.market-conversation-card {
+  border: 1px solid #e2d9eb;
+  border-radius: 12px;
+  background: #fff;
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.85rem;
+}
+
+.market-conversation-card h4,
+.market-conversation-card p {
+  margin: 0;
+}
+
+.market-link-btn {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  text-decoration: none;
 }
 
 .market-form {
