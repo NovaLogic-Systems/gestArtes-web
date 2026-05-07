@@ -55,6 +55,11 @@ export default defineConfig(({ mode }) => {
           secure: false,
           rewrite: (p) => p.replace(/^\/api/, ''),
         },
+        '/uploads': {
+          target: env.VITE_API_URL || 'http://localhost:3001',
+          changeOrigin: true,
+          secure: false,
+        },
         '/socket.io': {
           target: env.VITE_API_URL || 'http://localhost:3001',
           changeOrigin: true,
