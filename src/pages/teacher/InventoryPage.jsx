@@ -10,7 +10,7 @@ import Table from '../../components/ui/Table'
 import {
   createInventoryRental,
   listInventoryItems,
-  listMyInventoryRentals,
+  listInventoryRentals,
 } from '../../services/inventory'
 import './InventoryPage.css'
 
@@ -145,7 +145,7 @@ export default function TeacherInventoryPage() {
   const loadRentals = useCallback(async () => {
     try {
       setLoadingRentals(true)
-      const data = await listMyInventoryRentals()
+      const data = await listInventoryRentals()
       setRentals(data)
     } catch (err) {
       setRentals([])
