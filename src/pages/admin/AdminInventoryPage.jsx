@@ -762,48 +762,58 @@ export default function AdminInventoryPage() {
               </div>
             </div>
 
-            <div className="form-grid two">
-              <Input
-                label="Pesquisar"
-                value={filters.search}
-                onChange={(event) => updateFilter('search', event.target.value)}
-                placeholder="Nome, descrição, categoria ou estado"
-              />
+            <div className="inventory-search-filters">
+              <div style={{ display: 'flex', gap: '14px' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Input
+                    label="Pesquisar"
+                    value={filters.search}
+                    onChange={(event) => updateFilter('search', event.target.value)}
+                    placeholder="Nome, descrição, categoria ou estado"
+                  />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <label>
+                    Categoria
+                    <select
+                      value={filters.categoryId}
+                      onChange={(event) => updateFilter('categoryId', event.target.value)}
+                    >
+                      <option value="all">Todas as categorias</option>
+                      {categoryOptions.map((category) => (
+                        <option key={category.categoryId} value={category.categoryId}>
+                          {category.categoryName}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </div>
 
-              <label>
-                Categoria
-                <select
-                  value={filters.categoryId}
-                  onChange={(event) => updateFilter('categoryId', event.target.value)}
-                >
-                  <option value="all">Todas as categorias</option>
-                  {categoryOptions.map((category) => (
-                    <option key={category.categoryId} value={category.categoryId}>
-                      {category.categoryName}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <Input
-                label="Taxa mínima"
-                type="number"
-                min="0"
-                step="0.01"
-                value={filters.minFee}
-                onChange={(event) => updateFilter('minFee', event.target.value)}
-                placeholder="0"
-              />
-
-              <Input
-                label="Taxa máxima"
-                type="number"
-                min="0"
-                step="0.01"
-                value={filters.maxFee}
-                onChange={(event) => updateFilter('maxFee', event.target.value)}
-                placeholder="100"
-              />
+              <div style={{ display: 'flex', gap: '14px' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Input
+                    label="Taxa mínima"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={filters.minFee}
+                    onChange={(event) => updateFilter('minFee', event.target.value)}
+                    placeholder="0"
+                  />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Input
+                    label="Taxa máxima"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={filters.maxFee}
+                    onChange={(event) => updateFilter('maxFee', event.target.value)}
+                    placeholder="100"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="inventory-status-tabs">
@@ -832,6 +842,8 @@ export default function AdminInventoryPage() {
                     {
                       header: 'Item',
                       key: 'itemName',
+                      align: 'left',
+                      verticalAlign: 'middle',
                       render: (item) => (
                         <div className="inventory-item-cell">
                           <strong>{item.itemName || 'Sem nome'}</strong>
@@ -845,11 +857,14 @@ export default function AdminInventoryPage() {
                       header: 'Taxa simbólica',
                       key: 'symbolicFee',
                       align: 'right',
+                      verticalAlign: 'middle',
                       render: (item) => formatMoney(item.symbolicFee),
                     },
                     {
                       header: 'Stock',
                       key: 'stock',
+                      align: 'left',
+                      verticalAlign: 'middle',
                       render: (item) => (
                         <div className="inventory-stock-stack">
                           <span>Disponível: <strong>{Number(item.availableQuantity || 0)}</strong></span>
@@ -860,6 +875,7 @@ export default function AdminInventoryPage() {
                     {
                       header: 'Estado',
                       key: 'status',
+                      align: 'center',
                       verticalAlign: 'middle',
                       render: (item) => (
                         <div className="inventory-status-cell">
@@ -873,6 +889,8 @@ export default function AdminInventoryPage() {
                   rows={filteredItems}
                   getRowKey={(item) => item.itemId}
                   emptyState="Sem artigos para os filtros selecionados."
+                  rowActionsVerticalAlign="middle"
+                  rowActionsHeader="Ações"
                   renderRowActions={(item) => (
                     <WithRole roles={['admin']}>
                       <div className="marketplace-row-actions">
@@ -910,9 +928,11 @@ export default function AdminInventoryPage() {
                 <Table
                   columns={[
                     {
-                      header: 'Referência',
-                      key: 'reference',
-                      render: (rental) => (
+                        header: 'Referência',
+                        key: 'reference',
+                        align: 'left',
+                        verticalAlign: 'middle',
+                        render: (rental) => (
                         <div className="inventory-item-cell">
                           <strong>{rental.reference}</strong>
                           <span>{formatDateTime(rental.startDate)}</span>
@@ -920,9 +940,11 @@ export default function AdminInventoryPage() {
                       ),
                     },
                     {
-                      header: 'Artigo',
-                      key: 'item',
-                      render: (rental) => (
+                        header: 'Artigo',
+                        key: 'item',
+                        align: 'left',
+                        verticalAlign: 'middle',
+                        render: (rental) => (
                         <div className="inventory-item-cell">
                           <strong>{rental.item?.itemName || 'Artigo'}</strong>
                           <span>{formatMoney(rental.symbolicFee)}</span>
@@ -930,9 +952,11 @@ export default function AdminInventoryPage() {
                       ),
                     },
                     {
-                      header: 'Requisitante',
-                      key: 'borrower',
-                      render: (rental) => (
+                        header: 'Requisitante',
+                        key: 'borrower',
+                        align: 'left',
+                        verticalAlign: 'middle',
+                        render: (rental) => (
                         <div className="inventory-item-cell">
                           <strong>{[rental.borrower?.firstName, rental.borrower?.lastName].filter(Boolean).join(' ') || 'Utilizador'}</strong>
                           <span>{rental.borrower?.email || 'Sem email'}</span>
@@ -940,14 +964,18 @@ export default function AdminInventoryPage() {
                       ),
                     },
                     {
-                      header: 'Período',
-                      key: 'period',
-                      render: (rental) => `${formatDate(rental.startDate)} → ${formatDate(rental.endDate)}`,
+                        header: 'Período',
+                        key: 'period',
+                        align: 'center',
+                        verticalAlign: 'middle',
+                        render: (rental) => `${formatDate(rental.startDate)} → ${formatDate(rental.endDate)}`,
                     },
                     {
-                      header: 'Estado',
-                      key: 'status',
-                      render: (rental) => (
+                        header: 'Estado',
+                        key: 'status',
+                        align: 'center',
+                        verticalAlign: 'middle',
+                        render: (rental) => (
                         <Badge variant={getRentalStatusTone(rental.status)}>
                           {getRentalStatusLabel(rental.status)}
                         </Badge>
@@ -957,7 +985,9 @@ export default function AdminInventoryPage() {
                   rows={rentals}
                   getRowKey={(rental) => rental.rentalId}
                   emptyState="Sem devoluções pendentes de validação."
-                  renderRowActions={(rental) => (
+                    rowActionsHeader="Ações"
+                    rowActionsVerticalAlign="middle"
+                    renderRowActions={(rental) => (
                     <WithRole roles={['admin']}>
                       <div className="marketplace-row-actions">
                         <button type="button" className="moderation-action-btn neutral" onClick={() => openRentalModal(rental)}>
