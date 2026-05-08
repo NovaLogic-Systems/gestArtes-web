@@ -28,6 +28,103 @@
   @media (max-width: 1024px) {
     font-size: 16px;
   }
+
+/* UI Button base styles */
+.ui-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+  font-weight: 600;
+  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+}
+
+.ui-button:focus-visible {
+  outline: 3px solid rgba(170, 59, 255, 0.18);
+  outline-offset: 3px;
+}
+
+.ui-button:hover {
+  transform: translateY(-2px);
+}
+
+.ui-button:active {
+  transform: translateY(0);
+}
+
+/* Pill style used across the app */
+.pill {
+  background: #fff3ee;
+  color: #8c402a;
+  border: 1px solid #f2c2af;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.ghost-btn {
+  background: transparent;
+  border: 1px solid rgba(0,0,0,0.06);
+  color: var(--text-h);
+  padding: 0.5rem 0.8rem;
+  border-radius: 0.6rem;
+}
+
+/* Notifications pill in topbar */
+.notifications-pill {
+  background: linear-gradient(180deg, #fff3ee, #fff6f0);
+  border: 1px solid #f2c2af;
+  color: #8c402a;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-weight: 600;
+}
+
+/* Notifications page specific tweaks */
+.filter-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.notifications-list .notification-item {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  margin-bottom: 0.75rem;
+  background: #fff;
+}
+
+.notifications-list .notification-item .actions {
+  margin-top: 0.6rem;
+}
+
+/* Title styling for notifications page */
+.notifications-title {
+  font-size: 2.4rem;
+  line-height: 1.05;
+  margin: 0 0 0.25rem 0;
+  color: var(--text-h);
+  font-weight: 800;
+}
+
+.notifications-title::after {
+  content: '';
+  display: block;
+  width: 72px;
+  height: 6px;
+  background: linear-gradient(90deg, var(--accent), #6a54ff);
+  border-radius: 6px;
+  margin-top: 10px;
+}
+
+.page-subtitle {
+  color: var(--text);
+  margin: 0 0 1rem 0;
+  font-size: 0.98rem;
+}
 }
 
 body {
