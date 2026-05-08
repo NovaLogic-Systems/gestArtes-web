@@ -9,6 +9,7 @@ import LoadingSkeleton from '../../components/ui/LoadingSkeleton'
 import Modal from '../../components/ui/Modal'
 import Toast from '../../components/ui/Toast'
 import './AdmissionRequestsPage.css'
+import NotificationsBell from '../../components/NotificationsBell'
 import './SessionConfirmationPage.css'
 
 const NAV_ITEMS = [
@@ -119,6 +120,7 @@ export default function SessionConfirmationPage() {
   const [notificationsError, setNotificationsError] = useState('')
   const [notifications, setNotifications] = useState([])
   const [notificationUnreadCount, setNotificationUnreadCount] = useState(0)
+  const notificationCloseTimerRef = useRef(null)
 
   const notificationBoxRef = useRef(null)
   const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'Professor'
@@ -183,6 +185,30 @@ export default function SessionConfirmationPage() {
     document.addEventListener('mousedown', onClick)
     return () => document.removeEventListener('mousedown', onClick)
   }, [notificationsOpen])
+
+  const openNotificationsOnHover = useCallback(() => {
+    if (notificationCloseTimerRef.current) {
+      window.clearTimeout(notificationCloseTimerRef.current)
+      notificationCloseTimerRef.current = null
+    }
+
+    setNotificationsOpen(true)
+
+    if (!notificationsLoaded) {
+      loadNotifications()
+    }
+  }, [loadNotifications, notificationsLoaded])
+
+  const closeNotificationsOnHover = useCallback(() => {
+    if (notificationCloseTimerRef.current) {
+      window.clearTimeout(notificationCloseTimerRef.current)
+    }
+
+    notificationCloseTimerRef.current = window.setTimeout(() => {
+      setNotificationsOpen(false)
+      notificationCloseTimerRef.current = null
+    }, 120)
+  }, [])
 
   const loadNotifications = useCallback(async () => {
     if (notificationsLoaded || notificationsLoading) return
@@ -342,29 +368,28 @@ export default function SessionConfirmationPage() {
             </div>
           </div>
           <div className="topbar-right" ref={notificationBoxRef} style={{ position: 'relative' }}>
-            <button
-              type="button"
-              className="pill"
-              aria-label="Notificações"
-              onClick={handleNotificationsToggle}
+            <div
+              className="notifications-hover-area"
+              onMouseEnter={openNotificationsOnHover}
+              onMouseLeave={closeNotificationsOnHover}
             >
-              Notificações
-              {notificationUnreadCount > 0 && (
-                <span className="notif-badge" aria-live="polite">{notificationUnreadCount}</span>
-              )}
-            </button>
+              <NotificationsBell
+                onClick={handleNotificationsToggle}
+                count={notificationUnreadCount}
+                onMouseEnter={openNotificationsOnHover}
+              />
 
-            {notificationsOpen && (
-              <div className="notif-dropdown" role="dialog" aria-label="Painel de notificações">
+              {notificationsOpen && (
+                <div className="notif-dropdown" role="dialog" aria-label="Painel de notificações" onMouseEnter={openNotificationsOnHover} onMouseLeave={closeNotificationsOnHover}>
                 <div className="notif-dropdown-header">
-                  <span>Notificações</span>
+                  <div className="notifications-popover-sub">Últimas notificações</div>
                   <button type="button" className="icon-btn" onClick={() => setNotificationsOpen(false)} aria-label="Fechar notificações">✕</button>
                 </div>
                 <div className="notif-dropdown-body">
                   {notificationsLoading && <p className="notif-empty">A carregar…</p>}
                   {notificationsError && <p className="notif-empty notif-error">{notificationsError}</p>}
                   {!notificationsLoading && !notificationsError && notifications.length === 0 && (
-                    <p className="notif-empty">Sem notificações.</p>
+                    <p className="notif-empty">Ainda não tens notificações.</p>
                   )}
                   {notifications.map((n) => (
                     <div key={n.id} className={['notif-item', n.isRead ? '' : 'notif-item--unread'].filter(Boolean).join(' ')}>
@@ -374,8 +399,9 @@ export default function SessionConfirmationPage() {
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+                </div>
+              )}
+            </div>
           </div>
         </header>
 

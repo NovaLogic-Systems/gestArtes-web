@@ -29,6 +29,8 @@ import TeacherDashboardPage from './pages/teacher/DashboardPage'
 import MarketplacePage from './pages/student/MarketplacePage'
 import MyListingsPage from './pages/student/MyListingsPage'
 import MarketplaceConversationsPage from './pages/student/MarketplaceConversationsPage'
+import TeacherLayout from './components/layout/teacher/TeacherLayout';
+import NotificationsPage from './pages/teacher/NotificationsPage';
 
 function PlaceholderPage({ title }) {
   return (
@@ -181,7 +183,7 @@ function ProtectedPlaceholderPage({ title, actionLink }) {
 const StudentSectionPage = ({ title }) => <PlaceholderPage title={title} />
 const CoachingPage = () => <CoachingStudentPage />
 const TeacherDashboard = () => (
-  <div>
+  <TeacherLayout>
     <ProtectedPlaceholderPage
       title="Teacher Dashboard"
       actionLink={{ to: '/teacher/admission-requests', label: 'Pedidos de admissão' }}
@@ -190,7 +192,7 @@ const TeacherDashboard = () => (
       <h2 style={{ marginBottom: '1rem' }}>Aprovação de Coaching (Join Requests)</h2>
       <JoinRequestsTeacherView />
     </div>
-  </div>
+  </TeacherLayout>
 )
 const AdminDashboard = () => (
   <ProtectedPlaceholderPage
@@ -235,6 +237,8 @@ function App() {
         <Route path="/teacher/marketplace" element={<ProtectedPlaceholderPage title="Marketplace" />} />
         <Route path="/teacher/account" element={<ProtectedPlaceholderPage title="Minha Conta" />} />
             <Route path="/teacher/marketplace/conversas" element={<TeacherMarketplaceConversationsPage />} />
+        <Route path="/teacher/marketplace/conversas" element={<TeacherMarketplaceConversationsPage />} />
+        <Route path="/teacher/notifications" element={<NotificationsPage />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>

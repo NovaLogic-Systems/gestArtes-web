@@ -7,18 +7,22 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AuthContext } from './auth-context'
+export { AuthContext }
 import api, {
   clearAccessToken,
   getAccessToken,
   setAccessToken,
   setUnauthorizedHandler,
 } from '../services/api'
+import { io } from 'socket.io-client'
+import toast from 'react-hot-toast'
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [role, setRole] = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [unreadCount, setUnreadCount] = useState(0)
 
   const clearSession = useCallback(() => {
     clearAccessToken()
@@ -98,6 +102,29 @@ export function AuthProvider({ children }) {
     }
   }, [clearSession])
 
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id) {
+      return undefined
+    }
+
+    const socket = io(import.meta.env.VITE_API_BASE_URL, {
+      auth: {
+        token: getAccessToken(),
+      },
+    })
+
+    socket.on('notification', (data) => {
+      if (data.recipientId === user.id) {
+        setUnreadCount((prev) => prev + 1)
+        toast(data.message)
+      }
+    })
+
+    return () => {
+      socket.disconnect()
+    }
+  }, [isAuthenticated, user?.id])
+
   const value = useMemo(
     () => ({
       user,
@@ -107,8 +134,11 @@ export function AuthProvider({ children }) {
       login,
       logout,
       reloadSession: loadSession,
+      loadSession,
+      unreadCount,
+      setUnreadCount,
     }),
-    [user, role, isAuthenticated, loading, login, logout, loadSession],
+    [user, role, isAuthenticated, loading, login, logout, loadSession, unreadCount],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

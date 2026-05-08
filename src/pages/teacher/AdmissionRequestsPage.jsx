@@ -10,12 +10,14 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
 import notificationPreviewService from '../../services/notificationPreviewService'
+import { deleteNotification } from '../../services/notificationService'
 import Badge from '../../components/ui/Badge'
 import Button from '../../components/ui/Button'
 import LoadingSkeleton from '../../components/ui/LoadingSkeleton'
 import Modal from '../../components/ui/Modal'
 import Table from '../../components/ui/Table'
 import Toast from '../../components/ui/Toast'
+import NotificationsBell from '../../components/NotificationsBell'
 import './AdmissionRequestsPage.css'
 
 const NAV_ITEMS = [
@@ -289,6 +291,7 @@ export default function AdmissionRequestsPage() {
   const [notificationUnreadCount, setNotificationUnreadCount] = useState(0)
 
   const notificationBoxRef = useRef(null)
+  const notificationCloseTimerRef = useRef(null)
 
   const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'Professor'
 
@@ -383,6 +386,16 @@ export default function AdmissionRequestsPage() {
       setNotificationsError('Não foi possível carregar as notificações.')
     } finally {
       setNotificationsLoading(false)
+    }
+  }, [])
+
+  const handleDeleteNotification = useCallback(async (id) => {
+    try {
+      await deleteNotification(id)
+      setNotifications((prev) => prev.filter((n) => n.id !== id))
+      setNotificationUnreadCount((prev) => Math.max(0, prev - 1))
+    } catch (err) {
+      console.error('Error deleting notification', err)
     }
   }, [])
 
@@ -517,6 +530,32 @@ export default function AdmissionRequestsPage() {
       void loadNotificationPreview()
     }
   }, [loadNotificationPreview, notificationsLoaded, notificationsOpen])
+
+  const openNotificationsOnHover = useCallback(() => {
+    if (notificationCloseTimerRef.current) {
+      window.clearTimeout(notificationCloseTimerRef.current)
+      notificationCloseTimerRef.current = null
+    }
+
+    if (!notificationsOpen) {
+      setNotificationsOpen(true)
+    }
+
+    if (!notificationsLoaded) {
+      void loadNotificationPreview()
+    }
+  }, [loadNotificationPreview, notificationsLoaded, notificationsOpen])
+
+  const closeNotificationsOnHover = useCallback(() => {
+    if (notificationCloseTimerRef.current) {
+      window.clearTimeout(notificationCloseTimerRef.current)
+    }
+
+    notificationCloseTimerRef.current = window.setTimeout(() => {
+      setNotificationsOpen(false)
+      notificationCloseTimerRef.current = null
+    }, 120)
+  }, [])
 
   const tableColumns = useMemo(() => ([
     {
@@ -655,7 +694,7 @@ export default function AdmissionRequestsPage() {
               <p>Validação de pedidos de adesão a sessões privadas</p>
             </div>
 
-            <div className="topbar-right" ref={notificationBoxRef}>
+            <div className="topbar-right">
               <input
                 className="search"
                 type="search"
@@ -666,15 +705,24 @@ export default function AdmissionRequestsPage() {
               <Link className="pill" to="/teacher/dashboard">
                 Painel docente
               </Link>
-              <button type="button" className="pill notifications-pill" onClick={handleNotificationsClick}>
-                Notificações {notificationUnreadCount}
-              </button>
 
-              {notificationsOpen ? (
-                <div className="notifications-popover">
-                  <div className="notifications-popover-header">
-                    <strong>Notificações</strong>
-                  </div>
+              <div
+                className="notifications-hover-area"
+                ref={notificationBoxRef}
+                onMouseEnter={openNotificationsOnHover}
+                onMouseLeave={closeNotificationsOnHover}
+              >
+                <NotificationsBell
+                  onClick={handleNotificationsClick}
+                  count={notificationUnreadCount}
+                  onMouseEnter={openNotificationsOnHover}
+                />
+
+                {notificationsOpen ? (
+                  <div className="notifications-popover" onMouseEnter={openNotificationsOnHover} onMouseLeave={closeNotificationsOnHover}>
+                    <div className="notifications-popover-header">
+                      <div className="notifications-popover-sub">Últimas notificações</div>
+                    </div>
 
                   {notificationsLoading ? <p className="notifications-state">A carregar...</p> : null}
 
@@ -683,30 +731,40 @@ export default function AdmissionRequestsPage() {
                   ) : null}
 
                   {!notificationsLoading && !notificationsError && notifications.length === 0 ? (
-                    <p className="notifications-state">Sem notificações.</p>
+                    <p className="notifications-state">Ainda não tens notificações.</p>
                   ) : null}
 
                   {!notificationsLoading && notifications.length > 0 ? (
                     <ul className="notifications-list">
                       {notifications.map((notification) => (
                         <li key={notification.id} className="notifications-item">
-                          <strong>{notification.title}</strong>
-                          {notification.message ? <p>{notification.message}</p> : null}
-                          <small>{formatNotificationDate(notification.createdAt)}</small>
+                          <div className="notifications-item-content">
+                            <strong>{notification.title}</strong>
+                            {notification.message ? <p>{notification.message}</p> : null}
+                            <small>{formatNotificationDate(notification.createdAt)}</small>
+                          </div>
+                          <button 
+                            className="notifications-delete-btn" 
+                            title="Eliminar notificação"
+                            onClick={() => handleDeleteNotification(notification.id)}
+                          >
+                            ×
+                          </button>
                         </li>
                       ))}
                     </ul>
                   ) : null}
 
                   <Link
-                    to="/notifications"
+                    to="/teacher/notifications"
                     className="notifications-more-link"
                     onClick={() => setNotificationsOpen(false)}
                   >
                     Ver Mais
                   </Link>
-                </div>
-              ) : null}
+                  </div>
+                ) : null}
+              </div>
             </div>
           </header>
 
