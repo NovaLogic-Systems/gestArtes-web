@@ -1,14 +1,6 @@
-/**
- * @file src/pages/student/MarketplacePage.jsx
- * @author NovaLogic System
- * @institution IPCA
- * @project GestArtes - Projeto 50+10 para Entartes
- */
-
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import { useDebounce } from '../../hooks/useDebounce'
 import ListingCard from '../../components/ListingCard'
 import ListingDetailModal from '../../components/ListingDetailModal'
 import {
@@ -19,22 +11,17 @@ import {
 } from '../../services/marketplace'
 import ListingForm from '../../components/ListingForm'
 import Modal from '../../components/ui/Modal'
-import './DashboardPage.css'
-import './marketplace.css'
+import '../student/DashboardPage.css'
+import '../student/marketplace.css'
 
 const SEARCH_HISTORY_KEY = 'marketplace.search.history'
 const SEARCH_HISTORY_LIMIT = 8
-const DEBOUNCE_DELAY = 300 // 300ms as per UX best practice
 
 const NAV_ITEMS = [
-  { label: 'Painel', href: '/student/dashboard' },
-  { label: 'Coaching', href: '/student/coaching' },
-  { label: 'Inventário da Escola', href: '/student/inventory' },
-  { label: 'Marketplace', href: '/student/marketplace' },
-    { label: 'Conversas', href: '/student/marketplace/conversas' },
-  { label: 'Meus anúncios', href: '/student/marketplace/my-listings' },
-  { label: 'Perdidos e Achados', href: '/student/lostfound' },
-  { label: 'Minha Conta', href: '/student/account' },
+  { label: 'Painel', href: '/teacher/dashboard' },
+  { label: 'Pedidos de admissão', href: '/teacher/admission-requests' },
+  { label: 'Marketplace', href: '/teacher/marketplace' },
+  { label: 'Os meus anúncios', href: '/teacher/marketplace/my-listings' },
 ]
 
 function loadSearchHistory() {
@@ -63,39 +50,7 @@ function saveSearchHistory(entries) {
   window.localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(entries.slice(0, SEARCH_HISTORY_LIMIT)))
 }
 
-/**
- * Parse URL query parameters into filters object
- * @param {URLSearchParams} params - URL search parameters
- * @returns {Object} Filters object with search, category, location, minPrice, maxPrice
- */
-function parseFiltersFromURL(params) {
-  return {
-    search: params.get('search') || '',
-    category: params.get('category') || '',
-    location: params.get('location') || '',
-    minPrice: params.get('minPrice') || '',
-    maxPrice: params.get('maxPrice') || '',
-  }
-}
-
-/**
- * Build URL query string from filters
- * @param {Object} filters - Filters object
- * @returns {string} Query string to append to URL
- */
-function buildURLFromFilters(filters) {
-  const params = new URLSearchParams()
-
-  if (filters.search) params.set('search', filters.search)
-  if (filters.category) params.set('category', filters.category)
-  if (filters.location) params.set('location', filters.location)
-  if (filters.minPrice) params.set('minPrice', filters.minPrice)
-  if (filters.maxPrice) params.set('maxPrice', filters.maxPrice)
-
-  return params.toString()
-}
-
-export default function MarketplacePage() {
+export default function TeacherMarketplacePage() {
   const { logout, user } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
@@ -111,13 +66,15 @@ export default function MarketplacePage() {
   const [isSaving, setIsSaving] = useState(false)
   const [searchHistory, setSearchHistory] = useState(loadSearchHistory)
 
-  // Initialize filters from URL parameters
-  const [filters, setFilters] = useState(() => {
-    const params = new URLSearchParams(location.search)
-    return parseFiltersFromURL(params)
+  const [filters, setFilters] = useState({
+    search: '',
+    category: '',
+    location: '',
+    minPrice: '',
+    maxPrice: '',
   })
 
-  const studentName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Aluno'
+  const teacherName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Professor'
 
   const loadData = useCallback(async () => {
     try {
@@ -133,7 +90,7 @@ export default function MarketplacePage() {
         setListings(listingsResult.value)
       } else {
         setListings([])
-        setError(listingsResult.reason?.response?.data?.error || 'Não foi possível carregar o marketplace.')
+        setError(listingsResult.reason?.response?.data?.error || 'Nao foi possivel carregar o marketplace.')
       }
 
       if (optionsResult.status === 'fulfilled') {
@@ -144,7 +101,7 @@ export default function MarketplacePage() {
         setConditions([])
       }
     } catch (requestError) {
-      setError(requestError?.response?.data?.error || 'Não foi possível carregar o marketplace.')
+      setError(requestError?.response?.data?.error || 'Nao foi possivel carregar o marketplace.')
     } finally {
       setLoading(false)
     }
@@ -154,22 +111,6 @@ export default function MarketplacePage() {
     loadData()
   }, [loadData])
 
-  // Debounce effect: sync filters to URL after 300ms of inactivity
-  // This prevents excessive URL updates and potential API calls during rapid filter changes
-  useEffect(() => {
-    const queryString = buildURLFromFilters(filters)
-    const newUrl = queryString ? `/student/marketplace?${queryString}` : '/student/marketplace'
-
-    // Only navigate if the URL actually changed to avoid unnecessary updates
-    if (location.pathname + location.search !== newUrl) {
-      const timeoutId = setTimeout(() => {
-        navigate(newUrl, { replace: true })
-      }, DEBOUNCE_DELAY)
-
-      return () => clearTimeout(timeoutId)
-    }
-  }, [filters, navigate, location.pathname, location.search])
-
   const filteredListings = useMemo(() => {
     const search = filters.search.trim().toLowerCase()
     const locationTerm = filters.location.trim().toLowerCase()
@@ -177,12 +118,7 @@ export default function MarketplacePage() {
     const maxPrice = filters.maxPrice === '' ? null : Number(filters.maxPrice)
 
     return listings.filter((listing) => {
-      const listingSearchable = [
-        listing.title,
-        listing.description,
-        listing.category?.categoryName,
-        listing.location,
-      ]
+      const listingSearchable = [listing.title, listing.description, listing.category?.categoryName, listing.location]
         .filter(Boolean)
         .join(' ')
         .toLowerCase()
@@ -273,12 +209,12 @@ export default function MarketplacePage() {
             <span className="brand-dot" />
             <div>
               <h1>gestArtes</h1>
-              <p>{studentName}</p>
+              <p>{teacherName}</p>
             </div>
           </div>
 
           <div className="nav-group">
-            <h2>Aluno</h2>
+            <h2>Professor</h2>
             {NAV_ITEMS.map((item) => {
               const isActive = location.pathname === item.href || location.pathname.startsWith(`${item.href}/`)
 
@@ -297,7 +233,7 @@ export default function MarketplacePage() {
                 navigate('/login?reason=logged-out', { replace: true })
               }}
             >
-              Terminar Sessão
+              Terminar Sessao
             </button>
           </div>
         </aside>
@@ -306,18 +242,15 @@ export default function MarketplacePage() {
           <header className="topbar">
             <div className="topbar-left">
               <h2>Marketplace da Comunidade</h2>
-              <p>Explora artigos, encontra serviços e publica os teus anúncios.</p>
+              <p>Explora artigos, encontra servicos e publica os teus anuncios.</p>
             </div>
 
             <div className="topbar-right">
               <button type="button" className="cta" onClick={() => setIsCreateOpen(true)}>
-                Criar anúncio
+                Criar anuncio
               </button>
-                <Link className="pill" to="/student/marketplace/conversas">
-                  Conversas
-                </Link>
-              <Link className="pill" to="/student/marketplace/my-listings">
-                Meus anúncios
+              <Link className="pill" to="/teacher/marketplace/my-listings">
+                Os meus anuncios
               </Link>
             </div>
           </header>
@@ -329,7 +262,7 @@ export default function MarketplacePage() {
               <div className="market-field-row">
                 <input
                   className="search"
-                  placeholder="Pesquisar por título, descrição ou categoria"
+                  placeholder="Pesquisar por titulo, descricao ou categoria"
                   value={filters.search}
                   onChange={(event) => updateFilter('search', event.target.value)}
                   onBlur={(event) => storeSearchInHistory(event.target.value)}
@@ -352,7 +285,7 @@ export default function MarketplacePage() {
               </label>
 
               <label>
-                <span>Localização</span>
+                <span>Localizacao</span>
                 <input
                   value={filters.location}
                   onChange={(event) => updateFilter('location', event.target.value)}
@@ -415,28 +348,23 @@ export default function MarketplacePage() {
 
             <article className="panel">
               <div className="market-feed-header">
-                <h3>Feed de anúncios</h3>
+                <h3>Feed de anuncios</h3>
                 {!loading && listings.length > 0 ? (
                   <p className="market-count-info">
-                    {filteredListings.length} de {listings.length} anúncio{listings.length !== 1 ? 's' : ''}
+                    {filteredListings.length} de {listings.length} anuncio{listings.length !== 1 ? 's' : ''}
                   </p>
                 ) : null}
               </div>
 
               {error ? <p className="error-banner">{error}</p> : null}
-              {loading ? <p className="panel-subtle">A carregar anúncios...</p> : null}
+              {loading ? <p className="panel-subtle">A carregar anuncios...</p> : null}
 
               {!loading && filteredListings.length === 0 ? (
-                <p className="empty">Não encontramos anúncios com os filtros atuais.</p>
+                <p className="empty">Nao encontramos anuncios com os filtros atuais.</p>
               ) : (
                 <div className="market-listing-grid">
                   {filteredListings.map((listing) => (
-                    <ListingCard
-                      key={listing.listingId}
-                      listing={listing}
-                      onOpen={handleOpenListing}
-                      onBuy={handleOpenListing}
-                    />
+                    <ListingCard key={listing.listingId} listing={listing} onOpen={handleOpenListing} />
                   ))}
                 </div>
               )}
@@ -457,15 +385,15 @@ export default function MarketplacePage() {
       <Modal
         open={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        title="Criar anúncio"
+        title="Criar anuncio"
         description="Publica um artigo no marketplace da comunidade"
         size="xl"
       >
         <ListingForm
-          key="student-marketplace-create"
+          key="teacher-marketplace-create"
           categories={categories}
           conditions={conditions}
-          submitLabel="Publicar anúncio"
+          submitLabel="Publicar anuncio"
           busy={isSaving}
           onSubmit={handleCreateListing}
           onCancel={() => setIsCreateOpen(false)}
