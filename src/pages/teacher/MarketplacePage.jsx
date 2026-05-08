@@ -289,7 +289,6 @@ export default function TeacherMarketplacePage() {
                 <input
                   value={filters.location}
                   onChange={(event) => updateFilter('location', event.target.value)}
-                  placeholder="Ex.: Viana do Castelo"
                 />
               </label>
 
