@@ -13,6 +13,8 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import LoginPage from './pages/LoginPage'
 import StudioManagementPage from './pages/admin/StudioManagementPage'
 import StudioOccupancyPage from './pages/admin/StudioOccupancyPage'
+import FinancialDashboardPage from './pages/admin/FinancialDashboardPage'
+import AuditPage from './pages/admin/AuditPage'
 import AdminUsersPage from './pages/admin/AdminUsersPage'
 import AdminMarketplaceConversationsPage from './pages/admin/AdminMarketplaceConversationsPage'
 import MarketplaceModerationPage from './pages/admin/MarketplaceModerationPage'
@@ -244,6 +246,8 @@ function App() {
         <Route path="/admin/users" element={<AdminUsersPage />} />
         <Route path="/admin/marketplace/conversas" element={<AdminMarketplaceConversationsPage />} />
         <Route path="/admin/marketplace" element={<MarketplaceModerationPage />} />
+        <Route path="/admin/finance" element={<FinancialDashboardPage />} />
+        <Route path="/admin/audit" element={<AuditPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />
