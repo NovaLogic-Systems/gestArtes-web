@@ -38,6 +38,50 @@ function formatDate(value) {
   }).format(date)
 }
 
+function resolveStatusVariant(statusName) {
+  const normalized = String(statusName || '').trim().toLowerCase()
+
+  if (!normalized) {
+    return null
+  }
+
+  if (normalized.includes('reject') || normalized.includes('rejeit')) {
+    return 'danger'
+  }
+
+  if (normalized.includes('pending') || normalized.includes('pend')) {
+    return 'warning'
+  }
+
+  if (normalized.includes('active') || normalized.includes('approved') || normalized.includes('published')) {
+    return 'success'
+  }
+
+  return 'neutral'
+}
+
+function resolveStatusLabel(status) {
+  const statusName = String(status?.statusName || status || '').trim()
+
+  if (!statusName) {
+    return ''
+  }
+
+  if (/pending|pend/i.test(statusName)) {
+    return 'Pendente de moderação'
+  }
+
+  if (/reject|rejeit/i.test(statusName)) {
+    return 'Rejeitado'
+  }
+
+  if (/active|approved|published|publicad|aprov/i.test(statusName)) {
+    return 'Ativo'
+  }
+
+  return statusName
+}
+
 export default function ListingCard({
   listing,
   onOpen,
@@ -47,6 +91,8 @@ export default function ListingCard({
   showOwnerActions = false,
 }) {
   const photoUrl = resolveMarketplacePhotoUrl(listing?.photoUrl)
+  const statusLabel = resolveStatusLabel(listing?.status)
+  const statusVariant = resolveStatusVariant(listing?.status?.statusName)
 
   return (
     <article className="market-listing-card">
@@ -76,6 +122,14 @@ export default function ListingCard({
           {' · '}
           {formatDate(listing?.createdAt)}
         </p>
+
+        {statusLabel ? (
+          <p className="market-listing-status">
+            <span className="market-listing-status-badge" data-variant={statusVariant || 'neutral'}>
+              {statusLabel}
+            </span>
+          </p>
+        ) : null}
 
         {showOwnerActions ? (
           <div className="market-listing-actions">

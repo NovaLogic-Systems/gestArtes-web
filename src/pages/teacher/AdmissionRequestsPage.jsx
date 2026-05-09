@@ -24,6 +24,8 @@ const NAV_ITEMS = [
   { label: 'Painel', href: '/teacher/dashboard' },
   { label: 'Pedidos de admissão', href: '/teacher/admission-requests' },
   { label: 'Inventário da Escola', href: '/teacher/inventory' },
+  { label: 'Marketplace', href: '/teacher/marketplace' },
+  { label: 'Os meus anúncios', href: '/teacher/marketplace/my-listings' },
 ]
 
 function toInteger(value, fallback = 0) {

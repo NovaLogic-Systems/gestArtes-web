@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @file src/App.jsx
  * @author NovaLogic System
  * @institution IPCA
@@ -27,8 +27,10 @@ import InventoryPage from './pages/student/InventoryPage'
 import RentalCheckoutPage from './pages/student/RentalCheckoutPage'
 import RentalRequestsPage from './pages/student/RentalRequestsPage'
 import MarketplacePage from './pages/student/MarketplacePage'
-import MyListingsPage from './pages/student/MyListingsPage'
 import MarketplaceConversationsPage from './pages/student/MarketplaceConversationsPage'
+import MyListingsPage from './pages/student/MyListingsPage'
+import TeacherMarketplacePage from './pages/teacher/MarketplacePage'
+import TeacherMarketplaceListingsPage from './pages/teacher/MyListingsPage'
 import TeacherLayout from './components/layout/teacher/TeacherLayout';
 import NotificationsPage from './pages/teacher/NotificationsPage';
 
@@ -218,7 +220,7 @@ function App() {
         <Route path="/student/inventory/checkout/:itemId" element={<RentalCheckoutPage />} />
         <Route path="/student/inventory/rentals" element={<RentalRequestsPage />} />
         <Route path="/student/marketplace" element={<MarketplacePage />} />
-          <Route path="/student/marketplace/conversas" element={<MarketplaceConversationsPage />} />
+        <Route path="/student/marketplace/conversas" element={<MarketplaceConversationsPage />} />
         <Route path="/student/marketplace/my-listings" element={<MyListingsPage />} />
         <Route path="/student/notifications" element={<StudentSectionPage title="Notificações" />} />
         <Route path="/student/lostfound" element={<StudentSectionPage title="Perdidos e Achados" />} />
@@ -232,6 +234,8 @@ function App() {
         <Route path="/teacher/sessions/confirmation" element={<SessionConfirmationPage />} />
         <Route path="/teacher/inventory" element={<TeacherInventoryPage />} />
         <Route path="/teacher/marketplace/conversas" element={<TeacherMarketplaceConversationsPage />} />
+        <Route path="/teacher/marketplace" element={<TeacherMarketplacePage />} />
+        <Route path="/teacher/marketplace/my-listings" element={<TeacherMarketplaceListingsPage />} />
         <Route path="/teacher/notifications" element={<NotificationsPage />} />
       </Route>
 
@@ -240,7 +244,7 @@ function App() {
         <Route path="/admin/studios" element={<StudioManagementPage />} />
         <Route path="/admin/studio-occupancy" element={<StudioOccupancyPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
-            <Route path="/admin/marketplace/conversas" element={<AdminMarketplaceConversationsPage />} />
+        <Route path="/admin/marketplace/conversas" element={<AdminMarketplaceConversationsPage />} />
         <Route path="/admin/marketplace" element={<MarketplaceModerationPage />} />
       </Route>
 
@@ -250,4 +254,3 @@ function App() {
 }
 
 export default App
-
