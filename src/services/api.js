@@ -7,45 +7,16 @@
 
 import axios from 'axios'
 import { getApiBaseUrl } from '../utils/network'
+import {
+  clearAccessToken,
+  getAccessToken,
+  setAccessToken,
+} from './tokenStore'
 
 let unauthorizedHandler = null
-const ACCESS_TOKEN_STORAGE_KEY = 'gestartes.access_token'
+let refreshPromise = null
 
-let accessToken = null
-
-function loadAccessTokenFromStorage() {
-  if (typeof window === 'undefined' || !window.localStorage) {
-    return null
-  }
-
-  return window.localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY)
-}
-
-export function getAccessToken() {
-  if (accessToken) {
-    return accessToken
-  }
-
-  accessToken = loadAccessTokenFromStorage()
-  return accessToken
-}
-
-export function setAccessToken(token) {
-  const normalizedToken = String(token || '').trim()
-  accessToken = normalizedToken || null
-
-  if (typeof window !== 'undefined' && window.localStorage) {
-    if (accessToken) {
-      window.localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, accessToken)
-    } else {
-      window.localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY)
-    }
-  }
-}
-
-export function clearAccessToken() {
-  setAccessToken(null)
-}
+export { clearAccessToken, getAccessToken, setAccessToken }
 
 export function setUnauthorizedHandler(handler) {
   unauthorizedHandler = typeof handler === 'function' ? handler : null
@@ -60,8 +31,6 @@ const refreshClient = axios.create({
   baseURL: getApiBaseUrl(),
   withCredentials: true,
 })
-
-let refreshPromise = null
 
 async function refreshAccessToken() {
   if (!refreshPromise) {

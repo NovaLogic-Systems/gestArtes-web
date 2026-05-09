@@ -7,7 +7,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AuthContext } from './auth-context'
-export { AuthContext }
 import api, {
   clearAccessToken,
   getAccessToken,
@@ -29,13 +28,23 @@ export function AuthProvider({ children }) {
     setUser(null)
     setRole(null)
     setIsAuthenticated(false)
+    setUnreadCount(0)
   }, [])
 
   const loadSession = useCallback(async () => {
     setLoading(true)
 
     try {
-      const response = await api.get('/auth/me')
+      let response
+
+      try {
+        response = await api.get('/auth/me', { skipAuthHandler: true })
+      } catch {
+        const refreshResponse = await api.post('/auth/refresh', null, { skipAuthHandler: true })
+        setAccessToken(refreshResponse.data?.accessToken)
+        response = refreshResponse
+      }
+
       const currentUser = response.data?.user ?? response.data ?? null
       const currentRole = response.data?.role ?? currentUser?.role ?? null
 
@@ -43,8 +52,6 @@ export function AuthProvider({ children }) {
       setRole(currentRole)
       setIsAuthenticated(Boolean(currentUser && currentRole))
     } catch {
-      // Se o access token expirou, o interceptor tenta refresh; se falhar,
-      // limpamos estado local para evitar UI incoerente.
       clearSession()
     } finally {
       setLoading(false)
@@ -53,12 +60,10 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async ({ email, password }) => {
     const response = await api.post('/auth/login', { email, password }, { skipAuthHandler: true })
-    const nextAccessToken = response.data?.accessToken ?? null
     const currentUser = response.data?.user ?? null
     const currentRole = response.data?.role ?? currentUser?.role ?? null
 
-    setAccessToken(nextAccessToken)
-
+    setAccessToken(response.data?.accessToken)
     setUser(currentUser)
     setRole(currentRole)
     setIsAuthenticated(Boolean(currentUser && currentRole))
@@ -77,14 +82,12 @@ export function AuthProvider({ children }) {
   }, [clearSession])
 
   useEffect(() => {
-    const token = getAccessToken()
-
-    if (!token) {
+    if (!getAccessToken()) {
       setLoading(false)
       return
     }
 
-    loadSession()
+    void loadSession()
   }, [loadSession])
 
   useEffect(() => {

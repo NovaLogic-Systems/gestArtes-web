@@ -50,6 +50,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.42rem;
+  justify-content: center;
 }
 
 .marketplace-modal-footer-actions {

@@ -4,14 +4,16 @@ import NotificationsBell from '../../components/NotificationsBell'
 import { useAuth } from '../../hooks/useAuth'
 import notificationService, { formatNotificationDate } from '../../services/notificationService'
 import { subscribeToNotifications } from '../../services/realtimeNotifications'
-import '../student/DashboardPage.css'
+import './DashboardPage.css'
 import './NotificationsPage.css'
 
 const NAV_ITEMS = [
-  { label: 'Painel', href: '/teacher/dashboard' },
-  { label: 'Pedidos de Admissão', href: '/teacher/admission-requests' },
-  { label: 'Confirmação de Sessões', href: '/teacher/sessions/confirmation' },
-  { label: 'Chat do Marketplace', href: '/teacher/marketplace/conversas' },
+  { label: 'Painel', href: '/student/dashboard' },
+  { label: 'Coaching', href: '/student/coaching' },
+  { label: 'Inventário da Escola', href: '/student/inventory' },
+  { label: 'Marketplace', href: '/student/marketplace' },
+  { label: 'Perdidos e Achados', href: '/student/lostfound' },
+  { label: 'Minha Conta', href: '/student/account' },
 ]
 
 const FILTERS = [
@@ -25,7 +27,7 @@ export default function NotificationsPage() {
   const { logout, user } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
-  const teacherName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Professor'
+  const studentName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Aluno'
 
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
@@ -113,19 +115,19 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="student-dashboard teacher-dashboard teacher-notifications-page">
+    <div className="student-dashboard student-notifications-page">
       <div className="app-shell">
         <aside className={`sidebar${mobileOpen ? ' open' : ''}`} id="sidebar">
           <div className="brand">
             <span className="brand-dot" />
             <div>
               <h1>gestArtes</h1>
-              <p>{teacherName}</p>
+              <p>{studentName}</p>
             </div>
           </div>
 
           <div className="nav-group">
-            <h2>Professor</h2>
+            <h2>Aluno</h2>
             {NAV_ITEMS.map((item) => {
               const isActive = location.pathname === item.href || location.pathname.startsWith(`${item.href}/`)
 
@@ -175,6 +177,9 @@ export default function NotificationsPage() {
             </div>
 
             <div className="topbar-right">
+              <Link className="pill" to="/student/account">
+                Minha Conta
+              </Link>
               <NotificationsBell />
             </div>
           </header>
@@ -241,4 +246,3 @@ export default function NotificationsPage() {
     </div>
   )
 }
-
