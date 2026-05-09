@@ -1,0 +1,85 @@
+/**
+ * @file src/pages/student/history.css
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ *
+ * History-specific styles that complement coaching.css.
+ * Uses the same coaching-page variables and class patterns.
+ */
+
+/* Clickable row highlight for AwaitingCompletion */
+.coaching-page .hist-row--highlight td {
+  background: #fffbeb;
+}
+
+.coaching-page .hist-row--highlight:hover td {
+  background: #fef9e3;
+}
+
+/* Pagination */
+.coaching-page .hist-pagination {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+.coaching-page .hist-page-btn {
+  border: 1px solid #d7ccdf;
+  background: #fff;
+  border-radius: 8px;
+  padding: 5px 11px;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: #2e2942;
+  min-width: 36px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.coaching-page .hist-page-btn:hover {
+  background: var(--lavender);
+}
+
+.coaching-page .hist-page-btn.active {
+  background: linear-gradient(135deg, #6f5ca5, #0b9d8f);
+  color: #fff;
+  border-color: transparent;
+  font-weight: 700;
+}
+
+/* Session detail grid in modal */
+.coaching-modal .hist-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 1rem;
+}
+
+.coaching-modal .hist-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.88rem;
+  color: #1f1c2e;
+}
+
+.coaching-modal .hist-detail-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6d6480;
+}
+
+.coaching-modal .hist-detail-full {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 540px) {
+  .coaching-modal .hist-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}

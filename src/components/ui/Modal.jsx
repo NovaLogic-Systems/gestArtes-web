@@ -59,9 +59,10 @@ function Modal({
 			onMouseDown={closeOnBackdrop ? onClose : undefined}
 			style={{
 				alignItems: 'center',
+				justifyContent: 'center',
 				background: 'rgba(8, 6, 13, 0.5)',
 				inset: 0,
-				display: 'grid',
+				display: 'flex',
 				padding: '1.25rem',
 				position: 'fixed',
 				zIndex: 50,
