@@ -18,6 +18,7 @@ import AuditPage from './pages/admin/AuditPage'
 import AdminUsersPage from './pages/admin/AdminUsersPage'
 import AdminMarketplaceConversationsPage from './pages/admin/AdminMarketplaceConversationsPage'
 import MarketplaceModerationPage from './pages/admin/MarketplaceModerationPage'
+import AdminDashboardPage from './pages/admin/AdminDashboardPage'
 import AdminInventoryPage from './pages/admin/AdminInventoryPage'
 import DashboardPage from './pages/student/DashboardPage'
 import CoachingStudentPage from './pages/student/CoachingPage'
@@ -200,12 +201,7 @@ const TeacherDashboard = () => (
     </div>
   </TeacherLayout>
 )
-const AdminDashboard = () => (
-  <ProtectedPlaceholderPage
-    title="Admin Dashboard"
-    actionLink={{ to: '/admin/studios', label: 'Gestão de estúdios' }}
-  />
-)
+const AdminDashboard = () => <AdminDashboardPage />
 
 function App() {
   return (
@@ -226,7 +222,6 @@ function App() {
         <Route path="/student/marketplace" element={<MarketplacePage />} />
         <Route path="/student/marketplace/conversas" element={<MarketplaceConversationsPage />} />
         <Route path="/student/marketplace/my-listings" element={<MyListingsPage />} />
-        <Route path="/student/notifications" element={<StudentNotificationsPage />} />
         <Route path="/student/lostfound" element={<LostFoundPage />} />
         <Route path="/student/account" element={<StudentSectionPage title="Minha Conta" />} />
       </Route>
