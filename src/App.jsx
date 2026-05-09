@@ -26,6 +26,7 @@ import AdmissionRequestsPage from './pages/teacher/AdmissionRequestsPage'
 import SessionConfirmationPage from './pages/teacher/SessionConfirmationPage'
 import TeacherMarketplaceConversationsPage from './pages/teacher/TeacherMarketplaceConversationsPage'
 import InventoryPage from './pages/student/InventoryPage'
+import LostFoundPage from './pages/student/LostFoundPage'
 import RentalCheckoutPage from './pages/student/RentalCheckoutPage'
 import RentalRequestsPage from './pages/student/RentalRequestsPage'
 import TeacherDashboardPage from './pages/teacher/DashboardPage'
@@ -226,7 +227,7 @@ function App() {
         <Route path="/student/marketplace/conversas" element={<MarketplaceConversationsPage />} />
         <Route path="/student/marketplace/my-listings" element={<MyListingsPage />} />
         <Route path="/student/notifications" element={<StudentNotificationsPage />} />
-        <Route path="/student/lostfound" element={<StudentSectionPage title="Perdidos e Achados" />} />
+        <Route path="/student/lostfound" element={<LostFoundPage />} />
         <Route path="/student/account" element={<StudentSectionPage title="Minha Conta" />} />
       </Route>
 
