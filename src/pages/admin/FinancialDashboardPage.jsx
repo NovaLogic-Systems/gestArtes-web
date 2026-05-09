@@ -22,10 +22,22 @@ const INITIAL_FILTERS = {
   studentNumber: '',
 }
 
+const ENTRY_TYPE_LABELS = {
+  session_revenue: 'Receita de Sessão',
+  no_show_fee: 'Taxa de No-Show',
+  cancellation_fee: 'Taxa de Cancelamento',
+  inventory_fee: 'Taxa de Inventário',
+  marketplace_fee: 'Taxa de Marketplace',
+}
+
 const TABLE_COLUMNS = [
   { key: 'entryId', header: 'ID' },
   { key: 'sessionId', header: 'Sessão' },
-  { key: 'entryType', header: 'Tipo' },
+  {
+    key: 'entryType',
+    header: 'Tipo',
+    render: (row) => ENTRY_TYPE_LABELS[row.entryType] || row.entryType || '—',
+  },
   {
     key: 'amount',
     header: 'Valor (€)',
@@ -144,7 +156,13 @@ export default function FinancialDashboardPage() {
       a.click()
       URL.revokeObjectURL(url)
       setAppliedFilters(filters)
-    } catch {
+    } catch (err) {
+      console.error('Erro ao exportar CSV:', {
+        message: err?.message,
+        status: err?.response?.status,
+        statusText: err?.response?.statusText,
+        data: err?.response?.data,
+      })
       setExportError('Erro ao exportar CSV.')
     } finally {
       setExportLoading(false)

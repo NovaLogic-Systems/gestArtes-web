@@ -8,6 +8,29 @@ import AdminShell from './AdminShell'
 
 const MODULES = ['finance', 'coaching', 'validations', 'marketplace', 'lostfound', 'users', 'system']
 
+const MODULE_LABELS = {
+  finance: 'Finanças',
+  coaching: 'Aulas/Sessões',
+  validations: 'Validações',
+  marketplace: 'Marketplace',
+  lostfound: 'Perdidos e Achados',
+  users: 'Utilizadores',
+  system: 'Sistema',
+}
+
+const ACTION_LABELS = {
+  FINANCE_EXPORT: 'Exportação Financeira',
+  NOSHOW_PENALTY_APPLIED: 'Penalização No-Show',
+  SESSION_FINALIZED: 'Sessão Finalizada',
+  SESSION_CANCELLED: 'Sessão Cancelada',
+  VALIDATION_APPROVED: 'Validação Aprovada',
+  VALIDATION_REJECTED: 'Validação Rejeitada',
+  LOSTFOUND_CLAIMED: 'Item Reclamado',
+  LOSTFOUND_ARCHIVED: 'Item Arquivado',
+  MARKETPLACE_HIDDEN: 'Item Ocultado',
+  USER_PASSWORD_RESET: 'Reset de Password',
+}
+
 const INITIAL_FILTERS = {
   periodStart: '',
   periodEnd: '',
@@ -24,8 +47,16 @@ const TABLE_COLUMNS = [
         : '—',
   },
   { key: 'userName', header: 'Utilizador', render: (row) => row.userName || `#${row.userId ?? '?'}` },
-  { key: 'action', header: 'Ação' },
-  { key: 'module', header: 'Módulo' },
+  {
+    key: 'action',
+    header: 'Ação',
+    render: (row) => ACTION_LABELS[row.action] || row.action,
+  },
+  {
+    key: 'module',
+    header: 'Módulo',
+    render: (row) => MODULE_LABELS[row.module] || row.module,
+  },
   {
     key: 'result',
     header: 'Resultado',
@@ -68,8 +99,17 @@ export default function AuditPage() {
         setEvents(Array.isArray(evRes.data?.items) ? evRes.data.items : [])
         setEventTotal(evRes.data?.total ?? 0)
         setSummary(sumRes.data)
-      } catch {
-        if (!cancelled) setError('Não foi possível carregar os eventos de auditoria.')
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Erro ao carregar auditoria:', {
+            message: err?.message,
+            status: err?.response?.status,
+            statusText: err?.response?.statusText,
+            data: err?.response?.data,
+            url: err?.config?.url,
+          })
+          setError('Não foi possível carregar os eventos de auditoria.')
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -174,7 +214,7 @@ export default function AuditPage() {
             <option value="">Todos</option>
             {MODULES.map((m) => (
               <option key={m} value={m}>
-                {m}
+                {MODULE_LABELS[m] || m}
               </option>
             ))}
           </select>
