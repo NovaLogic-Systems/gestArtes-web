@@ -40,8 +40,14 @@ export default defineConfig(({ mode }) => {
   const hasSslFiles = sslKeyPath && sslCertPath && fs.existsSync(sslKeyPath) && fs.existsSync(sslCertPath)
   const apiProxyTarget = env.VITE_API_PROXY_TARGET || env.VITE_API_URL || 'https://localhost:3001'
 
+  const apiTarget = env.VITE_API_URL || 'http://localhost:3001'
+
   return {
     plugins: [react()],
+    test: {
+      environment: 'jsdom',
+      globals: true,
+    },
     server: {
       host: 'localhost',
       https: enableHttps && hasSslFiles
@@ -51,19 +57,19 @@ export default defineConfig(({ mode }) => {
           }
         : false,
       proxy: {
-        '^/api(/.*)?$': {
-          target: apiProxyTarget,
+        '/api': {
+          target: apiTarget,
           changeOrigin: true,
           secure: false,
           rewrite: (requestPath) => requestPath.replace(/^\/api/, ''),
         },
         '/uploads': {
-          target: apiProxyTarget,
+          target: apiTarget,
           changeOrigin: true,
           secure: false,
         },
         '/socket.io': {
-          target: apiProxyTarget,
+          target: apiTarget,
           changeOrigin: true,
           secure: false,
           ws: true,

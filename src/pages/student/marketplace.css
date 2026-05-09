@@ -247,6 +247,43 @@
   margin: 0;
 }
 
+.market-listing-status {
+  margin: 0.05rem 0 0;
+}
+
+.market-listing-status-badge {
+  border: 1px solid #d7ccdf;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.28rem 0.58rem;
+}
+
+.market-listing-status-badge[data-variant='danger'] {
+  background: rgba(220, 38, 38, 0.12);
+  border-color: rgba(220, 38, 38, 0.25);
+  color: #b91c1c;
+}
+
+.market-listing-status-badge[data-variant='warning'] {
+  background: rgba(249, 115, 22, 0.14);
+  border-color: rgba(249, 115, 22, 0.25);
+  color: #c2410c;
+}
+
+.market-listing-status-badge[data-variant='success'] {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.25);
+  color: #15803d;
+}
+
+.market-listing-status-badge[data-variant='neutral'] {
+  background: #f8f4fb;
+  color: #2e2942;
+}
+
 .market-listing-actions {
   display: flex;
   gap: 0.45rem;
@@ -424,6 +461,29 @@
   color: #4c4666;
   font-size: 0.86rem;
   font-weight: 600;
+}
+
+.market-form-label {
+  color: #4c4666;
+  display: inline-block;
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.market-form-status-box {
+  border: 1px solid #d9d0e5;
+  border-radius: 12px;
+  background: #fcf9ff;
+  padding: 0.75rem 0.85rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.market-form-status-note {
+  color: #6d6480;
+  font-size: 0.88rem;
+  margin: 0;
 }
 
 .market-form-full {

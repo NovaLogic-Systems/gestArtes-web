@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @file src/App.jsx
  * @author NovaLogic System
  * @institution IPCA
@@ -13,6 +13,8 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import LoginPage from './pages/LoginPage'
 import StudioManagementPage from './pages/admin/StudioManagementPage'
 import StudioOccupancyPage from './pages/admin/StudioOccupancyPage'
+import FinancialDashboardPage from './pages/admin/FinancialDashboardPage'
+import AuditPage from './pages/admin/AuditPage'
 import AdminUsersPage from './pages/admin/AdminUsersPage'
 import AdminMarketplaceConversationsPage from './pages/admin/AdminMarketplaceConversationsPage'
 import MarketplaceModerationPage from './pages/admin/MarketplaceModerationPage'
@@ -25,12 +27,14 @@ import TeacherMarketplaceConversationsPage from './pages/teacher/TeacherMarketpl
 import InventoryPage from './pages/student/InventoryPage'
 import RentalCheckoutPage from './pages/student/RentalCheckoutPage'
 import RentalRequestsPage from './pages/student/RentalRequestsPage'
+import TeacherDashboardPage from './pages/teacher/DashboardPage'
 import MarketplacePage from './pages/student/MarketplacePage'
-import MyListingsPage from './pages/student/MyListingsPage'
 import MarketplaceConversationsPage from './pages/student/MarketplaceConversationsPage'
-import StudentNotificationsPage from './pages/student/NotificationsPage'
-import TeacherLayout from './components/layout/teacher/TeacherLayout'
-import TeacherNotificationsPage from './pages/teacher/NotificationsPage'
+import MyListingsPage from './pages/student/MyListingsPage'
+import TeacherMarketplacePage from './pages/teacher/MarketplacePage'
+import TeacherMarketplaceListingsPage from './pages/teacher/MyListingsPage'
+import TeacherLayout from './components/layout/teacher/TeacherLayout';
+import NotificationsPage from './pages/teacher/NotificationsPage';
 
 function PlaceholderPage({ title }) {
   return (
@@ -218,7 +222,7 @@ function App() {
         <Route path="/student/inventory/checkout/:itemId" element={<RentalCheckoutPage />} />
         <Route path="/student/inventory/rentals" element={<RentalRequestsPage />} />
         <Route path="/student/marketplace" element={<MarketplacePage />} />
-          <Route path="/student/marketplace/conversas" element={<MarketplaceConversationsPage />} />
+        <Route path="/student/marketplace/conversas" element={<MarketplaceConversationsPage />} />
         <Route path="/student/marketplace/my-listings" element={<MyListingsPage />} />
         <Route path="/student/notifications" element={<StudentNotificationsPage />} />
         <Route path="/student/lostfound" element={<StudentSectionPage title="Perdidos e Achados" />} />
@@ -227,11 +231,20 @@ function App() {
 
       <Route element={<ProtectedRoute allowedRoles={['teacher']} />}>
         <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
-        <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
+        <Route path="/teacher/dashboard" element={<TeacherDashboardPage />} />
         <Route path="/teacher/admission-requests" element={<AdmissionRequestsPage />} />
         <Route path="/teacher/sessions/confirmation" element={<SessionConfirmationPage />} />
+        <Route path="/teacher/schedule" element={<ProtectedPlaceholderPage title="Horário" />} />
+        <Route path="/teacher/availability" element={<ProtectedPlaceholderPage title="Disponibilidade" />} />
+        <Route path="/teacher/coaching" element={<ProtectedPlaceholderPage title="Coaching" />} />
+        <Route path="/teacher/inventory" element={<ProtectedPlaceholderPage title="Inventário da Escola" />} />
+        <Route path="/teacher/marketplace" element={<ProtectedPlaceholderPage title="Marketplace" />} />
+        <Route path="/teacher/account" element={<ProtectedPlaceholderPage title="Minha Conta" />} />
+            <Route path="/teacher/marketplace/conversas" element={<TeacherMarketplaceConversationsPage />} />
         <Route path="/teacher/marketplace/conversas" element={<TeacherMarketplaceConversationsPage />} />
-        <Route path="/teacher/notifications" element={<TeacherNotificationsPage />} />
+        <Route path="/teacher/marketplace" element={<TeacherMarketplacePage />} />
+        <Route path="/teacher/marketplace/my-listings" element={<TeacherMarketplaceListingsPage />} />
+        <Route path="/teacher/notifications" element={<NotificationsPage />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
@@ -239,8 +252,10 @@ function App() {
         <Route path="/admin/studios" element={<StudioManagementPage />} />
         <Route path="/admin/studio-occupancy" element={<StudioOccupancyPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
-            <Route path="/admin/marketplace/conversas" element={<AdminMarketplaceConversationsPage />} />
+        <Route path="/admin/marketplace/conversas" element={<AdminMarketplaceConversationsPage />} />
         <Route path="/admin/marketplace" element={<MarketplaceModerationPage />} />
+        <Route path="/admin/finance" element={<FinancialDashboardPage />} />
+        <Route path="/admin/audit" element={<AuditPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />

@@ -13,8 +13,8 @@ import api, {
   setAccessToken,
   setUnauthorizedHandler,
 } from '../services/api'
-
-export { AuthContext }
+import { io } from 'socket.io-client'
+import toast from 'react-hot-toast'
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -104,6 +104,29 @@ export function AuthProvider({ children }) {
       setUnauthorizedHandler(null)
     }
   }, [clearSession])
+
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id) {
+      return undefined
+    }
+
+    const socket = io(import.meta.env.VITE_API_BASE_URL, {
+      auth: {
+        token: getAccessToken(),
+      },
+    })
+
+    socket.on('notification', (data) => {
+      if (data.recipientId === user.id) {
+        setUnreadCount((prev) => prev + 1)
+        toast(data.message)
+      }
+    })
+
+    return () => {
+      socket.disconnect()
+    }
+  }, [isAuthenticated, user?.id])
 
   const value = useMemo(
     () => ({
