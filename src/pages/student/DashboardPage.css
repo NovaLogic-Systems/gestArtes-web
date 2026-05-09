@@ -18,24 +18,39 @@
   width: 100%;
 }
 
+/* ── App shell ──────────────────────────────────────────── */
 .student-dashboard .app-shell {
   min-height: 100svh;
   display: grid;
   grid-template-columns: 290px 1fr;
 }
 
+/* ── Sidebar ────────────────────────────────────────────── */
 .student-dashboard .sidebar {
   border-right: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(6px);
   padding: 18px;
   text-align: left;
+  /* Desktop: normal grid item — no sticky/fixed to avoid layout issues */
 }
 
+/* ── Sidebar overlay (mobile) ───────────────────────────── */
+.student-dashboard .sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 35;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Brand ──────────────────────────────────────────────── */
 .student-dashboard .brand {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
   gap: 10px;
   margin-bottom: 18px;
 }
@@ -45,6 +60,7 @@
   height: 12px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--teal), var(--coral));
+  flex-shrink: 0;
 }
 
 .student-dashboard .brand h1 {
@@ -56,10 +72,11 @@
 .student-dashboard .brand p {
   margin: 2px 0 0;
   font-size: 0.78rem;
-  color: #000;
+  color: var(--muted);
   font-weight: 500;
 }
 
+/* ── Nav ────────────────────────────────────────────────── */
 .student-dashboard .nav-group h2 {
   margin: 12px 0 6px;
   font-size: 0.76rem;
@@ -76,6 +93,7 @@
   color: #2e2942;
   margin-bottom: 4px;
   text-align: left;
+  transition: background 0.15s;
 }
 
 .student-dashboard button.nav-link {
@@ -91,20 +109,32 @@
   background: var(--lavender);
 }
 
-.student-dashboard .main {
-  padding: 18px 20px 24px;
+.student-dashboard .nav-link:focus-visible {
+  outline: 2px solid var(--iris);
+  outline-offset: 2px;
 }
 
+/* ── Main ───────────────────────────────────────────────── */
+.student-dashboard .main {
+  padding: 18px 20px 24px;
+  min-width: 0;
+}
+
+/* ── Topbar ─────────────────────────────────────────────── */
 .student-dashboard .topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
   margin-bottom: 14px;
+  /* NO flex-wrap here — topbar stays single row on desktop */
 }
 
 .student-dashboard .topbar-left {
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .student-dashboard .topbar-left h2 {
@@ -122,22 +152,44 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
 }
 
+/* ── Sidebar toggle button (hamburger on mobile, collapse on desktop) */
+.student-dashboard .sidebar-toggle-btn {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--ink);
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.student-dashboard .sidebar-toggle-btn:hover {
+  background: var(--lavender);
+}
+
+.student-dashboard .sidebar-toggle-btn:focus-visible {
+  outline: 2px solid var(--iris);
+  outline-offset: 2px;
+}
+
+/* Hide legacy menu-toggle — sidebar-toggle-btn handles both */
 .student-dashboard .menu-toggle {
   display: none;
-  border: 1px solid #d7ccdf;
-  background: #fff;
-  color: #3f3558;
-  border-radius: 10px;
-  padding: 8px 10px;
-  font: inherit;
-  font-size: 0.86rem;
-  cursor: pointer;
 }
 
+/* ── Search ─────────────────────────────────────────────── */
 .student-dashboard .search {
   width: 260px;
+  max-width: 100%;
   border-radius: 999px;
   border: 1px solid #d7ccdf;
   padding: 9px 12px;
@@ -147,6 +199,14 @@
   color: #2e2942;
 }
 
+.student-dashboard .search:focus-visible,
+.student-dashboard .search:focus {
+  outline: 2px solid var(--iris);
+  outline-offset: 2px;
+  border-color: var(--iris);
+}
+
+/* ── Pills ──────────────────────────────────────────────── */
 .student-dashboard .pill {
   border: 1px solid #f2c2af;
   border-radius: 999px;
@@ -163,6 +223,7 @@
   font: inherit;
 }
 
+/* ── Notifications popover ──────────────────────────────── */
 .student-dashboard .notifications-popover {
   position: absolute;
   right: 0;
@@ -242,6 +303,12 @@
   background: var(--lavender);
 }
 
+.student-dashboard .notifications-more-link:focus-visible {
+  outline: 2px solid var(--iris);
+  outline-offset: -2px;
+}
+
+/* ── Content layouts ────────────────────────────────────── */
 .student-dashboard .content-grid {
   display: grid;
   gap: 14px;
@@ -249,7 +316,7 @@
 
 .student-dashboard .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 10px;
 }
 
@@ -279,6 +346,7 @@
   gap: 14px;
 }
 
+/* ── Panels ─────────────────────────────────────────────── */
 .student-dashboard .panel {
   background: var(--panel);
   border: 1px solid var(--line);
@@ -297,6 +365,7 @@
   color: var(--muted);
 }
 
+/* ── Tables ─────────────────────────────────────────────── */
 .student-dashboard table {
   width: 100%;
   border-collapse: collapse;
@@ -317,6 +386,14 @@
   color: #6d6480;
 }
 
+/* Responsive table wrapper — wrap any <table> in this div */
+.student-dashboard .table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius);
+}
+
+/* ── Badges ─────────────────────────────────────────────── */
 .student-dashboard .badge {
   display: inline-flex;
   align-items: center;
@@ -341,6 +418,7 @@
   background: #fde3e8;
 }
 
+/* ── Buttons / CTAs ─────────────────────────────────────── */
 .student-dashboard .quick-actions {
   display: flex;
   flex-wrap: wrap;
@@ -357,13 +435,26 @@
   color: #fff;
   background: linear-gradient(135deg, var(--teal), #10b2a3);
   cursor: pointer;
+  font: inherit;
   font-size: 0.88rem;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.student-dashboard .cta:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.student-dashboard .cta:focus-visible {
+  outline: 2px solid var(--iris);
+  outline-offset: 3px;
 }
 
 .student-dashboard .cta.secondary {
   background: linear-gradient(135deg, #55436d, #6a5490);
 }
 
+/* ── Misc ───────────────────────────────────────────────── */
 .student-dashboard .list {
   margin: 0;
   padding-left: 16px;
@@ -388,42 +479,94 @@
   font-size: 0.9rem;
 }
 
-/* Sidebar toggle button */
-.student-dashboard .sidebar-toggle-btn {
-  background: transparent;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  width: 38px;
-  height: 38px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 1rem;
-  color: var(--ink);
-  margin-right: 8px;
+/* Screen-reader only utility class */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
-.student-dashboard .sidebar-toggle-btn:hover {
-  background: var(--lavender);
+/* ── Responsive: tablet + mobile (≤ 1024px) ─────────────── */
+@media (max-width: 1024px) {
+  .student-dashboard .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  /* Hide sidebar by default on mobile; reveal as fixed slide-in overlay */
+  .student-dashboard .sidebar {
+    display: none;
+    position: fixed;
+    inset: 0 auto 0 0;
+    height: 100%;
+    width: min(290px, 85vw);
+    box-shadow: 4px 0 32px rgba(0, 0, 0, 0.18);
+    z-index: 40;
+    overflow-y: auto;
+  }
+
+  .student-dashboard .sidebar.open {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .student-dashboard .split {
+    grid-template-columns: 1fr;
+  }
+
+  .student-dashboard .topbar {
+    flex-wrap: wrap;
+  }
+
+  .student-dashboard .topbar-left {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .student-dashboard .topbar-left p {
+    flex-basis: 100%;
+  }
+
+  .student-dashboard .main {
+    padding: 12px 14px 20px;
+  }
 }
 
-/* Sidebar hidden state */
-.student-dashboard .app-shell.sidebar-hidden .sidebar {
-  display: none;
+/* ── Responsive: small phones (≤ 480px) ─────────────────── */
+@media (max-width: 480px) {
+  .student-dashboard .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .student-dashboard .topbar-right {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .student-dashboard .search {
+    width: 100%;
+    max-width: unset;
+  }
 }
 
-/* Sidebar overlay for mobile */
-.student-dashboard .sidebar-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  z-index: 35;
-}
-
-/* Adjust main content when sidebar is hidden on desktop */
+/* ── Desktop: sidebar collapsed state ───────────────────── */
 @media (min-width: 1025px) {
-  .student-dashboard .app-shell.sidebar-hidden .main {
-    grid-column: 1 / -1;
+  /* Sidebar visible by default — grid handles the column */
+  .student-dashboard .app-shell {
+    grid-template-columns: 290px 1fr;
+  }
+
+  /* When user collapses the sidebar, remove the column */
+  .student-dashboard .app-shell.sidebar-hidden {
+    grid-template-columns: 1fr;
+  }
+
+  .student-dashboard .app-shell.sidebar-hidden .sidebar {
+    display: none;
   }
 }

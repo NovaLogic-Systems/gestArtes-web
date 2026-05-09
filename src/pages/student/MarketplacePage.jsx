@@ -29,11 +29,14 @@ const DEBOUNCE_DELAY = 300 // 300ms as per UX best practice
 const NAV_ITEMS = [
   { label: 'Painel', href: '/student/dashboard' },
   { label: 'Coaching', href: '/student/coaching' },
+  { label: 'Mapa de Coaching', href: '/student/coaching/map' },
   { label: 'Inventário da Escola', href: '/student/inventory' },
+  { label: 'As Minhas Rendas', href: '/student/inventory/rentals' },
   { label: 'Marketplace', href: '/student/marketplace' },
-    { label: 'Conversas', href: '/student/marketplace/conversas' },
-  { label: 'Meus anúncios', href: '/student/marketplace/my-listings' },
+  { label: 'Os Meus Anúncios', href: '/student/marketplace/my-listings' },
+  { label: 'Conversas', href: '/student/marketplace/conversas' },
   { label: 'Perdidos e Achados', href: '/student/lostfound' },
+  { label: 'Notificações', href: '/student/notifications' },
   { label: 'Minha Conta', href: '/student/account' },
 ]
 
@@ -118,6 +121,30 @@ export default function MarketplacePage() {
   })
 
   const studentName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Aluno'
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false))
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+
+  const sidebarHidden = isMobile || sidebarCollapsed
+  const appShellClassName = ['app-shell', sidebarHidden ? 'sidebar-hidden' : ''].filter(Boolean).join(' ')
+  const sidebarClassName = ['sidebar', isMobile && mobileOpen ? 'open' : ''].filter(Boolean).join(' ')
+  const toggleLabel = isMobile ? (mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral') : (sidebarCollapsed ? 'Mostrar barra lateral' : 'Esconder barra lateral')
+  const toggleSymbol = isMobile ? (mobileOpen ? '✕' : '☰') : (sidebarCollapsed ? '▶' : '◀')
+
+  const handleToggle = useCallback(() => {
+    if (isMobile) { setMobileOpen((v) => !v) } else { setSidebarCollapsed((v) => !v) }
+  }, [isMobile])
+
+  useEffect(() => {
+    const onResize = () => {
+      const mobile = window.innerWidth <= 1024
+      setIsMobile(mobile)
+      if (!mobile) setMobileOpen(false)
+    }
+    window.addEventListener('resize', onResize)
+    onResize()
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   const loadData = useCallback(async () => {
     try {
@@ -267,8 +294,12 @@ export default function MarketplacePage() {
 
   return (
     <div className="student-dashboard market-page">
-      <div className="app-shell">
-        <aside className="sidebar" id="sidebar">
+      <a href="#market-main" className="skip-to-content">Ir para o conteúdo principal</a>
+      <div className={appShellClassName}>
+        {isMobile && mobileOpen ? (
+          <button type="button" className="sidebar-overlay" aria-label="Fechar navegação lateral" onClick={() => setMobileOpen(false)} />
+        ) : null}
+        <aside className={sidebarClassName} id="sidebar">
           <div className="brand">
             <span className="brand-dot" />
             <div>
@@ -277,36 +308,30 @@ export default function MarketplacePage() {
             </div>
           </div>
 
-          <div className="nav-group">
+          <nav className="nav-group" aria-label="Navegação do aluno">
             <h2>Aluno</h2>
             {NAV_ITEMS.map((item) => {
               const isActive = location.pathname === item.href || location.pathname.startsWith(`${item.href}/`)
-
               return (
-                <Link key={item.href} className={`nav-link${isActive ? ' active' : ''}`} to={item.href}>
+                <Link key={item.href} className={`nav-link${isActive ? ' active' : ''}`} to={item.href} aria-current={isActive ? 'page' : undefined} onClick={() => isMobile && setMobileOpen(false)}>
                   {item.label}
                 </Link>
               )
             })}
-
-            <button
-              className="nav-link"
-              type="button"
-              onClick={async () => {
-                await logout()
-                navigate('/login?reason=logged-out', { replace: true })
-              }}
-            >
+            <button className="nav-link" type="button" onClick={async () => { await logout(); navigate('/login?reason=logged-out', { replace: true }) }}>
               Terminar Sessão
             </button>
-          </div>
+          </nav>
         </aside>
 
-        <main className="main">
+        <main className="main" id="market-main">
           <header className="topbar">
             <div className="topbar-left">
-              <h2>Marketplace da Comunidade</h2>
-              <p>Explora artigos, encontra serviços e publica os teus anúncios.</p>
+              <button type="button" className="sidebar-toggle-btn" aria-label={toggleLabel} aria-controls="sidebar" aria-expanded={mobileOpen} onClick={handleToggle}>{toggleSymbol}</button>
+              <div>
+                <h2>Marketplace da Comunidade</h2>
+                <p>Explora artigos, encontra serviços e publica os teus anúncios.</p>
+              </div>
             </div>
 
             <div className="topbar-right">
