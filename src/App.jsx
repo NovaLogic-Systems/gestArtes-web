@@ -18,6 +18,7 @@ import AuditPage from './pages/admin/AuditPage'
 import AdminUsersPage from './pages/admin/AdminUsersPage'
 import AdminMarketplaceConversationsPage from './pages/admin/AdminMarketplaceConversationsPage'
 import MarketplaceModerationPage from './pages/admin/MarketplaceModerationPage'
+import AdminInventoryPage from './pages/admin/AdminInventoryPage'
 import DashboardPage from './pages/student/DashboardPage'
 import CoachingStudentPage from './pages/student/CoachingPage'
 import JoinRequestsTeacherView from './components/JoinRequestsTeacherView'
@@ -251,6 +252,7 @@ function App() {
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/studios" element={<StudioManagementPage />} />
         <Route path="/admin/studio-occupancy" element={<StudioOccupancyPage />} />
+        <Route path="/admin/inventory" element={<AdminInventoryPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
         <Route path="/admin/marketplace/conversas" element={<AdminMarketplaceConversationsPage />} />
         <Route path="/admin/marketplace" element={<MarketplaceModerationPage />} />
