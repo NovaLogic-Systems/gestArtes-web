@@ -62,10 +62,10 @@ function Modal({
 				background: 'rgba(8, 6, 13, 0.5)',
 				inset: 0,
 				display: 'grid',
-				justifyItems: 'center',
 				padding: '1.25rem',
 				position: 'fixed',
 				zIndex: 50,
+				animation: 'backdrop-fade-in 150ms ease-out forwards',
 			}}
 		>
 			<section
@@ -86,6 +86,7 @@ function Modal({
 					overflow: 'auto',
 					padding: '1.25rem',
 					width: 'min(100%, ' + sizeStyles[size] + ')',
+					animation: 'modal-fade-in 200ms ease-out forwards',
 					...style,
 				}}
 			>

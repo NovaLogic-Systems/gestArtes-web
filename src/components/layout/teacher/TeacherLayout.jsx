@@ -15,7 +15,7 @@ const TeacherLayout = ({ children }) => {
       <Sidebar role="teacher" />
       <div className="main-content">
         <Topbar rightContent={topbarContent} />
-        <main>{children}</main>
+        <main className="page-transition">{children}</main>
       </div>
     </div>
   );

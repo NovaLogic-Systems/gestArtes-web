@@ -43,7 +43,6 @@ import TeacherLayout from './components/layout/teacher/TeacherLayout';
 import NotificationsPage from './pages/teacher/NotificationsPage';
 import StudentNotificationsPage from './pages/student/NotificationsPage';
 import ScheduleSubmissionPage from './pages/teacher/ScheduleSubmissionPage'
-import StudentNotificationsPage from './pages/student/NotificationsPage'
 import LostFoundAdminPage from './pages/admin/LostFoundAdminPage'
 import CoachingMapPage from './pages/student/CoachingMapPage'
 import CreateCoachingPage from './pages/teacher/CreateCoachingPage'

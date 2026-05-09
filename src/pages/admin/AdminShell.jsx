@@ -142,7 +142,7 @@ function AdminShell({ title, subtitle, activePath, children, topbarEnd }) {
           {topbarEnd ? <div className="topbar-right">{topbarEnd}</div> : null}
         </header>
 
-        <div className="content">
+        <div className="content page-transition">
           {children}
         </div>
       </main>

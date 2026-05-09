@@ -468,12 +468,12 @@ export default function AdminUsersPage() {
               )}
 
               <div className="card-actions form-actions" style={{ gridColumn: '1 / -1' }}>
-                <button className="cta" type="submit" disabled={submitting}>
-                  {submitting ? 'A guardar...' : 'Criar utilizador'}
-                </button>
-                <button className="ghost-btn" type="button" onClick={() => { setForm(emptyForm); setError(''); setNotice('') }}>
+                <Button variant="cta" type="submit" isLoading={submitting}>
+                  Criar utilizador
+                </Button>
+                <Button variant="ghost" type="button" onClick={() => { setForm(emptyForm); setError(''); setNotice('') }}>
                   Limpar
-                </button>
+                </Button>
               </div>
             </form>
           </article>
@@ -550,12 +550,12 @@ export default function AdminUsersPage() {
               )}
 
               <div className="card-actions form-actions" style={{ gridColumn: '1 / -1', marginTop: '1rem' }}>
-                <button type="submit" className="cta" disabled={submitting}>
-                  {submitting ? 'A guardar...' : 'Guardar Alterações'}
-                </button>
-                <button type="button" className="ghost-btn" onClick={() => setEditUser(null)}>
+                <Button variant="cta" type="submit" isLoading={submitting}>
+                  Guardar Alterações
+                </Button>
+                <Button variant="ghost" type="button" onClick={() => setEditUser(null)}>
                   Cancelar
-                </button>
+                </Button>
               </div>
             </form>
           </Modal>

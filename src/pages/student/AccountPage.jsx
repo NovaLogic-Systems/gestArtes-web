@@ -295,7 +295,7 @@ export default function AccountPage() {
 					</div>
 				</aside>
 
-				<main className="main">
+				<main className="main page-transition">
 					<header className="topbar">
 						<div className="topbar-left">
 							<h2>Minha Conta</h2>
@@ -372,8 +372,8 @@ export default function AccountPage() {
 										/>
 
 										<div className="quick-actions">
-											<Button type="button" variant="cta" onClick={handlePhoneSave} disabled={!phoneDirty || phoneSaving}>
-												{phoneSaving ? 'A guardar...' : 'Guardar número'}
+											<Button type="button" variant="cta" onClick={handlePhoneSave} disabled={!phoneDirty} isLoading={phoneSaving}>
+												Guardar número
 											</Button>
 											<Button type="button" variant="secondary" onClick={() => setPasswordOpen(true)}>
 												Alterar password
@@ -507,8 +507,8 @@ export default function AccountPage() {
 						<Button type="button" variant="secondary" onClick={closePasswordModal}>
 							Cancelar
 						</Button>
-						<Button type="submit" variant="cta" disabled={passwordSaving}>
-							{passwordSaving ? 'A guardar...' : 'Guardar nova password'}
+						<Button type="submit" variant="cta" isLoading={passwordSaving}>
+							Guardar nova password
 						</Button>
 					</div>
 				</form>
