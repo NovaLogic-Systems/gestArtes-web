@@ -5,7 +5,7 @@
  * @project GestArtes - Projeto 50+10 para Entartes
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import AdminShell from './AdminShell'
 import WithRole from '../../components/WithRole'
@@ -17,6 +17,8 @@ import Table from '../../components/ui/Table'
 import Badge from '../../components/ui/Badge'
 import Modal from '../../components/ui/Modal'
 import Input from '../../components/ui/Input'
+import Button from '../../components/ui/Button'
+import ResetPasswordModal from '../../components/admin/ResetPasswordModal'
 import '../admin-studios.css'
 
 const emptyForm = {
@@ -45,6 +47,49 @@ function safeISODate(value) {
   return Number.isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10)
 }
 
+const EyeIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+const EyeOffIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" />
+  </svg>
+);
+
+function UserActionsDropdown({ user, onEdit, onReset }) {
+  const [open, setOpen] = useState(false)
+  const menuRef = useRef()
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false)
+    }
+    if (open) document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [open])
+
+  return (
+    <div style={{ position: 'relative', display: 'inline-block' }} ref={menuRef}>
+      <Button variant="ghost" size="sm" onClick={() => setOpen(!open)} style={{ padding: '0.25rem 0.5rem', minWidth: 'auto', fontSize: '1.25rem', lineHeight: 1 }}>
+        ⋮
+      </Button>
+      {open && (
+        <div style={{ position: 'absolute', right: '100%', top: 0, marginRight: '0.5rem', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '0.5rem', padding: '0.25rem', zIndex: 50, display: 'flex', flexDirection: 'column', gap: '0.15rem', minWidth: '150px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+          <Button variant="ghost" size="sm" style={{ justifyContent: 'flex-start' }} onClick={() => { setOpen(false); onEdit(user); }}>
+            Editar
+          </Button>
+          <Button variant="ghost" size="sm" style={{ justifyContent: 'flex-start', color: 'var(--text-danger, #e53e3e)' }} onClick={() => { setOpen(false); onReset(user); }}>
+            Redefinir senha
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function AdminUsersPage() {
   const location = useLocation()
   const { user } = useAuth()
@@ -56,6 +101,7 @@ export default function AdminUsersPage() {
   const [notice, setNotice] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [form, setForm] = useState(emptyForm)
+  const [showNewPassword, setShowNewPassword] = useState(false)
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('')
@@ -65,6 +111,9 @@ export default function AdminUsersPage() {
   // Edit Modal
   const [editUser, setEditUser] = useState(null)
   const [editForm, setEditForm] = useState(null)
+
+  // Reset Password Modal
+  const [resetPasswordUser, setResetPasswordUser] = useState(null)
 
   const isFormStudent = useMemo(() => Array.isArray(form.roles) && form.roles.includes('student'), [form.roles])
 
@@ -90,7 +139,7 @@ export default function AdminUsersPage() {
 
     if (searchTerm) {
       const term = searchTerm.toLowerCase()
-      result = result.filter(u => 
+      result = result.filter(u =>
         (u.firstName + ' ' + (u.lastName || '')).toLowerCase().includes(term) ||
         u.email.toLowerCase().includes(term) ||
         (u.studentNumber && u.studentNumber.toLowerCase().includes(term))
@@ -147,15 +196,15 @@ export default function AdminUsersPage() {
       }
 
       const createdUser = await adminUsersService.createUser(payload)
-      
+
       if (Array.isArray(form.roles) && form.roles.length >= 1) {
-         await adminUsersService.updateUserRoles(createdUser.userId, { 
-           roles: form.roles,
-           studentNumber: payload.studentNumber,
-           birthDate: payload.birthDate,
-           guardianName: payload.guardianName,
-           guardianPhone: payload.guardianPhone
-         })
+        await adminUsersService.updateUserRoles(createdUser.userId, {
+          roles: form.roles,
+          studentNumber: payload.studentNumber,
+          birthDate: payload.birthDate,
+          guardianName: payload.guardianName,
+          guardianPhone: payload.guardianPhone
+        })
       }
 
       setNotice(`Utilizador criado com sucesso.`)
@@ -200,7 +249,7 @@ export default function AdminUsersPage() {
 
     try {
       const isStudent = Array.isArray(editForm.roles) && editForm.roles.includes('student')
-      
+
       await adminUsersService.updateUser(editUser.userId, {
         firstName: editForm.firstName.trim(),
         lastName: editForm.lastName.trim(),
@@ -270,13 +319,13 @@ export default function AdminUsersPage() {
       render: (u) => (
         <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
           {(Array.isArray(u.roles) && u.roles.length ? u.roles : [u.role]).map(r => {
-             const roleVal = toAppRole(r)
-             const option = ADMIN_ROLE_OPTIONS.find(opt => opt.value === roleVal)
-             return (
-               <Badge key={r} variant="neutral" size="sm">
-                 {option?.label || r || '—'}
-               </Badge>
-             )
+            const roleVal = toAppRole(r)
+            const option = ADMIN_ROLE_OPTIONS.find(opt => opt.value === roleVal)
+            return (
+              <Badge key={r} variant="neutral" size="sm">
+                {option?.label || r || '—'}
+              </Badge>
+            )
           })}
         </div>
       )
@@ -299,9 +348,11 @@ export default function AdminUsersPage() {
       key: 'actions',
       header: '',
       render: (u) => (
-        <button className="ghost-btn" onClick={() => handleEditClick(u)} style={{ padding: '0.25rem 0.5rem', fontSize: '0.85rem' }}>
-          Editar
-        </button>
+        <UserActionsDropdown 
+          user={u} 
+          onEdit={handleEditClick} 
+          onReset={setResetPasswordUser} 
+        />
       )
     }
   ]
@@ -366,23 +417,40 @@ export default function AdminUsersPage() {
               <h3>Novo utilizador</h3>
             </div>
             <p>A opção <strong>Direção</strong> é guardada internamente como role de sistema <strong>admin</strong>.</p>
-            
+
             <form className="form-grid two" onSubmit={handleSubmit}>
               <Input label="Nome" required value={form.firstName} onChange={e => updateForm('firstName', e.target.value)} />
               <Input label="Apelido" value={form.lastName} onChange={e => updateForm('lastName', e.target.value)} />
               <Input label="Email" type="email" required value={form.email} onChange={e => updateForm('email', e.target.value)} />
               <Input label="Telefone" value={form.phoneNumber} onChange={e => updateForm('phoneNumber', e.target.value)} />
-              <Input label="Palavra-passe" type="password" required minLength={8} value={form.password} onChange={e => updateForm('password', e.target.value)} />
-              
+              <Input 
+                label="Palavra-passe" 
+                type={showNewPassword ? 'text' : 'password'} 
+                required 
+                minLength={8} 
+                value={form.password} 
+                onChange={e => updateForm('password', e.target.value)} 
+                trailing={
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: 0, display: 'flex' }}
+                    title={showNewPassword ? 'Ocultar senha' : 'Ver senha'}
+                  >
+                    {showNewPassword ? <EyeOffIcon /> : <EyeIcon />}
+                  </button>
+                }
+              />
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Roles</span>
                 <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                   {ADMIN_ROLE_OPTIONS.map(opt => (
                     <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 'normal' }}>
-                      <input 
-                        type="checkbox" 
-                        checked={Array.isArray(form.roles) && form.roles.includes(opt.value)} 
-                        onChange={() => handleRoleToggle(opt.value)} 
+                      <input
+                        type="checkbox"
+                        checked={Array.isArray(form.roles) && form.roles.includes(opt.value)}
+                        onChange={() => handleRoleToggle(opt.value)}
                       />
                       {opt.label}
                     </label>
@@ -411,6 +479,14 @@ export default function AdminUsersPage() {
           </article>
         </WithRole>
 
+        {resetPasswordUser && (
+          <ResetPasswordModal
+            userId={resetPasswordUser.userId}
+            userName={[resetPasswordUser.firstName, resetPasswordUser.lastName].filter(Boolean).join(' ')}
+            onClose={() => setResetPasswordUser(null)}
+          />
+        )}
+
         {editUser && editForm && (
           <Modal
             open={true}
@@ -420,18 +496,18 @@ export default function AdminUsersPage() {
           >
             {error && <div className="soft-box error" style={{ marginBottom: '1rem' }} role="alert">{error}</div>}
             {notice && <div className="soft-box" style={{ marginBottom: '1rem' }} role="status">{notice}</div>}
-            
+
             <form onSubmit={handleEditSubmit} className="form-grid two">
-              <Input label="Nome" required value={editForm.firstName} onChange={e => setEditForm(prev => ({...prev, firstName: e.target.value}))} />
-              <Input label="Apelido" value={editForm.lastName} onChange={e => setEditForm(prev => ({...prev, lastName: e.target.value}))} />
-              <Input label="Email" type="email" required value={editForm.email} onChange={e => setEditForm(prev => ({...prev, email: e.target.value}))} />
-              <Input label="Telefone" value={editForm.phoneNumber} onChange={e => setEditForm(prev => ({...prev, phoneNumber: e.target.value}))} />
-              
+              <Input label="Nome" required value={editForm.firstName} onChange={e => setEditForm(prev => ({ ...prev, firstName: e.target.value }))} />
+              <Input label="Apelido" value={editForm.lastName} onChange={e => setEditForm(prev => ({ ...prev, lastName: e.target.value }))} />
+              <Input label="Email" type="email" required value={editForm.email} onChange={e => setEditForm(prev => ({ ...prev, email: e.target.value }))} />
+              <Input label="Telefone" value={editForm.phoneNumber} onChange={e => setEditForm(prev => ({ ...prev, phoneNumber: e.target.value }))} />
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                 <span style={{ color: 'var(--text-h)', fontSize: '0.95rem', fontWeight: 600 }}>Estado</span>
-                <select 
-                  value={editForm.isActive ? 'active' : 'suspended'} 
-                  onChange={e => setEditForm(prev => ({...prev, isActive: e.target.value === 'active'}))}
+                <select
+                  value={editForm.isActive ? 'active' : 'suspended'}
+                  onChange={e => setEditForm(prev => ({ ...prev, isActive: e.target.value === 'active' }))}
                   style={{
                     background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '0.875rem',
                     padding: '0.75rem 0.9rem', color: 'var(--text-h)', font: 'inherit', outline: 'none', width: '100%'
@@ -447,16 +523,16 @@ export default function AdminUsersPage() {
                 <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                   {ADMIN_ROLE_OPTIONS.map(opt => (
                     <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 'normal' }}>
-                      <input 
-                        type="checkbox" 
-                        checked={Array.isArray(editForm.roles) && editForm.roles.includes(opt.value)} 
+                      <input
+                        type="checkbox"
+                        checked={Array.isArray(editForm.roles) && editForm.roles.includes(opt.value)}
                         onChange={() => {
                           setEditForm(prev => {
                             const currentRoles = Array.isArray(prev.roles) ? prev.roles : []
                             const roles = currentRoles.includes(opt.value) ? currentRoles.filter(r => r !== opt.value) : [...currentRoles, opt.value]
                             return { ...prev, roles: roles.length ? roles : ['student'] }
                           })
-                        }} 
+                        }}
                       />
                       {opt.label}
                     </label>
@@ -466,10 +542,10 @@ export default function AdminUsersPage() {
 
               {Array.isArray(editForm.roles) && editForm.roles.includes('student') && (
                 <>
-                  <Input label="Número de Aluno (Opcional)" value={editForm.studentNumber} onChange={e => setEditForm(prev => ({...prev, studentNumber: e.target.value}))} placeholder="Gerado automaticamente se vazio" />
-                  <Input label="Data de nascimento" type="date" required value={editForm.birthDate} onChange={e => setEditForm(prev => ({...prev, birthDate: e.target.value}))} />
-                  <Input label="Nome do encarregado" value={editForm.guardianName} onChange={e => setEditForm(prev => ({...prev, guardianName: e.target.value}))} />
-                  <Input label="Telefone do encarregado" value={editForm.guardianPhone} onChange={e => setEditForm(prev => ({...prev, guardianPhone: e.target.value}))} />
+                  <Input label="Número de Aluno (Opcional)" value={editForm.studentNumber} onChange={e => setEditForm(prev => ({ ...prev, studentNumber: e.target.value }))} placeholder="Gerado automaticamente se vazio" />
+                  <Input label="Data de nascimento" type="date" required value={editForm.birthDate} onChange={e => setEditForm(prev => ({ ...prev, birthDate: e.target.value }))} />
+                  <Input label="Nome do encarregado" value={editForm.guardianName} onChange={e => setEditForm(prev => ({ ...prev, guardianName: e.target.value }))} />
+                  <Input label="Telefone do encarregado" value={editForm.guardianPhone} onChange={e => setEditForm(prev => ({ ...prev, guardianPhone: e.target.value }))} />
                 </>
               )}
 
