@@ -6,6 +6,7 @@
  */
 
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import Button from '../../components/ui/Button'
 import InventoryCatalog from '../../components/InventoryCatalog'
@@ -25,13 +26,59 @@ export default function InventoryPage() {
 	const { logout, user } = useAuth()
 	const location = useLocation()
 	const navigate = useNavigate()
+	const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false))
+	const [mobileOpen, setMobileOpen] = useState(false)
 
 	const studentName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Aluno'
+
+	const sidebarClassName = ['sidebar', isMobile && mobileOpen ? 'open' : '']
+		.filter(Boolean)
+		.join(' ')
+
+	const sidebarToggleSymbol = isMobile ? (mobileOpen ? '✕' : '☰') : '☰'
+	const sidebarToggleLabel = mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'
+
+	const handleSidebarToggle = useCallback(() => {
+		if (isMobile) {
+			setMobileOpen((value) => !value)
+		}
+	}, [isMobile])
+
+	const handleMobileNavClick = useCallback(() => {
+		if (isMobile) {
+			setMobileOpen(false)
+		}
+	}, [isMobile])
+
+	useEffect(() => {
+		const onResize = () => {
+			const mobile = window.innerWidth <= 1024
+			setIsMobile(mobile)
+
+			if (!mobile) {
+				setMobileOpen(false)
+			}
+		}
+
+		window.addEventListener('resize', onResize)
+		onResize()
+
+		return () => window.removeEventListener('resize', onResize)
+	}, [])
 
 	return (
 		<div className="student-dashboard inventory-page">
 			<div className="app-shell">
-				<aside className="sidebar" id="sidebar">
+				{isMobile && mobileOpen ? (
+					<button
+						type="button"
+						className="sidebar-overlay"
+						aria-label="Fechar navegação lateral"
+						onClick={() => setMobileOpen(false)}
+					/>
+				) : null}
+
+				<aside className={sidebarClassName} id="sidebar">
 					<div className="brand">
 						<span className="brand-dot" />
 						<div>
@@ -46,7 +93,7 @@ export default function InventoryPage() {
 							const isActive = location.pathname === item.href || location.pathname.startsWith(`${item.href}/`)
 
 							return (
-								<Link key={item.href} className={`nav-link${isActive ? ' active' : ''}`} to={item.href}>
+								<Link key={item.href} className={`nav-link${isActive ? ' active' : ''}`} to={item.href} onClick={handleMobileNavClick}>
 									{item.label}
 								</Link>
 							)
@@ -68,8 +115,21 @@ export default function InventoryPage() {
 				<main className="main">
 					<header className="topbar">
 						<div className="topbar-left">
+							<button
+								type="button"
+								className="sidebar-toggle-btn"
+								aria-label={sidebarToggleLabel}
+								aria-controls="sidebar"
+								aria-expanded={mobileOpen}
+								onClick={handleSidebarToggle}
+							>
+								{sidebarToggleSymbol}
+							</button>
+
+							<div>
 							<h2>Inventário da Escola</h2>
 							<p>Catálogo oficial para pedidos de aluguer. A admin aprova ou rejeita e o pagamento é feito na escola.</p>
+							</div>
 						</div>
 
 						<div className="topbar-right">

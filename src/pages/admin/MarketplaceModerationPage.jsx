@@ -447,22 +447,22 @@ export default function MarketplaceModerationPage() {
         </header>
 
         <section className="content-grid" style={{ gap: '1rem' }}>
-          <div className="content-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
-            <article className="panel">
+          <div className="kpi-grid">
+            <article className="kpi">
               <h3>Todos</h3>
-              <strong style={{ fontSize: '1.7rem' }}>{counts.all}</strong>
+              <strong>{counts.all}</strong>
             </article>
-            <article className="panel">
+            <article className="kpi">
               <h3>Pendentes</h3>
-              <strong style={{ fontSize: '1.7rem' }}>{counts.pending}</strong>
+              <strong>{counts.pending}</strong>
             </article>
-            <article className="panel">
+            <article className="kpi">
               <h3>Aprovados</h3>
-              <strong style={{ fontSize: '1.7rem' }}>{counts.approved}</strong>
+              <strong>{counts.approved}</strong>
             </article>
-            <article className="panel">
+            <article className="kpi">
               <h3>Rejeitados</h3>
-              <strong style={{ fontSize: '1.7rem' }}>{counts.rejected}</strong>
+              <strong>{counts.rejected}</strong>
             </article>
           </div>
 

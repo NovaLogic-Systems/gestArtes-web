@@ -1,10 +1,16 @@
 .lostfound-page {
 	--lostfound-line: #e2d9eb;
 	--lostfound-muted: #6d6480;
+	background: linear-gradient(150deg, #fdf7f5 0%, #f7f0fb 45%, #effaf8 100%);
+	min-height: 100svh;
+	width: 100%;
+	overflow-x: hidden;
 }
 
 .lostfound-page .main {
 	padding-bottom: 28px;
+	min-width: 0;
+	overflow-x: hidden;
 }
 
 .lostfound-banner {
@@ -59,6 +65,8 @@
 
 .lostfound-table-shell {
 	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+	min-width: 0;
 }
 
 .lostfound-table {
@@ -159,11 +167,13 @@
 @media (max-width: 900px) {
 	.lostfound-layout {
 		grid-template-columns: 1fr;
+		min-width: 0;
 	}
 
 	.lostfound-banner {
 		align-items: flex-start;
 		flex-direction: column;
+		gap: 0.5rem;
 	}
 
 	.lostfound-item-cell,
@@ -174,5 +184,9 @@
 	.lostfound-photo {
 		height: 4.1rem;
 		width: 4.1rem;
+	}
+
+	.lostfound-page .main {
+		padding: 12px 14px 20px;
 	}
 }

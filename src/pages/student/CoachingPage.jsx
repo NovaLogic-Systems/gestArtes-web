@@ -700,9 +700,8 @@ export default function CoachingPage() {
                 <p>Marcar, acompanhar, cancelar e validar sessões particulares</p>
               </div>
             </div>
-            <div className="topbar-right" ref={notificationBoxRef} style={{ position: 'relative' }}>
-              <button type="button" className="pill notifications-pill" onClick={handleNotificationsClick}
-                style={{ cursor: 'pointer', border: '1px solid #f2c2af', borderRadius: '999px', background: '#fff3ee', color: '#8c402a', padding: '8px 12px', font: 'inherit', fontSize: '0.88rem' }}>
+            <div className="topbar-right" ref={notificationBoxRef}>
+              <button type="button" className="pill notifications-pill" onClick={handleNotificationsClick}>
                 Notificações
               </button>
               {notificationsOpen ? (
