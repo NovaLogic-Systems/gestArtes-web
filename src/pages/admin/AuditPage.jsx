@@ -163,7 +163,7 @@ export default function AuditPage() {
         style={{
           display: 'grid',
           gap: '1rem',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+          gridTemplateColumns: 'repeat(4, 1fr)',
           marginBottom: '1.5rem',
         }}
       >
@@ -266,6 +266,7 @@ export default function AuditPage() {
           rows={events}
           getRowKey={(row, i) => `${row.timestamp}-${i}`}
           emptyState={loading ? 'A carregar…' : 'Sem eventos de auditoria para o período selecionado.'}
+          headBackground="#f4f4f8"
         />
       </section>
     </AdminShell>

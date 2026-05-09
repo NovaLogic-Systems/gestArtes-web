@@ -43,6 +43,10 @@ import TeacherLayout from './components/layout/teacher/TeacherLayout';
 import NotificationsPage from './pages/teacher/NotificationsPage';
 import StudentNotificationsPage from './pages/student/NotificationsPage';
 import ScheduleSubmissionPage from './pages/teacher/ScheduleSubmissionPage'
+import StudentNotificationsPage from './pages/student/NotificationsPage'
+import LostFoundAdminPage from './pages/admin/LostFoundAdminPage'
+import CoachingMapPage from './pages/student/CoachingMapPage'
+import CreateCoachingPage from './pages/teacher/CreateCoachingPage'
 
 function PlaceholderPage({ title }) {
   return (
@@ -229,6 +233,7 @@ function App() {
         <Route path="/student/marketplace/my-listings" element={<MyListingsPage />} />
         <Route path="/student/lostfound" element={<LostFoundPage />} />
         <Route path="/student/account" element={<AccountPage />} />
+        <Route path="/student/coaching/map" element={<CoachingMapPage />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['teacher']} />}>
@@ -248,6 +253,7 @@ function App() {
         <Route path="/teacher/marketplace/my-listings" element={<TeacherMarketplaceListingsPage />} />
         <Route path="/teacher/notifications" element={<NotificationsPage />} />
         <Route path="/teacher/account" element={<ProtectedPlaceholderPage title="Minha Conta" />} />
+        <Route path="/teacher/coaching/create" element={<CreateCoachingPage />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
@@ -261,6 +267,8 @@ function App() {
         <Route path="/admin/marketplace" element={<MarketplaceModerationPage />} />
         <Route path="/admin/finance" element={<FinancialDashboardPage />} />
         <Route path="/admin/audit" element={<AuditPage />} />
+        <Route path="/admin/lostfound" element={<LostFoundAdminPage />} />
+        <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />
