@@ -58,6 +58,20 @@ function AdminShell({ title, subtitle, activePath, children, topbarEnd }) {
     if (isMobile) setMobileOpen(false)
   }
 
+  const isNavItemActive = (href) => {
+    if (!activePath) return false
+
+    if (href === '/admin/studios') {
+      return activePath === '/admin/studios' || activePath === '/admin/studio-occupancy'
+    }
+
+    if (href === '/admin') {
+      return activePath === '/admin'
+    }
+
+    return activePath.startsWith(href)
+  }
+
   return (
     <div className={appShellClass}>
       {isMobile && mobileOpen ? (
@@ -83,7 +97,7 @@ function AdminShell({ title, subtitle, activePath, children, topbarEnd }) {
           {ADMIN_NAV_ITEMS.map((item) => (
             <Link
               key={item.href}
-              className={`nav-link${activePath === item.href ? ' active' : ''}`}
+              className={`nav-link${isNavItemActive(item.href) ? ' active' : ''}`}
               to={item.href}
               onClick={handleMobileNavClick}
             >

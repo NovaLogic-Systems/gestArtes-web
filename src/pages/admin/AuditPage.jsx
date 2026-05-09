@@ -86,18 +86,36 @@ export default function AuditPage() {
       setLoading(true)
       setError('')
       const params = {}
+      const PAGE_SIZE = 100
       if (appliedFilters.periodStart) params.periodStart = appliedFilters.periodStart
       if (appliedFilters.periodEnd) params.periodEnd = appliedFilters.periodEnd
       if (appliedFilters.module) params.module = appliedFilters.module
 
+      async function fetchAllEvents() {
+         let offset = 0
+         let total = 0
+         const allItems = []
+         do {
+           const response = await api.get('/admin/audit', {
+             params: { ...params, limit: PAGE_SIZE, offset },
+           })
+           const items = Array.isArray(response.data?.items) ? response.data.items : []
+           total = response.data?.total ?? 0
+           allItems.push(...items)
+           offset += items.length
+           if (items.length === 0) break
+         } while (offset < total)
+         return { items: allItems, total }
+       }
+
       try {
-        const [evRes, sumRes] = await Promise.all([
-          api.get('/admin/audit', { params: { ...params, limit: 100, offset: 0 } }),
+        const [{ items, total }, sumRes] = await Promise.all([
+          fetchAllEvents(),
           api.get('/admin/audit/summary', { params }),
         ])
         if (cancelled) return
-        setEvents(Array.isArray(evRes.data?.items) ? evRes.data.items : [])
-        setEventTotal(evRes.data?.total ?? 0)
+        setEvents(items)
+        setEventTotal(total)
         setSummary(sumRes.data)
       } catch (err) {
         if (!cancelled) {

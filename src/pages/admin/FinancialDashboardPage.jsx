@@ -75,6 +75,8 @@ export default function FinancialDashboardPage() {
   const [transactions, setTransactions] = useState([])
   const [transactionTotal, setTransactionTotal] = useState(0)
   const [revenue, setRevenue] = useState(null)
+  const [page, setPage] = useState(0)
+  const PAGE_SIZE = 50
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [exportLoading, setExportLoading] = useState(false)
@@ -94,7 +96,7 @@ export default function FinancialDashboardPage() {
       try {
         const [sumRes, txRes, revRes] = await Promise.all([
           api.get('/admin/finance/summary', { params }),
-          api.get('/admin/finance/transactions', { params: { ...params, limit: 50, offset: 0 } }),
+          api.get('/admin/finance/transactions', { params: { ...params, limit: PAGE_SIZE, offset: page * PAGE_SIZE } }),
           api.get('/admin/finance/revenue'),
         ])
         if (cancelled) return
@@ -122,7 +124,7 @@ export default function FinancialDashboardPage() {
     return () => {
       cancelled = true
     }
-  }, [appliedFilters])
+  }, [appliedFilters, page])
 
   function handleFilterChange(field, value) {
     setFilters((prev) => ({ ...prev, [field]: value }))
@@ -130,6 +132,7 @@ export default function FinancialDashboardPage() {
 
   function handleFilterSubmit(e) {
     e.preventDefault()
+    setPage(0)
     setAppliedFilters(filters)
   }
 
@@ -138,9 +141,9 @@ export default function FinancialDashboardPage() {
     setExportError('')
     try {
       const body = {}
-      if (filters.periodStart) body.periodStart = filters.periodStart
-      if (filters.periodEnd) body.periodEnd = filters.periodEnd
-      if (filters.studentNumber) body.studentNumber = filters.studentNumber
+      if (appliedFilters.periodStart) body.periodStart = appliedFilters.periodStart
+      if (appliedFilters.periodEnd) body.periodEnd = appliedFilters.periodEnd
+      if (appliedFilters.studentNumber) body.studentNumber = appliedFilters.studentNumber
 
       if (!body.periodStart || !body.periodEnd) {
         setExportError('Seleciona um período (data início e data fim) antes de exportar.')
@@ -155,7 +158,6 @@ export default function FinancialDashboardPage() {
       a.download = `financeiro_${dateTag}.csv`
       a.click()
       URL.revokeObjectURL(url)
-      setAppliedFilters(filters)
     } catch (err) {
       console.error('Erro ao exportar CSV:', {
         message: err?.message,
@@ -298,15 +300,56 @@ export default function FinancialDashboardPage() {
 
       {/* Transactions table */}
       <section style={{ marginBottom: '2rem' }}>
-        <h3 style={{ margin: '0 0 0.75rem' }}>
-          Movimentações ({transactionTotal})
-        </h3>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+          <h3 style={{ margin: 0 }}>
+            Movimentações ({transactionTotal})
+          </h3>
+          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted, #666)' }}>
+            Mostrando {transactions.length > 0 ? page * PAGE_SIZE + 1 : 0} - {page * PAGE_SIZE + transactions.length} de {transactionTotal}
+          </span>
+        </div>
         <Table
           columns={TABLE_COLUMNS}
           rows={transactions}
           getRowKey={(row) => row.entryId}
           emptyState={loading ? 'A carregar…' : 'Sem movimentações para o período selecionado.'}
         />
+
+        {transactionTotal > PAGE_SIZE && (
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', justifyContent: 'center' }}>
+            <button
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              disabled={page === 0 || loading}
+              style={{
+                background: 'var(--studio-panel, #fff)',
+                border: '1px solid var(--studio-line, #ccc)',
+                borderRadius: '0.5rem',
+                padding: '0.4rem 0.8rem',
+                cursor: (page === 0 || loading) ? 'not-allowed' : 'pointer',
+                opacity: (page === 0 || loading) ? 0.5 : 1
+              }}
+            >
+              Anterior
+            </button>
+            <span style={{ display: 'flex', alignItems: 'center', padding: '0 0.5rem' }}>
+              Página {page + 1} de {Math.ceil(transactionTotal / PAGE_SIZE)}
+            </span>
+            <button
+              onClick={() => setPage(p => p + 1)}
+              disabled={(page + 1) * PAGE_SIZE >= transactionTotal || loading}
+              style={{
+                background: 'var(--studio-panel, #fff)',
+                border: '1px solid var(--studio-line, #ccc)',
+                borderRadius: '0.5rem',
+                padding: '0.4rem 0.8rem',
+                cursor: ((page + 1) * PAGE_SIZE >= transactionTotal || loading) ? 'not-allowed' : 'pointer',
+                opacity: ((page + 1) * PAGE_SIZE >= transactionTotal || loading) ? 0.5 : 1
+              }}
+            >
+              Próxima
+            </button>
+          </div>
+        )}
       </section>
 
       {/* Revenue chart */}
