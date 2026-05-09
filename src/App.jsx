@@ -7,6 +7,7 @@
 
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
+import ValidationsPage from './pages/admin/ValidationsPage'
 import { useAuth } from './hooks/useAuth'
 import { getDashboardPath, toAppRole } from './utils/roles'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
@@ -40,6 +41,7 @@ import TeacherMarketplacePage from './pages/teacher/MarketplacePage'
 import TeacherMarketplaceListingsPage from './pages/teacher/MyListingsPage'
 import TeacherLayout from './components/layout/teacher/TeacherLayout';
 import NotificationsPage from './pages/teacher/NotificationsPage';
+import StudentNotificationsPage from './pages/student/NotificationsPage';
 import ScheduleSubmissionPage from './pages/teacher/ScheduleSubmissionPage'
 
 function PlaceholderPage({ title }) {
@@ -239,6 +241,9 @@ function App() {
         <Route path="/teacher/availability" element={<ScheduleSubmissionPage />} />
         <Route path="/teacher/coaching" element={<ProtectedPlaceholderPage title="Coaching" />} />
         <Route path="/teacher/inventory" element={<TeacherInventoryPage />} />
+        <Route path="/teacher/marketplace" element={<ProtectedPlaceholderPage title="Marketplace" />} />
+        <Route path="/teacher/account" element={<ProtectedPlaceholderPage title="Minha Conta" />} />
+        <Route path="/teacher/marketplace/conversas" element={<TeacherMarketplaceConversationsPage />} />
         <Route path="/teacher/marketplace" element={<TeacherMarketplacePage />} />
         <Route path="/teacher/marketplace/conversas" element={<TeacherMarketplaceConversationsPage />} />
         <Route path="/teacher/marketplace/my-listings" element={<TeacherMarketplaceListingsPage />} />
@@ -248,6 +253,7 @@ function App() {
 
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/validations" element={<ValidationsPage />} />
         <Route path="/admin/studios" element={<StudioManagementPage />} />
         <Route path="/admin/studio-occupancy" element={<StudioOccupancyPage />} />
         <Route path="/admin/inventory" element={<AdminInventoryPage />} />
