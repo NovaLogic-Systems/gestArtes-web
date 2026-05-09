@@ -238,7 +238,7 @@ export default function DashboardPage() {
           </div>
         </aside>
 
-        <main className="main">
+        <main className="main page-transition">
           <header className="topbar">
             <div className="topbar-left">
               <button
