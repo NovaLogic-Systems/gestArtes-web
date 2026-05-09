@@ -6,6 +6,7 @@ import TeacherCalendar from '../../components/teacher/TeacherCalendar.jsx'
 import Toast from '../../components/ui/Toast'
 import NotificationsBell from '../../components/NotificationsBell'
 import { fetchTeacherAvailability, submitTeacherAvailability } from '../../services/teacherAvailability'
+import UnavailabilityModal from '../../components/teacher/UnavailabilityModal'
 import './AdmissionRequestsPage.css'
 import './ScheduleSubmissionPage.css'
 
@@ -47,7 +48,8 @@ export default function ScheduleSubmissionPage() {
   const [proposed, setProposed] = useState(new Set())
   const [availabilityMode, setAvailabilityMode] = useState('weekly')
   const [academicYearId, setAcademicYearId] = useState(1)
-  const [unavailableDay, setUnavailableDay] = useState('Seg')
+  const [modalOpen, setModalOpen] = useState(false)
+  const [modalSlot, setModalSlot] = useState(null)
   const [_loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -101,14 +103,17 @@ export default function ScheduleSubmissionPage() {
       for (const item of rawSlots) {
         if (item.mode === 'weekly' && item.slot) {
           const day = item.slot.dayOfWeek === 0 ? 6 : item.slot.dayOfWeek - 1
-          const hour = parseInt(item.slot.startTime.split(':')[0], 10)
-          mappedSlots.push({ day, hour, status: item.status?.toLowerCase() })
+          const hourParts = item.slot.startTime.split(':')
+          const hour = parseInt(hourParts[0], 10)
+          const minute = parseInt(hourParts[1], 10)
+          mappedSlots.push({ day, hour, minute, status: item.status?.toLowerCase() })
         } else if (item.mode === 'semester' && item.slot) {
           const date = new Date(item.slot.startDateTime)
           const jsDay = date.getDay()
           const day = jsDay === 0 ? 6 : jsDay - 1
           const hour = date.getHours()
-          mappedSlots.push({ day, hour, status: item.status?.toLowerCase() })
+          const minute = date.getMinutes()
+          mappedSlots.push({ day, hour, minute, status: item.status?.toLowerCase() })
         }
       }
       setSlots(mappedSlots)
@@ -189,8 +194,8 @@ export default function ScheduleSubmissionPage() {
     navigate('/login', { replace: true })
   }
 
-  const toggleSlot = useCallback(({ day, hour }) => {
-    const key = `${day}:${hour}`
+  const toggleSlot = useCallback(({ day, hour, minute }) => {
+    const key = `${day}:${hour}:${minute}`
     setProposed((prev) => {
       const next = new Set(prev)
       if (next.has(key)) next.delete(key)
@@ -199,19 +204,62 @@ export default function ScheduleSubmissionPage() {
     })
   }, [])
 
+  const handleRequestException = useCallback((day, hour, minute, slot) => {
+    setModalSlot({ day, hour, minute, slot })
+    setModalOpen(true)
+  }, [])
+
+  const submitException = async ({ reason, slotData }) => {
+    setSaving(true)
+    try {
+      // Create punctual exception request
+      const dayOfWeek = slotData.day === 6 ? 0 : slotData.day + 1
+      const date = new Date()
+      date.setDate(date.getDate() + ((dayOfWeek + 7 - date.getDay()) % 7) || 7)
+      
+      const startDateTime = new Date(date)
+      startDateTime.setHours(slotData.hour, slotData.minute, 0, 0)
+      
+      const endDateTime = new Date(date)
+      endDateTime.setHours(slotData.hour, slotData.minute + 30, 0, 0)
+
+      await submitTeacherAvailability({ 
+        slots: [{
+          mode: 'semester',
+          startDateTime: startDateTime.toISOString(),
+          endDateTime: endDateTime.toISOString()
+        }],
+        notes: reason
+      })
+
+      setToast({ variant: 'success', title: 'Pedido enviado', description: 'O pedido de indisponibilidade foi submetido.' })
+      setModalOpen(false)
+      await load()
+    } catch {
+      setError('Erro ao enviar pedido de indisponibilidade.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const submit = async () => {
     if (!proposed.size) return
     setSaving(true)
     setError('')
     try {
       const payloadSlots = Array.from(proposed).map((s) => {
-        const [dayIdx, hour] = s.split(':').map(Number)
-        // Map: Seg=0 in our grid, so in standard JS day 1=Mon, 2=Tue...
-        // Backend dayOfWeek: 0-6. Let's assume standard 0=Sunday, 1=Monday...
+        const [dayIdx, hour, minute] = s.split(':').map(Number)
         const dayOfWeek = dayIdx === 6 ? 0 : dayIdx + 1
         
-        const startTime = `${String(hour).padStart(2, '0')}:00:00`
-        const endTime = `${String(hour + 1).padStart(2, '0')}:00:00`
+        let endH = hour
+        let endM = minute + 30
+        if (endM >= 60) {
+          endH += 1
+          endM -= 60
+        }
+
+        const startTime = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`
+        const endTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}:00`
 
         if (availabilityMode === 'weekly') {
           return {
@@ -223,17 +271,14 @@ export default function ScheduleSubmissionPage() {
             isActive: true
           }
         } else {
-          // punctual (semester mode in backend)
-          // Since we don't have a calendar, we just pick a date in the future for that day of week.
-          // This is a simplification for the UI mockup behavior.
           const date = new Date()
-          date.setDate(date.getDate() + ((dayOfWeek + 7 - date.getDay()) % 7) || 7) // Next occurrence of this day
+          date.setDate(date.getDate() + ((dayOfWeek + 7 - date.getDay()) % 7) || 7)
           
           const startDateTime = new Date(date)
-          startDateTime.setHours(hour, 0, 0, 0)
+          startDateTime.setHours(hour, minute, 0, 0)
           
           const endDateTime = new Date(date)
-          endDateTime.setHours(hour + 1, 0, 0, 0)
+          endDateTime.setHours(endH, endM, 0, 0)
 
           return {
             mode: 'semester',
@@ -375,10 +420,10 @@ export default function ScheduleSubmissionPage() {
               {error && <p className="submission-error">{error}</p>}
 
               <div className="schedule-board">
-                <TeacherCalendar slots={slots} proposed={proposed} onToggle={toggleSlot} />
+                <TeacherCalendar slots={slots} proposed={proposed} onToggle={toggleSlot} onRequestException={handleRequestException} />
               </div>
 
-              <div className="quick-actions" style={{ marginTop: '12px' }}>
+              <div className="quick-actions" style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <button
                   className="cta"
                   type="button"
@@ -396,41 +441,15 @@ export default function ScheduleSubmissionPage() {
                 </button>
               </div>
             </article>
-
-            <article className="panel">
-              <h3>Avisar indisponibilidade pontual</h3>
-              <p>Use este pedido para informar a direção sobre um dia e hora específicos em que não pode dar sessão.</p>
-              <form className="form-grid two" id="teacherUnavailableRequestForm" onSubmit={(e) => { e.preventDefault(); setToast({ variant: 'success', title: 'Pedido enviado', description: 'O pedido de indisponibilidade pontual foi enviado.'})}}>
-                <label>Professor
-                  <input type="text" id="teacherUnavailableProfessor" value={displayName} readOnly />
-                </label>
-                <label>Dia da semana
-                  <select id="teacherUnavailableDay" value={unavailableDay} onChange={e => setUnavailableDay(e.target.value)}>
-                    <option>Seg</option>
-                    <option>Ter</option>
-                    <option>Qua</option>
-                    <option>Qui</option>
-                    <option>Sex</option>
-                    <option>Sáb</option>
-                  </select>
-                </label>
-                <label>Hora
-                  <select id="teacherUnavailableHour">
-                    {['Seg', 'Ter', 'Qua', 'Qui', 'Sex'].includes(unavailableDay) 
-                      ? [18, 19, 20, 21].map(h => <option key={h} value={h}>{h}:00</option>)
-                      : [9, 10, 11, 12].map(h => <option key={h} value={h}>{h}:00</option>)
-                    }
-                  </select>
-                </label>
-                <label style={{ gridColumn: '1 / -1' }}>Motivo
-                  <textarea className="no-resize" id="teacherUnavailableReason" rows="3" placeholder="Compromisso inadiável neste horário."></textarea>
-                </label>
-                <button className="cta secondary" id="submitUnavailabilityRequest" type="submit" style={{ gridColumn: '1 / -1' }}>Enviar pedido à direção</button>
-              </form>
-            </article>
           </section>
         </main>
 
+        <UnavailabilityModal 
+          isOpen={modalOpen} 
+          onClose={() => setModalOpen(false)} 
+          onSubmit={submitException}
+          slotData={modalSlot}
+        />
         {toast && (
           <Toast
             variant={toast.variant}
