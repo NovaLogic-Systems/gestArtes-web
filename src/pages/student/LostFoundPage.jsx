@@ -17,9 +17,13 @@ import './lostfound.css'
 const NAV_ITEMS = [
 	{ label: 'Painel', href: '/student/dashboard' },
 	{ label: 'Coaching', href: '/student/coaching' },
+	{ label: 'Mapa de Coaching', href: '/student/coaching/map' },
 	{ label: 'Inventário da Escola', href: '/student/inventory' },
+	{ label: 'As Minhas Rendas', href: '/student/inventory/rentals' },
 	{ label: 'Marketplace', href: '/student/marketplace' },
+	{ label: 'Os Meus Anúncios', href: '/student/marketplace/my-listings' },
 	{ label: 'Perdidos e Achados', href: '/student/lostfound' },
+	{ label: 'Notificações', href: '/student/notifications' },
 	{ label: 'Minha Conta', href: '/student/account' },
 ]
 

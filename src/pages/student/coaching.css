@@ -610,6 +610,13 @@
   --ink: #1f1c2e;
   --muted: #6d6480;
   font-family: 'Space Grotesk', sans-serif;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  position: relative;
+  z-index: 10;
 }
 
 /* Form container */

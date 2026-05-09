@@ -15,7 +15,7 @@ function Table({
 	emptyState = 'Sem registos para apresentar.',
 	striped = true,
 	compact = false,
-	headBackground = 'var(--table-head-bg)',
+	headBackground = '#f4f4f8',
 	cellPadding,
 	className,
 	style,
@@ -29,8 +29,8 @@ function Table({
 		<div
 			className={cn('ui-table-wrapper', className)}
 			style={{
-				background: 'var(--bg)',
-				border: '1px solid var(--border)',
+				background: 'var(--bg, #ffffff)',
+				border: '1px solid var(--border, #e8e8f0)',
 				borderRadius: '1rem',
 				overflow: 'hidden',
 				...style,
@@ -47,8 +47,8 @@ function Table({
 								scope="col"
 								style={{
 									background: headBackground,
-									borderBottom: '1px solid var(--border)',
-									color: 'var(--text-h)',
+									borderBottom: '1px solid var(--border, #e8e8f0)',
+									color: 'var(--text-h, #374151)',
 									fontSize: '0.85rem',
 									fontWeight: 700,
 									padding: resolvedCellPadding,

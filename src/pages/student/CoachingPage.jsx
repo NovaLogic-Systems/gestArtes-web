@@ -24,9 +24,13 @@ import './coaching.css'
 const NAV_ITEMS = [
   { label: 'Painel', href: '/student/dashboard' },
   { label: 'Coaching', href: '/student/coaching' },
+  { label: 'Mapa de Coaching', href: '/student/coaching/map' },
   { label: 'Inventário da Escola', href: '/student/inventory' },
+  { label: 'As Minhas Rendas', href: '/student/inventory/rentals' },
   { label: 'Marketplace', href: '/student/marketplace' },
+  { label: 'Os Meus Anúncios', href: '/student/marketplace/my-listings' },
   { label: 'Perdidos e Achados', href: '/student/lostfound' },
+  { label: 'Notificações', href: '/student/notifications' },
   { label: 'Minha Conta', href: '/student/account' },
 ]
 
@@ -731,7 +735,21 @@ export default function CoachingPage() {
           <div className="content-grid">
             {/* ── Schedule grid panel ── */}
             <article className="panel">
-              <h3>Mapa de horários</h3>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <h3 style={{ margin: 0 }}>Disponibilidade dos professores</h3>
+                <Link
+                  to="/student/coaching/map"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                    background: 'linear-gradient(135deg, #7c3aed, #6366f1)',
+                    color: '#fff', borderRadius: '999px', padding: '6px 14px',
+                    textDecoration: 'none', fontSize: '0.82rem', fontWeight: 700,
+                    boxShadow: '0 2px 8px rgba(99,102,241,.35)',
+                  }}
+                >
+                  ⛶ Expandir mapa
+                </Link>
+              </div>
 
               <div className="filters-bar">
                 <div className="week-nav">
@@ -792,7 +810,7 @@ export default function CoachingPage() {
                   <table className="schedule-grid">
                     <thead>
                       <tr>
-                        <th style={{ width: 60 }}>Hora</th>
+                        <th style={{ width: 130 }}>Professor</th>
                         {visibleDates.map((date) => {
                           const dow = new Date(date + 'T00:00:00Z').getUTCDay()
                           return (
@@ -812,7 +830,7 @@ export default function CoachingPage() {
                       ) : (
                         teachers.map((teacher) => (
                           <tr key={teacher.teacherId}>
-                            <td className="time-col">{teacher.name}</td>
+                            <td style={{ fontWeight: 600, fontSize: '0.85rem', color: '#374151', padding: '8px 10px', borderRight: '1px solid #f0ebf6', verticalAlign: 'top', whiteSpace: 'nowrap' }}>{teacher.name}</td>
                             {visibleDates.map((date) => {
                               const key = `${date}__${teacher.teacherId}`
                               const windows = windowMap.get(key) ?? []
