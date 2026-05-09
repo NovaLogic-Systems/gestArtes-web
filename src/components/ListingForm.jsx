@@ -177,7 +177,6 @@ export default function ListingForm({
           <input
             value={values.title}
             onChange={(event) => handleChange('title', event.target.value)}
-            placeholder="Ex.: Sapatos de Jazz n. 39"
             maxLength={100}
             required
           />
@@ -225,7 +224,6 @@ export default function ListingForm({
             value={values.location}
             maxLength={100}
             onChange={(event) => handleChange('location', event.target.value)}
-            placeholder="Ex.: EntArtes - rececao"
           />
         </label>
 
@@ -236,7 +234,6 @@ export default function ListingForm({
             maxLength={255}
             value={values.description}
             onChange={(event) => handleChange('description', event.target.value)}
-            placeholder="Detalhes do artigo, estado e forma de entrega"
           />
         </label>
 
