@@ -4,6 +4,8 @@ import { useAuth } from '../../hooks/useAuth'
 import notificationPreviewService from '../../services/notificationPreviewService'
 import Badge from '../../components/ui/Badge'
 import Button from '../../components/ui/Button'
+import Input from '../../components/ui/Input'
+import InventoryItemCard from '../../components/InventoryItemCard'
 import LoadingSkeleton from '../../components/ui/LoadingSkeleton'
 import Modal from '../../components/ui/Modal'
 import Table from '../../components/ui/Table'
@@ -12,6 +14,7 @@ import {
   listInventoryItems,
   listInventoryRentals,
 } from '../../services/inventory'
+import '../student/inventory.css'
 import './InventoryPage.css'
 
 const NAV_ITEMS = [
@@ -59,9 +62,8 @@ function toIsoDate(dateString) {
   return `${dateString}T00:00:00.000Z`
 }
 
-function getCategoryAbbrev(categoryName) {
-  if (!categoryName) return 'ART'
-  return String(categoryName).slice(0, 4).toUpperCase()
+function normalizeItem(item) {
+  return { ...item, conditionLabel: item?.conditionLabel || 'Verificado' }
 }
 
 export default function TeacherInventoryPage() {
@@ -84,7 +86,7 @@ export default function TeacherInventoryPage() {
 
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
-  const [onlyAvailable, setOnlyAvailable] = useState(false)
+  const [availability, setAvailability] = useState('all')
 
   const [rentalModal, setRentalModal] = useState({ open: false, item: null })
   const [rentalForm, setRentalForm] = useState({ startDate: '', endDate: '', paymentMethodId: PAYMENT_METHOD_OPTIONS[0].id })
@@ -132,15 +134,15 @@ export default function TeacherInventoryPage() {
     try {
       setLoadingItems(true)
       setError('')
-      const data = await listInventoryItems({ category: categoryFilter || undefined, onlyAvailable })
-      setItems(data)
+      const data = await listInventoryItems({ onlyAvailable: false })
+      setItems(data.map(normalizeItem))
     } catch (err) {
       setItems([])
       setError(err?.response?.data?.error || 'Não foi possível carregar o inventário.')
     } finally {
       setLoadingItems(false)
     }
-  }, [categoryFilter, onlyAvailable])
+  }, [])
 
   const loadRentals = useCallback(async () => {
     try {
@@ -162,7 +164,9 @@ export default function TeacherInventoryPage() {
     try {
       const preview = await notificationPreviewService.getPreview({ limit: 0, includeUnreadCount: true })
       setNotificationUnreadCount(preview.unreadCount)
-    } catch {}
+    } catch {
+      // ignore preview fetch errors silently
+    }
   }, [])
 
   const loadNotificationPreview = useCallback(async () => {
@@ -211,13 +215,18 @@ export default function TeacherInventoryPage() {
 
   const filteredItems = useMemo(() => {
     const term = search.trim().toLowerCase()
-    if (!term) return items
     return items.filter((item) => {
-      const haystack = [item.itemName, item.description, item.category?.categoryName]
-        .filter(Boolean).join(' ').toLowerCase()
-      return haystack.includes(term)
+      if (term) {
+        const haystack = [item.itemName, item.description, item.category?.categoryName]
+          .filter(Boolean).join(' ').toLowerCase()
+        if (!haystack.includes(term)) return false
+      }
+      if (categoryFilter && String(item?.category?.categoryId || '') !== categoryFilter) return false
+      if (availability === 'available' && Number(item?.availableQuantity ?? 0) <= 0) return false
+      if (availability === 'reserved' && Number(item?.availableQuantity ?? 0) > 0) return false
+      return true
     })
-  }, [items, search])
+  }, [items, search, categoryFilter, availability])
 
   function openRentalModal(item) {
     const today = new Date().toISOString().slice(0, 10)
@@ -258,59 +267,6 @@ export default function TeacherInventoryPage() {
       setSubmittingRental(false)
     }
   }
-
-  const itemColumns = [
-    {
-      key: 'image',
-      header: 'Imagem',
-      width: '64px',
-      render: (row) => (
-        <div className="item-image">
-          {getCategoryAbbrev(row.category?.categoryName)}
-        </div>
-      ),
-    },
-    {
-      key: 'itemName',
-      header: 'Item',
-      render: (row) => (
-        <div style={{ display: 'grid', gap: '0.2rem' }}>
-          <strong>{row.itemName}</strong>
-          {row.description ? (
-            <span style={{ color: 'var(--muted)', fontSize: '0.82rem' }}>{row.description}</span>
-          ) : null}
-        </div>
-      ),
-    },
-    {
-      key: 'category',
-      header: 'Categoria',
-      render: (row) => row.category?.categoryName ?? '—',
-    },
-    {
-      key: 'symbolicFee',
-      header: 'Taxa simbólica',
-      align: 'right',
-      render: (row) => formatCurrency(row.symbolicFee),
-    },
-    {
-      key: 'condition',
-      header: 'Condição',
-      render: (row) => row.conditionLabel ?? 'Verificado',
-    },
-    {
-      key: 'status',
-      header: 'Estado',
-      render: (row) => {
-        const available = Number(row.availableQuantity ?? 0) > 0
-        return (
-          <Badge variant={available ? 'success' : 'warning'}>
-            {available ? 'Disponível' : 'Reservado'}
-          </Badge>
-        )
-      },
-    },
-  ]
 
   const rentalColumns = [
     {
@@ -355,7 +311,7 @@ export default function TeacherInventoryPage() {
   ]
 
   return (
-    <div className="teacher-inventory">
+    <div className="teacher-inventory inventory-page">
       <div className={appShellClassName}>
         {isMobile && mobileOpen ? (
           <button
@@ -414,7 +370,7 @@ export default function TeacherInventoryPage() {
                 </button>
                 <h2>Inventário da Escola</h2>
               </div>
-              <p>Catálogo oficial para reserva e aluguer</p>
+              <p>Catálogo oficial para pedidos de aluguer. A admin aprova ou rejeita e o pagamento é feito na escola.</p>
             </div>
 
             <div className="topbar-right" ref={notificationBoxRef}>
@@ -430,7 +386,7 @@ export default function TeacherInventoryPage() {
                 className="pill notifications-pill"
                 onClick={handleNotificationsClick}
               >
-                Notificações {notificationUnreadCount}
+                Notificações {notificationUnreadCount > 0 ? notificationUnreadCount : ''}
               </button>
 
               {notificationsOpen ? (
@@ -456,7 +412,7 @@ export default function TeacherInventoryPage() {
                       ))}
                     </ul>
                   ) : null}
-                  <Link to="/notifications" className="notifications-more-link" onClick={() => setNotificationsOpen(false)}>
+                  <Link to="/teacher/notifications" className="notifications-more-link" onClick={() => setNotificationsOpen(false)}>
                     Ver Mais
                   </Link>
                 </div>
@@ -466,16 +422,16 @@ export default function TeacherInventoryPage() {
 
           <section className="content-grid">
             {error ? (
-              <div className="error-banner">
+              <div className="inventory-error-banner">
                 {error}
-                <button
-                  className="pill"
+                <Button
+                  variant="secondary"
+                  size="sm"
                   style={{ marginLeft: '0.65rem' }}
-                  type="button"
                   onClick={() => { loadItems(); loadRentals() }}
                 >
                   Tentar novamente
-                </button>
+                </Button>
               </div>
             ) : null}
 
@@ -498,79 +454,70 @@ export default function TeacherInventoryPage() {
               </div>
 
               {activeTab === 'items' ? (
-                <>
-                  <div className="filters-row">
-                    <label className="filter-label">
-                      <span>Pesquisar</span>
-                      <input
-                        type="search"
-                        className="filter-input"
-                        placeholder="Nome, descrição ou categoria"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                      />
-                    </label>
-                    <label className="filter-label">
+                <section className="inventory-layout">
+                  <aside className="inventory-filters panel">
+                    <h3>Filtros</h3>
+                    <Input
+                      label="Pesquisar"
+                      placeholder="Nome, categoria ou descrição"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                    />
+                    <label>
                       <span>Categoria</span>
-                      <select
-                        className="filter-select"
-                        value={categoryFilter}
-                        onChange={(e) => setCategoryFilter(e.target.value)}
-                      >
-                        <option value="">Todas as categorias</option>
+                      <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+                        <option value="">Todas</option>
                         {categories.map((cat) => (
-                          <option key={cat.id} value={cat.name}>{cat.name}</option>
+                          <option key={cat.id} value={String(cat.id)}>{cat.name}</option>
                         ))}
                       </select>
                     </label>
-                    <label className="filter-checkbox-label">
-                      <input
-                        type="checkbox"
-                        checked={onlyAvailable}
-                        onChange={(e) => setOnlyAvailable(e.target.checked)}
-                      />
-                      Apenas disponíveis
+                    <label>
+                      <span>Disponibilidade</span>
+                      <select value={availability} onChange={(e) => setAvailability(e.target.value)}>
+                        <option value="all">Todos</option>
+                        <option value="available">Disponíveis</option>
+                        <option value="reserved">Reservados</option>
+                      </select>
                     </label>
-                  </div>
+                  </aside>
 
-                  {loadingItems ? (
-                    <div style={{ display: 'grid', gap: '10px' }}>
-                      <LoadingSkeleton variant="text" lines={1} width="30%" />
-                      <LoadingSkeleton variant="block" height="3rem" />
-                      <LoadingSkeleton variant="block" height="10rem" />
+                  <section className="inventory-feed panel">
+                    <div className="inventory-feed-header">
+                      <div>
+                        <h3>Catálogo</h3>
+                        <p>{filteredItems.length} artigo(s) encontrado(s)</p>
+                      </div>
+                      <Button variant="secondary" size="sm" onClick={loadItems}>
+                        Recarregar
+                      </Button>
                     </div>
-                  ) : (
-                    <Table
-                      columns={itemColumns}
-                      rows={filteredItems}
-                      getRowKey={(row) => row.itemId}
-                      emptyState="Sem artigos para apresentar."
-                      striped
-                      renderRowActions={(row) => {
-                        const available = Number(row.availableQuantity ?? 0) > 0
-                        if (!available) {
-                          return (
-                            <div className="row-actions">
-                              <Badge variant="warning" size="sm">
-                                Reservado
-                              </Badge>
-                            </div>
-                          )
-                        }
-                        return (
-                          <div className="row-actions">
-                            <Button variant="cta" size="sm" onClick={() => openRentalModal(row)}>
-                              Alugar
-                            </Button>
-                            <Button variant="secondary" size="sm" onClick={() => setDetailModal({ open: true, item: row })}>
-                              Detalhes
-                            </Button>
-                          </div>
-                        )
-                      }}
-                    />
-                  )}
-                </>
+
+                    {loadingItems ? (
+                      <div className="inventory-skeleton-grid">
+                        <LoadingSkeleton variant="block" height="18rem" />
+                        <LoadingSkeleton variant="block" height="18rem" />
+                        <LoadingSkeleton variant="block" height="18rem" />
+                      </div>
+                    ) : filteredItems.length === 0 ? (
+                      <div className="inventory-empty-state">
+                        <h4>Sem artigos para mostrar</h4>
+                        <p>Afina os filtros ou volta a carregar o catálogo.</p>
+                      </div>
+                    ) : (
+                      <div className="inventory-grid">
+                        {filteredItems.map((item) => (
+                          <InventoryItemCard
+                            key={item.itemId}
+                            item={item}
+                            onOpenDetails={(i) => setDetailModal({ open: true, item: i })}
+                            onRent={openRentalModal}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                </section>
               ) : null}
 
               {activeTab === 'myRentals' ? (
@@ -665,7 +612,8 @@ export default function TeacherInventoryPage() {
       <Modal
         open={detailModal.open}
         title={detailModal.item?.itemName ?? 'Detalhes do artigo'}
-        size="md"
+        description={detailModal.item?.description || 'Artigo do inventário escolar.'}
+        size="lg"
         className="teacher-inventory-modal"
         onClose={() => setDetailModal({ open: false, item: null })}
         footer={
@@ -689,30 +637,19 @@ export default function TeacherInventoryPage() {
         }
       >
         {detailModal.item ? (
-          <div>
-            <div className="detail-grid">
-              <div className="detail-card">
-                <strong>Categoria</strong>
-                <span>{detailModal.item.category?.categoryName ?? '—'}</span>
-              </div>
-              <div className="detail-card">
-                <strong>Taxa simbólica</strong>
-                <span>{formatCurrency(detailModal.item.symbolicFee)}</span>
-              </div>
-              <div className="detail-card">
-                <strong>Condição</strong>
-                <span>{detailModal.item.conditionLabel ?? 'Verificado'}</span>
-              </div>
-              <div className="detail-card">
-                <strong>Disponibilidade</strong>
-                <span>{detailModal.item.availableQuantity} / {detailModal.item.totalQuantity} unidades</span>
-              </div>
+          <div className="inventory-detail-grid">
+            <div>
+              {detailModal.item.photoUrl
+                ? <img className="inventory-detail-image" src={detailModal.item.photoUrl} alt={detailModal.item.itemName} />
+                : <div className="inventory-detail-image inventory-detail-image-empty">Sem imagem</div>}
             </div>
-            {detailModal.item.description ? (
-              <p style={{ color: 'var(--muted)', margin: 0, fontSize: '0.9rem' }}>
-                {detailModal.item.description}
-              </p>
-            ) : null}
+            <div className="inventory-detail-body">
+              <p><strong>Categoria:</strong> {detailModal.item.category?.categoryName ?? '—'}</p>
+              <p><strong>Taxa simbólica:</strong> {formatCurrency(detailModal.item.symbolicFee)}</p>
+              <p><strong>Condição:</strong> {detailModal.item.conditionLabel ?? 'Verificado'}</p>
+              <p><strong>Estado:</strong> {Number(detailModal.item.availableQuantity ?? 0) > 0 ? 'Disponível' : 'Reservado'}</p>
+              <p><strong>Unidades disponíveis:</strong> {detailModal.item.availableQuantity ?? 0}</p>
+            </div>
           </div>
         ) : null}
       </Modal>
