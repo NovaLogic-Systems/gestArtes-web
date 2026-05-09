@@ -224,7 +224,7 @@ function App() {
         <Route path="/student/marketplace" element={<MarketplacePage />} />
         <Route path="/student/marketplace/conversas" element={<MarketplaceConversationsPage />} />
         <Route path="/student/marketplace/my-listings" element={<MyListingsPage />} />
-        <Route path="/student/notifications" element={<StudentSectionPage title="Notificações" />} />
+        <Route path="/student/notifications" element={<StudentNotificationsPage />} />
         <Route path="/student/lostfound" element={<StudentSectionPage title="Perdidos e Achados" />} />
         <Route path="/student/account" element={<StudentSectionPage title="Minha Conta" />} />
       </Route>

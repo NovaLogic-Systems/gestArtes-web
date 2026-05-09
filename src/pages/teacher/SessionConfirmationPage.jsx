@@ -172,7 +172,7 @@ export default function SessionConfirmationPage() {
   useEffect(() => {
     notificationPreviewService.getPreview({ limit: 0, includeUnreadCount: true })
       .then((preview) => setNotificationUnreadCount(preview.unreadCount))
-      .catch(() => {})
+      .catch(() => { })
   }, [])
 
   useEffect(() => {
@@ -311,306 +311,273 @@ export default function SessionConfirmationPage() {
 
   return (
     <div className="teacher-admission-requests">
-    <div className={appShellClassName}>
-      {isMobile && mobileOpen ? (
-        <button
-          type="button"
-          className="sidebar-overlay"
-          aria-label="Fechar navegação lateral"
-          onClick={() => setMobileOpen(false)}
-        />
-      ) : null}
-      <aside className={sidebarClassName} id="sidebar">
-        <div className="brand">
-          <span className="brand-dot" aria-hidden="true" />
-          <div>
-            <h1>gestArtes</h1>
-            <p>Professor</p>
-          </div>
-        </div>
-
-        <div className="nav-group">
-          <h2>Professor</h2>
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              to={item.href}
-              className={['nav-link', location.pathname === item.href ? 'active' : ''].filter(Boolean).join(' ')}
-              onClick={handleMobileNavClick}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
-
-        <div className="sidebar-footer">
-          <span className="sidebar-user">{displayName}</span>
-          <button type="button" className="nav-link logout-link" onClick={handleLogout}>
-            Terminar sessão
-          </button>
-        </div>
-      </aside>
-
-      <main className="main">
-        <header className="topbar">
-          <div className="topbar-left">
-            <button
-              type="button"
-              className="menu-toggle"
-              aria-label={isMobile ? (mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral') : (sidebarCollapsed ? 'Mostrar barra lateral' : 'Esconder barra lateral')}
-              onClick={handleSidebarToggle}
-            >
-              {sidebarToggleSymbol}
-            </button>
+      <div className={appShellClassName}>
+        {isMobile && mobileOpen ? (
+          <button
+            type="button"
+            className="sidebar-overlay"
+            aria-label="Fechar navegação lateral"
+            onClick={() => setMobileOpen(false)}
+          />
+        ) : null}
+        <aside className={sidebarClassName} id="sidebar">
+          <div className="brand">
+            <span className="brand-dot" aria-hidden="true" />
             <div>
-              <h2>Confirmação de sessões</h2>
-              <p>Valida a presença dos alunos e confirma a conclusão da sessão</p>
+              <h1>gestArtes</h1>
+              <p>Professor</p>
             </div>
           </div>
-          <div className="topbar-right" ref={notificationBoxRef} style={{ position: 'relative' }}>
-            <div
-              className="notifications-hover-area"
-              onMouseEnter={openNotificationsOnHover}
-              onMouseLeave={closeNotificationsOnHover}
-            >
-              <NotificationsBell
-                onClick={handleNotificationsToggle}
-                count={notificationUnreadCount}
-                onMouseEnter={openNotificationsOnHover}
-              />
 
-              {notificationsOpen && (
-                <div className="notif-dropdown" role="dialog" aria-label="Painel de notificações" onMouseEnter={openNotificationsOnHover} onMouseLeave={closeNotificationsOnHover}>
-                <div className="notif-dropdown-header">
-                  <div className="notifications-popover-sub">Últimas notificações</div>
-                  <button type="button" className="icon-btn" onClick={() => setNotificationsOpen(false)} aria-label="Fechar notificações">✕</button>
-                </div>
-                <div className="notif-dropdown-body">
-                  {notificationsLoading && <p className="notif-empty">A carregar…</p>}
-                  {notificationsError && <p className="notif-empty notif-error">{notificationsError}</p>}
-                  {!notificationsLoading && !notificationsError && notifications.length === 0 && (
-                    <p className="notif-empty">Ainda não tens notificações.</p>
-                  )}
-                  {notifications.map((n) => (
-                    <div key={n.id} className={['notif-item', n.isRead ? '' : 'notif-item--unread'].filter(Boolean).join(' ')}>
-                      <p className="notif-title">{n.title}</p>
-                      {n.message && <p className="notif-message">{n.message}</p>}
-                      <p className="notif-date">{formatNotificationDate(n.createdAt)}</p>
-                    </div>
-                  ))}
-                </div>
-                </div>
-              )}
-            </div>
+          <div className="nav-group">
+            <h2>Professor</h2>
+            {NAV_ITEMS.map((item) => (
+              <Link
+                key={item.href}
+                to={item.href}
+                className={['nav-link', location.pathname === item.href ? 'active' : ''].filter(Boolean).join(' ')}
+                onClick={handleMobileNavClick}
+              >
+                {item.label}
+              </Link>
+            ))}
           </div>
-        </header>
 
-        <div className="page-content">
-          {error && (
-            <div className="error-banner" role="alert">
-              <span>{error}</span>
-              <button type="button" onClick={loadSessions} className="retry-btn">
-                Tentar novamente
+          <div className="sidebar-footer">
+            <span className="sidebar-user">{displayName}</span>
+            <button type="button" className="nav-link logout-link" onClick={handleLogout}>
+              Terminar sessão
+            </button>
+          </div>
+        </aside>
+
+        <main className="main">
+          <header className="topbar">
+            <div className="topbar-left">
+              <button
+                type="button"
+                className="menu-toggle"
+                aria-label={isMobile ? (mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral') : (sidebarCollapsed ? 'Mostrar barra lateral' : 'Esconder barra lateral')}
+                onClick={handleSidebarToggle}
+              >
+                {sidebarToggleSymbol}
               </button>
+              <div>
+                <h2>Confirmação de sessões</h2>
+                <p>Valida a presença dos alunos e confirma a conclusão da sessão</p>
+              </div>
             </div>
-          )}
-
-          {loading ? (
-            <div className="sessions-grid">
-              {[1, 2].map((i) => (
-                <div key={i} className="panel">
-                  <LoadingSkeleton />
-                </div>
-              ))}
+            <div className="topbar-right" style={{ position: 'relative' }}>
+              <NotificationsBell pageLink="/teacher/notifications" count={notificationUnreadCount} />
             </div>
-          ) : sessions.length === 0 && !error ? (
-            <div className="panel empty-state">
-              <p className="empty-state-icon" aria-hidden="true">✓</p>
-              <h3>Sem sessões para confirmar</h3>
-              <p>Todas as sessões concluídas já foram confirmadas ou ainda não existem sessões terminadas.</p>
-            </div>
-          ) : (
-            <div className="sessions-grid">
-              {sessions.map((session) => {
-                const allHandled = session.students.every(
-                  (st) => isNoShow(st.attendanceStatus) || isPresent(st.attendanceStatus),
-                )
-                const isConfirming = confirmingSession === session.sessionId
-                const hasStudents = session.students.length > 0
+          </header>
 
-                return (
-                  <article key={session.sessionId} className="panel session-card">
-                    <div className="session-card-header">
-                      <div className="session-card-meta">
-                        <span className="session-ref">Sessão #{session.sessionId}</span>
-                        <span className="session-detail">{formatDate(session.date)}</span>
-                        <span className="session-detail">
-                          {formatTime(session.startTime)} – {formatTime(session.endTime)}
-                        </span>
-                        <span className="session-detail">{session.studioName}</span>
-                        <Badge variant="neutral">{session.modalityName}</Badge>
-                      </div>
+          <div className="page-content">
+            {error && (
+              <div className="error-banner" role="alert">
+                <span>{error}</span>
+                <button type="button" onClick={loadSessions} className="retry-btn">
+                  Tentar novamente
+                </button>
+              </div>
+            )}
 
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        disabled={isConfirming || !hasStudents}
-                        onClick={() => handleConfirmSession(session.sessionId)}
-                        title={
-                          !hasStudents
-                            ? 'Sem alunos inscritos'
-                            : allHandled
-                              ? 'Confirmar conclusão da sessão'
-                              : 'Confirmar conclusão (ainda há alunos por avaliar)'
-                        }
-                      >
-                        {isConfirming ? 'A confirmar…' : 'Confirmar conclusão'}
-                      </Button>
-                    </div>
+            {loading ? (
+              <div className="sessions-grid">
+                {[1, 2].map((i) => (
+                  <div key={i} className="panel">
+                    <LoadingSkeleton />
+                  </div>
+                ))}
+              </div>
+            ) : sessions.length === 0 && !error ? (
+              <div className="panel empty-state">
+                <p className="empty-state-icon" aria-hidden="true">✓</p>
+                <h3>Sem sessões para confirmar</h3>
+                <p>Todas as sessões concluídas já foram confirmadas ou ainda não existem sessões terminadas.</p>
+              </div>
+            ) : (
+              <div className="sessions-grid">
+                {sessions.map((session) => {
+                  const allHandled = session.students.every(
+                    (st) => isNoShow(st.attendanceStatus) || isPresent(st.attendanceStatus),
+                  )
+                  const isConfirming = confirmingSession === session.sessionId
+                  const hasStudents = session.students.length > 0
 
-                    {!allHandled && hasStudents && (
-                      <p className="session-hint" role="status">
-                        {session.students.filter((st) => !isNoShow(st.attendanceStatus) && !isPresent(st.attendanceStatus)).length} aluno(s) por avaliar
-                      </p>
-                    )}
-
-                    <div className="attendance-list">
-                      <div className="attendance-list-header">
-                        <span>Aluno</span>
-                        <span>Estado</span>
-                        <span className="attendance-actions-col">Ações</span>
-                      </div>
-
-                      {!hasStudents && (
-                        <div className="attendance-row attendance-row--empty">
-                          <span>Sem alunos inscritos nesta sessão.</span>
+                  return (
+                    <article key={session.sessionId} className="panel session-card">
+                      <div className="session-card-header">
+                        <div className="session-card-meta">
+                          <span className="session-ref">Sessão #{session.sessionId}</span>
+                          <span className="session-detail">{formatDate(session.date)}</span>
+                          <span className="session-detail">
+                            {formatTime(session.startTime)} – {formatTime(session.endTime)}
+                          </span>
+                          <span className="session-detail">{session.studioName}</span>
+                          <Badge variant="neutral">{session.modalityName}</Badge>
                         </div>
+
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          disabled={isConfirming || !hasStudents}
+                          onClick={() => handleConfirmSession(session.sessionId)}
+                          title={
+                            !hasStudents
+                              ? 'Sem alunos inscritos'
+                              : allHandled
+                                ? 'Confirmar conclusão da sessão'
+                                : 'Confirmar conclusão (ainda há alunos por avaliar)'
+                          }
+                        >
+                          {isConfirming ? 'A confirmar…' : 'Confirmar conclusão'}
+                        </Button>
+                      </div>
+
+                      {!allHandled && hasStudents && (
+                        <p className="session-hint" role="status">
+                          {session.students.filter((st) => !isNoShow(st.attendanceStatus) && !isPresent(st.attendanceStatus)).length} aluno(s) por avaliar
+                        </p>
                       )}
 
-                      {session.students.map((student) => {
-                        const attendanceBadge = resolveAttendanceBadge(student.attendanceStatus)
-                        const alreadyNoShow = isNoShow(student.attendanceStatus)
-                        const alreadyPresent = isPresent(student.attendanceStatus)
-                        const handled = alreadyNoShow || alreadyPresent
+                      <div className="attendance-list">
+                        <div className="attendance-list-header">
+                          <span>Aluno</span>
+                          <span>Estado</span>
+                          <span className="attendance-actions-col">Ações</span>
+                        </div>
 
-                        return (
-                          <div
-                            key={student.studentAccountId}
-                            className={[
-                              'attendance-row',
-                              alreadyNoShow ? 'attendance-row--noshow' : '',
-                              alreadyPresent ? 'attendance-row--present' : '',
-                            ].filter(Boolean).join(' ')}
-                          >
-                            <div className="attendance-student">
-                              <span className="attendance-name">{student.studentName}</span>
-                              {student.email && (
-                                <span className="attendance-email">{student.email}</span>
-                              )}
-                            </div>
-
-                            <Badge variant={attendanceBadge.variant}>{attendanceBadge.label}</Badge>
-
-                            <div className="attendance-actions">
-                              {!handled && (
-                                <button
-                                  type="button"
-                                  className="attendance-btn attendance-btn--noshow"
-                                  onClick={() => openNoShowModal(session, student)}
-                                  aria-label={`Registar falta sem aviso para ${student.studentName}`}
-                                >
-                                  Falta s/ aviso
-                                </button>
-                              )}
-                              {alreadyNoShow && (
-                                <span className="attendance-action-done attendance-action-done--noshow">
-                                  Falta registada
-                                </span>
-                              )}
-                              {alreadyPresent && (
-                                <span className="attendance-action-done attendance-action-done--present">
-                                  Presença confirmada
-                                </span>
-                              )}
-                            </div>
+                        {!hasStudents && (
+                          <div className="attendance-row attendance-row--empty">
+                            <span>Sem alunos inscritos nesta sessão.</span>
                           </div>
-                        )
-                      })}
-                    </div>
-                  </article>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      </main>
+                        )}
 
-      <Modal
-        open={noShowModal !== null}
-        onClose={closeNoShowModal}
-        title={`Registar falta sem aviso — ${noShowModal?.student?.studentName || 'Aluno'}`}
-        description="Esta ação regista a ausência sem aviso prévio e aplica a penalização financeira. Não pode ser desfeita."
-        footer={
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-            <Button variant="secondary" onClick={closeNoShowModal} disabled={noShowSubmitting}>
-              Cancelar
-            </Button>
-            <Button variant="danger" onClick={handleRegisterNoShow} disabled={noShowSubmitting}>
-              {noShowSubmitting ? 'A registar…' : 'Registar falta sem aviso'}
-            </Button>
-          </div>
-        }
-      >
-        {noShowModal && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <p>
-              <strong>Sessão:</strong> #{noShowModal.session.sessionId} · {formatDate(noShowModal.session.date)} · {noShowModal.session.modalityName} · {noShowModal.session.studioName}
-            </p>
-            <p>
-              <strong>Aluno:</strong> {noShowModal.student.studentName}
-            </p>
+                        {session.students.map((student) => {
+                          const attendanceBadge = resolveAttendanceBadge(student.attendanceStatus)
+                          const alreadyNoShow = isNoShow(student.attendanceStatus)
+                          const alreadyPresent = isPresent(student.attendanceStatus)
+                          const handled = alreadyNoShow || alreadyPresent
 
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <span>Observação <span aria-hidden="true">*</span></span>
-              <textarea
-                id="no-show-remarks"
-                rows={4}
-                value={noShowRemarks}
-                onChange={(e) => {
-                  setNoShowRemarks(e.target.value)
-                  if (noShowRemarksError) setNoShowRemarksError('')
-                }}
-                disabled={noShowSubmitting}
-                placeholder="Descreve a situação, tentativas de contacto, etc."
-                aria-describedby={noShowRemarksError ? 'no-show-remarks-error' : undefined}
-                style={{
-                  padding: '0.5rem',
-                  borderRadius: '8px',
-                  border: noShowRemarksError ? '1px solid #dc2626' : '1px solid var(--border)',
-                  font: 'inherit',
-                  resize: 'vertical',
-                }}
-              />
-            </label>
+                          return (
+                            <div
+                              key={student.studentAccountId}
+                              className={[
+                                'attendance-row',
+                                alreadyNoShow ? 'attendance-row--noshow' : '',
+                                alreadyPresent ? 'attendance-row--present' : '',
+                              ].filter(Boolean).join(' ')}
+                            >
+                              <div className="attendance-student">
+                                <span className="attendance-name">{student.studentName}</span>
+                                {student.email && (
+                                  <span className="attendance-email">{student.email}</span>
+                                )}
+                              </div>
 
-            {noShowRemarksError && (
-              <p id="no-show-remarks-error" style={{ color: '#dc2626', margin: 0, fontSize: '0.875rem' }} role="alert">
-                {noShowRemarksError}
-              </p>
+                              <Badge variant={attendanceBadge.variant}>{attendanceBadge.label}</Badge>
+
+                              <div className="attendance-actions">
+                                {!handled && (
+                                  <button
+                                    type="button"
+                                    className="attendance-btn attendance-btn--noshow"
+                                    onClick={() => openNoShowModal(session, student)}
+                                    aria-label={`Registar falta sem aviso para ${student.studentName}`}
+                                  >
+                                    Falta s/ aviso
+                                  </button>
+                                )}
+                                {alreadyNoShow && (
+                                  <span className="attendance-action-done attendance-action-done--noshow">
+                                    Falta registada
+                                  </span>
+                                )}
+                                {alreadyPresent && (
+                                  <span className="attendance-action-done attendance-action-done--present">
+                                    Presença confirmada
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
             )}
           </div>
-        )}
-      </Modal>
+        </main>
 
-      {toast && (
-        <Toast
-          variant={toast.variant}
-          title={toast.title}
-          description={toast.description}
-          onClose={() => setToast(null)}
-        />
-      )}
-    </div>
+        <Modal
+          open={noShowModal !== null}
+          onClose={closeNoShowModal}
+          title={`Registar falta sem aviso — ${noShowModal?.student?.studentName || 'Aluno'}`}
+          description="Esta ação regista a ausência sem aviso prévio e aplica a penalização financeira. Não pode ser desfeita."
+          footer={
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+              <Button variant="secondary" onClick={closeNoShowModal} disabled={noShowSubmitting}>
+                Cancelar
+              </Button>
+              <Button variant="danger" onClick={handleRegisterNoShow} disabled={noShowSubmitting}>
+                {noShowSubmitting ? 'A registar…' : 'Registar falta sem aviso'}
+              </Button>
+            </div>
+          }
+        >
+          {noShowModal && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <p>
+                <strong>Sessão:</strong> #{noShowModal.session.sessionId} · {formatDate(noShowModal.session.date)} · {noShowModal.session.modalityName} · {noShowModal.session.studioName}
+              </p>
+              <p>
+                <strong>Aluno:</strong> {noShowModal.student.studentName}
+              </p>
+
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <span>Observação <span aria-hidden="true">*</span></span>
+                <textarea
+                  id="no-show-remarks"
+                  rows={4}
+                  value={noShowRemarks}
+                  onChange={(e) => {
+                    setNoShowRemarks(e.target.value)
+                    if (noShowRemarksError) setNoShowRemarksError('')
+                  }}
+                  disabled={noShowSubmitting}
+                  placeholder="Descreve a situação, tentativas de contacto, etc."
+                  aria-describedby={noShowRemarksError ? 'no-show-remarks-error' : undefined}
+                  style={{
+                    padding: '0.5rem',
+                    borderRadius: '8px',
+                    border: noShowRemarksError ? '1px solid #dc2626' : '1px solid var(--border)',
+                    font: 'inherit',
+                    resize: 'vertical',
+                  }}
+                />
+              </label>
+
+              {noShowRemarksError && (
+                <p id="no-show-remarks-error" style={{ color: '#dc2626', margin: 0, fontSize: '0.875rem' }} role="alert">
+                  {noShowRemarksError}
+                </p>
+              )}
+            </div>
+          )}
+        </Modal>
+
+        {toast && (
+          <Toast
+            variant={toast.variant}
+            title={toast.title}
+            description={toast.description}
+            onClose={() => setToast(null)}
+          />
+        )}
+      </div>
     </div>
   )
 }
