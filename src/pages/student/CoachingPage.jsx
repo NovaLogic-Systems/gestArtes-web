@@ -10,10 +10,10 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import Modal from '../../components/ui/Modal'
 import Button from '../../components/ui/Button'
+import ConfirmExecutionModal from '../../components/ConfirmExecutionModal'
 import notificationPreviewService from '../../services/notificationPreviewService'
 import {
   cancelBooking,
-  confirmCompletion,
   createBooking,
   getAvailableSlots,
   getCompatibleStudios,
@@ -25,6 +25,7 @@ const NAV_ITEMS = [
   { label: 'Painel', href: '/student/dashboard' },
   { label: 'Coaching', href: '/student/coaching' },
   { label: 'Mapa de Coaching', href: '/student/coaching/map' },
+  { label: 'Histórico', href: '/student/history' },
   { label: 'Inventário da Escola', href: '/student/inventory' },
   { label: 'As Minhas Rendas', href: '/student/inventory/rentals' },
   { label: 'Marketplace', href: '/student/marketplace' },
@@ -604,19 +605,23 @@ export default function CoachingPage() {
   }, [cancelTarget, cancelJustification, loadSlots, loadHistory])
 
   // ── Confirm completion ─────────────────────────────────────────────
-  const [confirmingId, setConfirmingId] = useState(null)
+  const [confirmExecOpen, setConfirmExecOpen] = useState(false)
+  const [confirmExecSession, setConfirmExecSession] = useState(null)
 
-  const handleConfirmCompletion = useCallback(async (sessionId) => {
-    setConfirmingId(sessionId)
-    try {
-      await confirmCompletion(sessionId)
-      await loadHistory()
-    } catch (err) {
-      alert(err?.response?.data?.error || 'Não foi possível confirmar a sessão.')
-    } finally {
-      setConfirmingId(null)
-    }
-  }, [loadHistory])
+  const handleOpenConfirmExecution = useCallback((session) => {
+    setConfirmExecSession(session)
+    setConfirmExecOpen(true)
+  }, [])
+
+  const handleConfirmed = useCallback((sessionId) => {
+    setSessions((prev) =>
+      prev.map((s) =>
+        s.sessionId === sessionId
+          ? { ...s, status: 'AwaitingFinalValidation', canConfirm: false }
+          : s
+      )
+    )
+  }, [])
 
   // ── Grid rendering ─────────────────────────────────────────────────
   const teachers = slotsData?.teachers ?? []
@@ -915,24 +920,24 @@ export default function CoachingPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {toConfirm.map((s) => (
-                      <tr key={s.sessionId}>
-                        <td>#{s.sessionId}</td>
-                        <td>{s.teachers.map((t) => t.name).join(', ') || '—'}</td>
-                        <td>{formatDateTimePT(s.startTime)}</td>
-                        <td>{s.studioName || '—'}</td>
-                        <td>
-                          <button
-                            type="button"
-                            className="confirm-btn"
-                            disabled={confirmingId === s.sessionId}
-                            onClick={() => handleConfirmCompletion(s.sessionId)}
-                          >
-                            {confirmingId === s.sessionId ? 'A confirmar…' : 'Confirmar execução'}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+              {toConfirm.map((s) => (
+                  <tr key={s.sessionId}>
+                    <td>#{s.sessionId}</td>
+                    <td>{s.teachers.map((t) => t.name).join(', ') || '—'}</td>
+                    <td>{formatDateTimePT(s.startTime)}</td>
+                    <td>{s.studioName || '—'}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="confirm-btn"
+                        onClick={() => handleOpenConfirmExecution(s)}
+                        data-testid={`confirm-exec-${s.sessionId}`}
+                      >
+                        Confirmar execução
+                      </button>
+                    </td>
+                  </tr>
+                ))}
                   </tbody>
                 </table>
               </article>
@@ -1098,6 +1103,14 @@ export default function CoachingPage() {
           </p>
         </div>
       </Modal>
+
+      {/* ── Confirm execution modal (BR-14) ── */}
+      <ConfirmExecutionModal
+        open={confirmExecOpen}
+        session={confirmExecSession}
+        onClose={() => setConfirmExecOpen(false)}
+        onConfirmed={handleConfirmed}
+      />
     </div>
   )
 }

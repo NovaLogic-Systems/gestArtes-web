@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { label: 'Painel', href: '/student/dashboard' },
   { label: 'Coaching', href: '/student/coaching' },
   { label: 'Mapa de Coaching', href: '/student/coaching/map' },
+  { label: 'Histórico', href: '/student/history' },
   { label: 'Inventário da Escola', href: '/student/inventory' },
   { label: 'As Minhas Rendas', href: '/student/inventory/rentals' },
   { label: 'Marketplace', href: '/student/marketplace' },
@@ -185,7 +186,8 @@ export default function DashboardPage() {
 
   const quickActions = [
     { label: 'Nova marcação', to: '/student/coaching' },
-    { label: 'Confirmar execução', to: '/student/coaching#confirmacao' },
+    { label: 'Histórico', to: '/student/history' },
+    { label: 'Confirmar execução', to: '/student/coaching#confirmacao', secondary: true },
     { label: 'Gerir cancelamentos', to: '/student/coaching', secondary: true },
   ]
 

@@ -46,6 +46,7 @@ import ScheduleSubmissionPage from './pages/teacher/ScheduleSubmissionPage'
 import LostFoundAdminPage from './pages/admin/LostFoundAdminPage'
 import CoachingMapPage from './pages/student/CoachingMapPage'
 import CreateCoachingPage from './pages/teacher/CreateCoachingPage'
+import MyHistoryPage from './pages/student/MyHistoryPage'
 
 function PlaceholderPage({ title }) {
   return (
@@ -233,6 +234,7 @@ function App() {
         <Route path="/student/lostfound" element={<LostFoundPage />} />
         <Route path="/student/account" element={<AccountPage />} />
         <Route path="/student/coaching/map" element={<CoachingMapPage />} />
+        <Route path="/student/history" element={<MyHistoryPage />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['teacher']} />}>
