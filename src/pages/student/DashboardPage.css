@@ -1,0 +1,611 @@
+.student-dashboard {
+  --bg: #f8f4fb;
+  --ink: #1f1c2e;
+  --muted: #6d6480;
+  --line: #e2d9eb;
+  --panel: #ffffff;
+  --teal: #0b9d8f;
+  --teal-dark: #08786d;
+  --coral: #f08a5d;
+  --iris: #6f5ca5;
+  --lavender: #f5edfb;
+  --soft-shadow: 0 14px 36px rgba(31, 28, 46, 0.12);
+  --radius: 16px;
+  color: var(--ink);
+  font-family: 'Space Grotesk', sans-serif;
+  min-height: 100svh;
+  background: linear-gradient(150deg, #fdf7f5 0%, #f7f0fb 45%, #effaf8 100%);
+  width: 100%;
+}
+
+/* ── App shell ──────────────────────────────────────────── */
+.student-dashboard .app-shell {
+  min-height: 100svh;
+  display: grid;
+  grid-template-columns: 290px 1fr;
+}
+
+/* ── Sidebar ────────────────────────────────────────────── */
+.student-dashboard .sidebar {
+  border-right: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  padding: 18px;
+  text-align: left;
+  /* Desktop: normal grid item — no sticky/fixed to avoid layout issues */
+}
+
+/* ── Sidebar overlay (mobile) ───────────────────────────── */
+.student-dashboard .sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 35;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Brand ──────────────────────────────────────────────── */
+.student-dashboard .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.student-dashboard .brand-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--teal), var(--coral));
+  flex-shrink: 0;
+}
+
+.student-dashboard .brand h1 {
+  margin: 0;
+  font-size: 1rem;
+  color: #000;
+}
+
+.student-dashboard .brand p {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* ── Nav ────────────────────────────────────────────────── */
+.student-dashboard .nav-group h2 {
+  margin: 12px 0 6px;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #5f5480;
+}
+
+.student-dashboard .nav-link {
+  display: block;
+  text-decoration: none;
+  border-radius: 10px;
+  padding: 9px 14px;
+  color: #2e2942;
+  margin-bottom: 4px;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.student-dashboard button.nav-link {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.student-dashboard .nav-link:hover,
+.student-dashboard .nav-link.active {
+  background: var(--lavender);
+}
+
+.student-dashboard .nav-link:focus-visible {
+  outline: 2px solid var(--iris);
+  outline-offset: 2px;
+}
+
+/* ── Main ───────────────────────────────────────────────── */
+.student-dashboard .main {
+  padding: 18px 20px 24px;
+  min-width: 0;
+}
+
+/* ── Topbar ─────────────────────────────────────────────── */
+.student-dashboard .topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  /* NO flex-wrap here — topbar stays single row on desktop */
+}
+
+.student-dashboard .topbar-left {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.student-dashboard .topbar-left h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.student-dashboard .topbar-left p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.student-dashboard .topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 1024px) {
+  .student-dashboard .topbar-right {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    z-index: 10;
+  }
+
+  .student-dashboard .topbar-right .cta,
+  .student-dashboard .topbar-right .pill {
+    flex: 0 1 auto;
+    max-width: 100%;
+  }
+}
+
+
+/* ── Sidebar toggle button (hamburger on mobile, collapse on desktop) */
+.student-dashboard .sidebar-toggle-btn {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--ink);
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.student-dashboard .sidebar-toggle-btn:hover {
+  background: var(--lavender);
+}
+
+.student-dashboard .sidebar-toggle-btn:focus-visible {
+  outline: 2px solid var(--iris);
+  outline-offset: 2px;
+}
+
+/* Hide legacy menu-toggle — sidebar-toggle-btn handles both */
+.student-dashboard .menu-toggle {
+  display: none;
+}
+
+/* ── Search ─────────────────────────────────────────────── */
+.student-dashboard .search {
+  width: 260px;
+  max-width: 100%;
+  border-radius: 999px;
+  border: 1px solid #d7ccdf;
+  padding: 9px 12px;
+  font: inherit;
+  color-scheme: light;
+  background: #fff;
+  color: #2e2942;
+}
+
+.student-dashboard .search:focus-visible,
+.student-dashboard .search:focus {
+  outline: 2px solid var(--iris);
+  outline-offset: 2px;
+  border-color: var(--iris);
+}
+
+/* ── Pills ──────────────────────────────────────────────── */
+.student-dashboard .pill {
+  border: 1px solid #f2c2af;
+  border-radius: 999px;
+  background: #fff3ee;
+  color: #8c402a;
+  padding: 8px 12px;
+  text-decoration: none;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.student-dashboard .notifications-pill {
+  cursor: pointer;
+  font: inherit;
+}
+
+/* ── Notifications popover ──────────────────────────────── */
+.student-dashboard .notifications-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: min(360px, 90vw);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 18px 36px rgba(20, 14, 30, 0.22);
+  z-index: 50;
+  overflow: hidden;
+}
+
+.student-dashboard .notifications-popover-header {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.student-dashboard .notifications-state {
+  margin: 0;
+  padding: 12px;
+  color: var(--muted);
+}
+
+.student-dashboard .notifications-state.error {
+  color: #8b2e39;
+}
+
+.student-dashboard .notifications-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+  display: grid;
+  gap: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.student-dashboard .notifications-item {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: #fff;
+}
+
+.student-dashboard .notifications-item strong {
+  display: block;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.student-dashboard .notifications-item p {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+
+.student-dashboard .notifications-item small {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.student-dashboard .notifications-more-link {
+  display: block;
+  border-top: 1px solid var(--line);
+  text-align: center;
+  text-decoration: none;
+  font-weight: 600;
+  color: #0a7a70;
+  padding: 10px;
+}
+
+.student-dashboard .notifications-more-link:hover {
+  background: var(--lavender);
+}
+
+.student-dashboard .notifications-more-link:focus-visible {
+  outline: 2px solid var(--iris);
+  outline-offset: -2px;
+}
+
+/* ── Content layouts ────────────────────────────────────── */
+.student-dashboard .content-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.student-dashboard .kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.student-dashboard .kpi {
+  background: linear-gradient(145deg, #fff8f5, #f1fbf8);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.student-dashboard .kpi h3 {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #4c4666;
+}
+
+.student-dashboard .kpi strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 1.7rem;
+  color: var(--teal-dark);
+}
+
+.student-dashboard .split {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 14px;
+}
+
+/* ── Panels ─────────────────────────────────────────────── */
+.student-dashboard .panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--soft-shadow);
+  padding: 16px;
+}
+
+.student-dashboard .panel h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.student-dashboard .panel-subtle {
+  margin-top: 0;
+  color: var(--muted);
+}
+
+/* ── Tables ─────────────────────────────────────────────── */
+.student-dashboard table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.student-dashboard th,
+.student-dashboard td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid #efe8f7;
+  font-size: 0.9rem;
+}
+
+.student-dashboard th {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6d6480;
+}
+
+/* Responsive table wrapper — wrap any <table> in this div */
+.student-dashboard .table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius);
+}
+
+/* ── Badges ─────────────────────────────────────────────── */
+.student-dashboard .badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.student-dashboard .badge.ok {
+  color: #0f6a62;
+  background: #e4f8f4;
+}
+
+.student-dashboard .badge.warn {
+  color: #7b4a14;
+  background: #ffefd8;
+}
+
+.student-dashboard .badge.danger {
+  color: #8b2e39;
+  background: #fde3e8;
+}
+
+/* ── Buttons / CTAs ─────────────────────────────────────── */
+.student-dashboard .quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.student-dashboard .cta {
+  display: inline-block;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 13px;
+  text-decoration: none;
+  color: #fff;
+  background: linear-gradient(135deg, var(--teal), #10b2a3);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.88rem;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.student-dashboard .cta:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.student-dashboard .cta:focus-visible {
+  outline: 2px solid var(--iris);
+  outline-offset: 3px;
+}
+
+.student-dashboard .cta.secondary {
+  background: linear-gradient(135deg, #55436d, #6a5490);
+}
+
+/* ── Misc ───────────────────────────────────────────────── */
+.student-dashboard .list {
+  margin: 0;
+  padding-left: 16px;
+  display: grid;
+  gap: 8px;
+  color: #4e4664;
+  font-size: 0.9rem;
+}
+
+.student-dashboard .empty {
+  padding: 16px 8px;
+  color: #766d89;
+  font-size: 0.9rem;
+}
+
+.student-dashboard .error-banner {
+  border: 1px solid #f3c6cc;
+  background: #fff3f5;
+  color: #8b2e39;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+}
+
+/* Screen-reader only utility class */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Responsive: tablet + mobile (≤ 1024px) ─────────────── */
+@media (max-width: 1024px) {
+  .student-dashboard .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  /* Hide sidebar by default on mobile; reveal as fixed slide-in overlay */
+  .student-dashboard .sidebar {
+    display: none;
+    position: fixed;
+    inset: 0 auto 0 0;
+    height: 100%;
+    width: min(290px, 85vw);
+    box-shadow: 4px 0 32px rgba(0, 0, 0, 0.18);
+    z-index: 40;
+    overflow-y: auto;
+  }
+
+  .student-dashboard .sidebar.open {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .student-dashboard .split {
+    grid-template-columns: 1fr;
+  }
+
+  .student-dashboard .topbar {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding-top: 0;
+    min-height: 0;
+  }
+
+  .student-dashboard .topbar-left {
+    display: flex;
+    width: 100%;
+  }
+
+  .student-dashboard .topbar-left p {
+    margin-top: 4px;
+  }
+
+  .student-dashboard .main {
+    padding: 12px 14px 20px;
+  }
+}
+
+/* ── Responsive: small phones (≤ 480px) ─────────────────── */
+@media (max-width: 480px) {
+  .student-dashboard .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .student-dashboard .search {
+    width: 100%;
+    max-width: unset;
+  }
+
+  .student-dashboard .topbar-right {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: center;
+    width: 100%;
+    z-index: 10;
+    gap: 6px;
+  }
+
+  .student-dashboard .topbar-right .cta,
+  .student-dashboard .topbar-right .pill {
+    flex: 1 1 calc(50% - 3px);
+    justify-content: center;
+    font-size: 0.82rem;
+    padding: 6px 10px;
+    max-width: 100%;
+  }
+}
+
+/* ── Desktop: sidebar collapsed state ───────────────────── */
+@media (min-width: 1025px) {
+  /* Sidebar visible by default — grid handles the column */
+  .student-dashboard .app-shell {
+    grid-template-columns: 290px 1fr;
+  }
+
+  /* When user collapses the sidebar, remove the column */
+  .student-dashboard .app-shell.sidebar-hidden {
+    grid-template-columns: 1fr;
+  }
+
+  .student-dashboard .app-shell.sidebar-hidden .sidebar {
+    display: none;
+  }
+}
