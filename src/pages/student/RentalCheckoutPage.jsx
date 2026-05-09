@@ -152,7 +152,6 @@ export default function RentalCheckoutPage() {
 					<header className="topbar">
 						<div className="topbar-left">
 							<h2>Pedido de aluguer</h2>
-							<p>Resumo final antes de enviar o pedido para validação da administração.</p>
 						</div>
 						<div className="topbar-right">
 							<Button as={Link} variant="secondary" size="sm" to="/student/inventory">
@@ -160,15 +159,6 @@ export default function RentalCheckoutPage() {
 							</Button>
 						</div>
 					</header>
-
-					<section className="inventory-checkout-banner">
-						<div>
-							<p className="inventory-kicker">Inventário da escola</p>
-							<h3>Este pedido segue para aprovação da administração.</h3>
-							<p>Não existe gateway online. Se for aprovado, pagas e levantas o artigo diretamente na escola.</p>
-						</div>
-						<Badge variant="warning">Pagamento na escola</Badge>
-					</section>
 
 					<section className="inventory-layout inventory-checkout-layout">
 						<article className="panel inventory-summary-panel">

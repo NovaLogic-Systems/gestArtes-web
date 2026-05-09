@@ -26,6 +26,7 @@ import JoinRequestsTeacherView from './components/JoinRequestsTeacherView'
 import AdmissionRequestsPage from './pages/teacher/AdmissionRequestsPage'
 import SessionConfirmationPage from './pages/teacher/SessionConfirmationPage'
 import TeacherMarketplaceConversationsPage from './pages/teacher/TeacherMarketplaceConversationsPage'
+import TeacherInventoryPage from './pages/teacher/InventoryPage'
 import InventoryPage from './pages/student/InventoryPage'
 import LostFoundPage from './pages/student/LostFoundPage'
 import RentalCheckoutPage from './pages/student/RentalCheckoutPage'
@@ -235,17 +236,14 @@ function App() {
         <Route path="/teacher/admission-requests" element={<AdmissionRequestsPage />} />
         <Route path="/teacher/sessions/confirmation" element={<SessionConfirmationPage />} />
         <Route path="/teacher/schedule" element={<ProtectedPlaceholderPage title="Horário" />} />
-        <Route path="/teacher/availability" element={<ProtectedPlaceholderPage title="Disponibilidade" />} />
+        <Route path="/teacher/availability" element={<ScheduleSubmissionPage />} />
         <Route path="/teacher/coaching" element={<ProtectedPlaceholderPage title="Coaching" />} />
-        <Route path="/teacher/inventory" element={<ProtectedPlaceholderPage title="Inventário da Escola" />} />
-        <Route path="/teacher/marketplace" element={<ProtectedPlaceholderPage title="Marketplace" />} />
-        <Route path="/teacher/account" element={<ProtectedPlaceholderPage title="Minha Conta" />} />
-            <Route path="/teacher/marketplace/conversas" element={<TeacherMarketplaceConversationsPage />} />
-        <Route path="/teacher/marketplace/conversas" element={<TeacherMarketplaceConversationsPage />} />
+        <Route path="/teacher/inventory" element={<TeacherInventoryPage />} />
         <Route path="/teacher/marketplace" element={<TeacherMarketplacePage />} />
+        <Route path="/teacher/marketplace/conversas" element={<TeacherMarketplaceConversationsPage />} />
         <Route path="/teacher/marketplace/my-listings" element={<TeacherMarketplaceListingsPage />} />
         <Route path="/teacher/notifications" element={<NotificationsPage />} />
-        <Route path="/teacher/availability" element={<ScheduleSubmissionPage />} />
+        <Route path="/teacher/account" element={<ProtectedPlaceholderPage title="Minha Conta" />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
