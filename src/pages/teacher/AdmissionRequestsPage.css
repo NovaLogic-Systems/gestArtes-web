@@ -302,16 +302,6 @@
 }
 
 .teacher-admission-requests .notifications-more-link:hover {
-  background: #fafafa;
-}
-
-font-weight: 700;
-color: #0b7f73;
-padding: 12px 16px;
-background: linear-gradient(180deg, rgba(11, 127, 115, 0.06), transparent);
-}
-
-.teacher-admission-requests .notifications-more-link:hover {
   background: linear-gradient(180deg, rgba(11, 127, 115, 0.08), rgba(11, 127, 115, 0.02));
 }
 

@@ -18,6 +18,11 @@ function mapUser(entry) {
     createdAt: entry?.createdAt ?? entry?.CreatedAt ?? null,
     role: String(entry?.role || '').trim().toLowerCase(),
     roleLabel: String(entry?.roleLabel || entry?.role || '').trim(),
+    roles: Array.isArray(entry?.roles) ? entry.roles : [],
+    studentNumber: entry?.studentNumber || '',
+    birthDate: entry?.birthDate || null,
+    guardianName: entry?.guardianName || '',
+    guardianPhone: entry?.guardianPhone || '',
   }
 }
 
@@ -35,6 +40,16 @@ const adminUsersService = {
 
   async createUser(payload) {
     const response = await api.post('/admin/users', payload)
+    return mapUser(response.data?.user ?? response.data)
+  },
+
+  async updateUser(userId, payload) {
+    const response = await api.patch(`/admin/users/${userId}`, payload)
+    return mapUser(response.data?.user ?? response.data)
+  },
+
+  async updateUserRoles(userId, payload) {
+    const response = await api.patch(`/admin/users/${userId}/roles`, payload)
     return mapUser(response.data?.user ?? response.data)
   },
 }
