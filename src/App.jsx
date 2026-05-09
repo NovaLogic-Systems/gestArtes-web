@@ -37,6 +37,7 @@ import TeacherMarketplacePage from './pages/teacher/MarketplacePage'
 import TeacherMarketplaceListingsPage from './pages/teacher/MyListingsPage'
 import TeacherLayout from './components/layout/teacher/TeacherLayout';
 import NotificationsPage from './pages/teacher/NotificationsPage';
+import StudentNotificationsPage from './pages/student/NotificationsPage';
 
 function PlaceholderPage({ title }) {
   return (
@@ -242,7 +243,6 @@ function App() {
         <Route path="/teacher/inventory" element={<ProtectedPlaceholderPage title="Inventário da Escola" />} />
         <Route path="/teacher/marketplace" element={<ProtectedPlaceholderPage title="Marketplace" />} />
         <Route path="/teacher/account" element={<ProtectedPlaceholderPage title="Minha Conta" />} />
-            <Route path="/teacher/marketplace/conversas" element={<TeacherMarketplaceConversationsPage />} />
         <Route path="/teacher/marketplace/conversas" element={<TeacherMarketplaceConversationsPage />} />
         <Route path="/teacher/marketplace" element={<TeacherMarketplacePage />} />
         <Route path="/teacher/marketplace/my-listings" element={<TeacherMarketplaceListingsPage />} />
