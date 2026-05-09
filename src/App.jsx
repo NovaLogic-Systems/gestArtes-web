@@ -27,6 +27,7 @@ import TeacherMarketplaceConversationsPage from './pages/teacher/TeacherMarketpl
 import InventoryPage from './pages/student/InventoryPage'
 import RentalCheckoutPage from './pages/student/RentalCheckoutPage'
 import RentalRequestsPage from './pages/student/RentalRequestsPage'
+import TeacherDashboardPage from './pages/teacher/DashboardPage'
 import MarketplacePage from './pages/student/MarketplacePage'
 import MarketplaceConversationsPage from './pages/student/MarketplaceConversationsPage'
 import MyListingsPage from './pages/student/MyListingsPage'
@@ -230,9 +231,16 @@ function App() {
 
       <Route element={<ProtectedRoute allowedRoles={['teacher']} />}>
         <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
-        <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
+        <Route path="/teacher/dashboard" element={<TeacherDashboardPage />} />
         <Route path="/teacher/admission-requests" element={<AdmissionRequestsPage />} />
         <Route path="/teacher/sessions/confirmation" element={<SessionConfirmationPage />} />
+        <Route path="/teacher/schedule" element={<ProtectedPlaceholderPage title="Horário" />} />
+        <Route path="/teacher/availability" element={<ProtectedPlaceholderPage title="Disponibilidade" />} />
+        <Route path="/teacher/coaching" element={<ProtectedPlaceholderPage title="Coaching" />} />
+        <Route path="/teacher/inventory" element={<ProtectedPlaceholderPage title="Inventário da Escola" />} />
+        <Route path="/teacher/marketplace" element={<ProtectedPlaceholderPage title="Marketplace" />} />
+        <Route path="/teacher/account" element={<ProtectedPlaceholderPage title="Minha Conta" />} />
+            <Route path="/teacher/marketplace/conversas" element={<TeacherMarketplaceConversationsPage />} />
         <Route path="/teacher/marketplace/conversas" element={<TeacherMarketplaceConversationsPage />} />
         <Route path="/teacher/marketplace" element={<TeacherMarketplacePage />} />
         <Route path="/teacher/marketplace/my-listings" element={<TeacherMarketplaceListingsPage />} />
