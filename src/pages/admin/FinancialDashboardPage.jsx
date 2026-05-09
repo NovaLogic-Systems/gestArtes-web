@@ -90,8 +90,17 @@ export default function FinancialDashboardPage() {
         setTransactions(Array.isArray(txRes.data?.items) ? txRes.data.items : [])
         setTransactionTotal(txRes.data?.total ?? 0)
         setRevenue(revRes.data)
-      } catch {
-        if (!cancelled) setError('Não foi possível carregar os dados financeiros.')
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Erro ao carregar dados financeiros:', {
+            message: err?.message,
+            status: err?.response?.status,
+            statusText: err?.response?.statusText,
+            data: err?.response?.data,
+            url: err?.config?.url,
+          })
+          setError('Não foi possível carregar os dados financeiros.')
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
