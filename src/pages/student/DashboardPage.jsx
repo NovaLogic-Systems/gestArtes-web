@@ -191,6 +191,7 @@ export default function DashboardPage() {
 
   return (
     <div className="student-dashboard">
+      <a href="#main-content" className="skip-to-content">Ir para o conteúdo principal</a>
       <div className={appShellClassName}>
         {isMobile && mobileOpen ? (
           <button
@@ -209,7 +210,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="nav-group">
+          <nav className="nav-group" aria-label="Navegação do aluno">
             <h2>Aluno</h2>
             {NAV_ITEMS.map((item) => {
               const isActive = location.pathname === item.href || location.pathname.startsWith(`${item.href}/`)
@@ -219,6 +220,7 @@ export default function DashboardPage() {
                   key={item.href}
                   className={`nav-link${isActive ? ' active' : ''}`}
                   to={item.href}
+                  aria-current={isActive ? 'page' : undefined}
                   onClick={handleMobileNavClick}
                 >
                   {item.label}
@@ -235,7 +237,7 @@ export default function DashboardPage() {
             >
               Terminar Sessão
             </button>
-          </div>
+          </nav>
         </aside>
 
         <main className="main page-transition">
@@ -245,23 +247,27 @@ export default function DashboardPage() {
                 type="button"
                 className="sidebar-toggle-btn"
                 aria-label={sidebarToggleLabel}
+                aria-controls="sidebar"
+                aria-expanded={mobileOpen}
                 onClick={handleSidebarToggle}
               >
                 {sidebarToggleSymbol}
               </button>
-              <button className="menu-toggle" id="menuToggle" type="button" aria-controls="sidebar" aria-expanded={mobileOpen} aria-label={mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'} onClick={() => setMobileOpen((current) => !current)}>
-                ☰ Menu
-              </button>
-              <h2>Painel Aluno</h2>
-              <p>Visão geral de marcações, validações e comunicações da escola</p>
+              <div>
+                <h2 id="main-content">Painel Aluno</h2>
+                <p>Visão geral de marcações, validações e comunicações da escola</p>
+              </div>
             </div>
             <div className="topbar-right">
+              <label htmlFor="dashboard-search" className="sr-only">Pesquisar sessões</label>
               <input
+                id="dashboard-search"
                 className="search"
-                type="text"
+                type="search"
                 placeholder="Pesquisar professor, estúdio ou sessão"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
+                aria-label="Pesquisar sessões"
               />
               <Link className="pill" to="/student/account">
                 Minha Conta
@@ -308,30 +314,32 @@ export default function DashboardPage() {
                 ) : scheduleRows.length === 0 ? (
                   <p className="empty">Sem sessões futuras para mostrar.</p>
                 ) : (
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Data</th>
-                        <th>Hora</th>
-                        <th>Professor</th>
-                        <th>Estúdio</th>
-                        <th>Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {scheduleRows.slice(0, 5).map((row) => (
-                        <tr key={`${row.sessionId}-${row.date}-${row.time}`}>
-                          <td>{formatDateLabel(row.date)}</td>
-                          <td>{row.time || '—'}</td>
-                          <td>{row.teacher || 'Por atribuir'}</td>
-                          <td>{row.studio || '—'}</td>
-                          <td>
-                            <span className={resolveBadgeClass(row.status)}>{resolveBadgeLabel(row.status)}</span>
-                          </td>
+                  <div className="table-scroll" role="region" aria-label="Próximas aulas">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th scope="col">Data</th>
+                          <th scope="col">Hora</th>
+                          <th scope="col">Professor</th>
+                          <th scope="col">Estúdio</th>
+                          <th scope="col">Estado</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {scheduleRows.slice(0, 5).map((row) => (
+                          <tr key={`${row.sessionId}-${row.date}-${row.time}`}>
+                            <td>{formatDateLabel(row.date)}</td>
+                            <td>{row.time || '—'}</td>
+                            <td>{row.teacher || 'Por atribuir'}</td>
+                            <td>{row.studio || '—'}</td>
+                            <td>
+                              <span className={resolveBadgeClass(row.status)}>{resolveBadgeLabel(row.status)}</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </article>
 

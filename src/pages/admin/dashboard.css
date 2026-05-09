@@ -76,6 +76,8 @@
 
 /* Panel - Matching Student Dashboard */
 .panel {
+  min-width: 0;
+  overflow-x: auto;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);

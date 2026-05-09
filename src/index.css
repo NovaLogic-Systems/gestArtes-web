@@ -212,12 +212,6 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --table-head-bg: #252731;
-  }
-}
-
 body {
   margin: 0;
   min-height: 100svh;
@@ -284,4 +278,82 @@ code {
   line-height: 135%;
   padding: 4px 8px;
   background: var(--code-bg);
+}
+
+/* ── Global keyboard focus-visible ring ─────────────────────
+ * Ensures ALL interactive elements get a visible focus indicator
+ * for keyboard-only and assistive technology users.
+ * Using :focus-visible so mouse clicks don't show the ring.
+ * ─────────────────────────────────────────────────────────── */
+*:focus {
+  outline: none; /* Remove browser default — we set our own below */
+}
+
+*:focus-visible {
+  outline: 2px solid #6f5ca5;
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid #6f5ca5;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+a:focus-visible {
+  outline: 2px solid #6f5ca5;
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #6f5ca5;
+  outline-offset: 0;
+  border-color: #6f5ca5 !important;
+}
+
+/* Skip-to-content link for screen readers */
+.skip-to-content {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  background: #6f5ca5;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 0 0 8px 0;
+  font-weight: 600;
+  text-decoration: none;
+  z-index: 9999;
+}
+
+.skip-to-content:focus {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* Responsive image utility */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Remove tap highlight on mobile */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
 }

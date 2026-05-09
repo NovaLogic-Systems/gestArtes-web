@@ -120,6 +120,8 @@ export default function AccountPage() {
 	const [passwordSaving, setPasswordSaving] = useState(false)
 	const [passwordError, setPasswordError] = useState('')
 	const [passwordMessage, setPasswordMessage] = useState('')
+	const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false))
+	const [mobileOpen, setMobileOpen] = useState(false)
 	const [passwordForm, setPasswordForm] = useState({
 		currentPassword: '',
 		newPassword: '',
@@ -135,6 +137,21 @@ export default function AccountPage() {
 	const normalizedPhone = normalizePhoneNumber(profile?.phoneNumber)
 	const phoneDirty = normalizePhoneNumber(phoneNumber) !== normalizedPhone
 	const trainingPlanLabel = splitPlanLabel(trainingPlan?.name)
+	const sidebarClassName = ['sidebar', isMobile && mobileOpen ? 'open' : ''].filter(Boolean).join(' ')
+	const sidebarToggleSymbol = isMobile ? (mobileOpen ? '✕' : '☰') : '☰'
+	const sidebarToggleLabel = mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'
+
+	const handleSidebarToggle = useCallback(() => {
+		if (isMobile) {
+			setMobileOpen((value) => !value)
+		}
+	}, [isMobile])
+
+	const handleMobileNavClick = useCallback(() => {
+		if (isMobile) {
+			setMobileOpen(false)
+		}
+	}, [isMobile])
 
 	const loadAccount = useCallback(async () => {
 		try {
@@ -158,6 +175,22 @@ export default function AccountPage() {
 	useEffect(() => {
 		loadAccount()
 	}, [loadAccount])
+
+	useEffect(() => {
+		const onResize = () => {
+			const mobile = window.innerWidth <= 1024
+			setIsMobile(mobile)
+
+			if (!mobile) {
+				setMobileOpen(false)
+			}
+		}
+
+		window.addEventListener('resize', onResize)
+		onResize()
+
+		return () => window.removeEventListener('resize', onResize)
+	}, [])
 
 	const statCards = useMemo(() => ([
 		{ label: 'Sessões inscritas', value: formatCount(statistics?.totalSessionsEnrolled) },
@@ -261,7 +294,16 @@ export default function AccountPage() {
 	return (
 		<div className="student-dashboard account-page">
 			<div className="app-shell">
-				<aside className="sidebar" id="sidebar">
+				{isMobile && mobileOpen ? (
+					<button
+						type="button"
+						className="sidebar-overlay"
+						aria-label="Fechar navegação lateral"
+						onClick={() => setMobileOpen(false)}
+					/>
+				) : null}
+
+				<aside className={sidebarClassName} id="sidebar">
 					<div className="brand">
 						<span className="brand-dot" />
 						<div>
@@ -276,7 +318,7 @@ export default function AccountPage() {
 							const isActive = location.pathname === item.href || location.pathname.startsWith(`${item.href}/`)
 
 							return (
-								<Link key={item.href} className={`nav-link${isActive ? ' active' : ''}`} to={item.href}>
+								<Link key={item.href} className={`nav-link${isActive ? ' active' : ''}`} to={item.href} onClick={handleMobileNavClick}>
 									{item.label}
 								</Link>
 							)
@@ -298,8 +340,21 @@ export default function AccountPage() {
 				<main className="main page-transition">
 					<header className="topbar">
 						<div className="topbar-left">
-							<h2>Minha Conta</h2>
-							<p>Perfil pessoal, plano formativo e estatísticas da tua conta.</p>
+							<button
+								type="button"
+								className="sidebar-toggle-btn"
+								aria-label={sidebarToggleLabel}
+								aria-controls="sidebar"
+								aria-expanded={mobileOpen}
+								onClick={handleSidebarToggle}
+							>
+								{sidebarToggleSymbol}
+							</button>
+
+							<div>
+								<h2>Minha Conta</h2>
+								<p>Perfil pessoal, plano formativo e estatísticas da tua conta.</p>
+							</div>
 						</div>
 
 						<div className="topbar-right">

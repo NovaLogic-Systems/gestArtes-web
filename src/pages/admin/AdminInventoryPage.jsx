@@ -710,22 +710,22 @@ export default function AdminInventoryPage() {
         </header>
 
         <section className="content-grid" style={{ gap: '1rem' }}>
-          <div className="content-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
-            <article className="panel">
+          <div className="kpi-grid">
+            <article className="kpi">
               <h3>Itens oficiais</h3>
-              <strong style={{ fontSize: '1.7rem' }}>{metrics.allItems}</strong>
+              <strong >{metrics.allItems}</strong>
             </article>
-            <article className="panel">
+            <article className="kpi">
               <h3>Unidades disponíveis</h3>
-              <strong style={{ fontSize: '1.7rem' }}>{metrics.availableUnits}</strong>
+              <strong >{metrics.availableUnits}</strong>
             </article>
-            <article className="panel">
+            <article className="kpi">
               <h3>Unidades reservadas</h3>
-              <strong style={{ fontSize: '1.7rem' }}>{metrics.reservedUnits}</strong>
+              <strong >{metrics.reservedUnits}</strong>
             </article>
-            <article className="panel">
+            <article className="kpi">
               <h3>Devoluções por validar</h3>
-              <strong style={{ fontSize: '1.7rem' }}>{metrics.rentalsActive}</strong>
+              <strong >{metrics.rentalsActive}</strong>
             </article>
           </div>
 

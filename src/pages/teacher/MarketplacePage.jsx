@@ -64,6 +64,8 @@ export default function TeacherMarketplacePage() {
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false))
+  const [mobileOpen, setMobileOpen] = useState(false)
   const [searchHistory, setSearchHistory] = useState(loadSearchHistory)
 
   const [filters, setFilters] = useState({
@@ -75,6 +77,21 @@ export default function TeacherMarketplacePage() {
   })
 
   const teacherName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Professor'
+  const sidebarClassName = ['sidebar', isMobile && mobileOpen ? 'open' : ''].filter(Boolean).join(' ')
+  const sidebarToggleSymbol = isMobile ? (mobileOpen ? '✕' : '☰') : '☰'
+  const sidebarToggleLabel = mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'
+
+  const handleSidebarToggle = useCallback(() => {
+    if (isMobile) {
+      setMobileOpen((value) => !value)
+    }
+  }, [isMobile])
+
+  const handleMobileNavClick = useCallback(() => {
+    if (isMobile) {
+      setMobileOpen(false)
+    }
+  }, [isMobile])
 
   const loadData = useCallback(async () => {
     try {
@@ -110,6 +127,22 @@ export default function TeacherMarketplacePage() {
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  useEffect(() => {
+    const onResize = () => {
+      const mobile = window.innerWidth <= 1024
+      setIsMobile(mobile)
+
+      if (!mobile) {
+        setMobileOpen(false)
+      }
+    }
+
+    window.addEventListener('resize', onResize)
+    onResize()
+
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   const filteredListings = useMemo(() => {
     const search = filters.search.trim().toLowerCase()
@@ -204,7 +237,16 @@ export default function TeacherMarketplacePage() {
   return (
     <div className="student-dashboard market-page">
       <div className="app-shell">
-        <aside className="sidebar" id="sidebar">
+        {isMobile && mobileOpen ? (
+          <button
+            type="button"
+            className="sidebar-overlay"
+            aria-label="Fechar navegação lateral"
+            onClick={() => setMobileOpen(false)}
+          />
+        ) : null}
+
+        <aside className={sidebarClassName} id="sidebar">
           <div className="brand">
             <span className="brand-dot" />
             <div>
@@ -219,7 +261,7 @@ export default function TeacherMarketplacePage() {
               const isActive = location.pathname === item.href || location.pathname.startsWith(`${item.href}/`)
 
               return (
-                <Link key={item.href} className={`nav-link${isActive ? ' active' : ''}`} to={item.href}>
+                <Link key={item.href} className={`nav-link${isActive ? ' active' : ''}`} to={item.href} onClick={handleMobileNavClick}>
                   {item.label}
                 </Link>
               )
@@ -241,8 +283,20 @@ export default function TeacherMarketplacePage() {
         <main className="main">
           <header className="topbar">
             <div className="topbar-left">
-              <h2>Marketplace da Comunidade</h2>
-              <p>Explora artigos, encontra servicos e publica os teus anuncios.</p>
+              <button
+                type="button"
+                className="sidebar-toggle-btn"
+                aria-label={sidebarToggleLabel}
+                aria-controls="sidebar"
+                aria-expanded={mobileOpen}
+                onClick={handleSidebarToggle}
+              >
+                {sidebarToggleSymbol}
+              </button>
+              <div>
+                <h2>Marketplace da Comunidade</h2>
+                <p>Explora artigos, encontra servicos e publica os teus anuncios.</p>
+              </div>
             </div>
 
             <div className="topbar-right">

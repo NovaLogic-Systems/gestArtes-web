@@ -58,6 +58,7 @@ body.studio-page #root {
 
 .app-shell {
   width: 100%;
+  overflow-x: hidden;
   min-height: 100svh;
   display: grid;
   grid-template-columns: 290px minmax(0, 1fr);
@@ -130,6 +131,7 @@ body.studio-page #root {
 }
 
 .app-shell .main {
+  overflow-x: hidden;
   padding: 18px 20px 24px;
   min-width: 0;
 }
@@ -271,6 +273,8 @@ body.studio-page #root {
 }
 
 .app-shell .panel {
+  min-width: 0;
+  overflow-x: auto;
   background: var(--studio-panel);
   border: 1px solid var(--studio-line);
   border-radius: 16px;
@@ -930,7 +934,20 @@ body.studio-page #root {
     transform: translateX(0);
   }
 
+  .app-shell .topbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .app-shell .topbar-right {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
   .app-shell .main {
+  overflow-x: hidden;
     padding: 18px 16px 20px;
   }
 
@@ -943,42 +960,42 @@ body.studio-page #root {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .app-shell .occupancy-card-actions>* {
+  .app-shell .occupancy-card-actions > * {
     flex: 1 1 100%;
-
-    .app-shell .marketplace-preview-grid {
-      grid-template-columns: 1fr;
-    }
   }
 
-  @media (max-width: 720px) {
-    .app-shell .topbar {
-      align-items: flex-start;
-      flex-direction: column;
-    }
-
-    .app-shell .topbar-right {
-      width: 100%;
-      justify-content: flex-start;
-    }
-
-    .app-shell .panel-header {
-      align-items: stretch;
-      flex-direction: column;
-    }
-
-    .app-shell .quick-actions,
-    .app-shell .card-actions {
-      justify-content: stretch;
-    }
-
-    .app-shell .quick-actions>*,
-    .app-shell .card-actions>* {
-      flex: 1 1 100%;
-    }
-
-    .app-shell .occupancy-kpis,
-    .app-shell .occupancy-studios-grid {
-      grid-template-columns: 1fr;
-    }
+  .app-shell .marketplace-preview-grid {
+    grid-template-columns: 1fr;
   }
+}
+
+@media (max-width: 720px) {
+  .app-shell .topbar {
+    align-items: flex-start;
+  }
+
+  .app-shell .topbar-right {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .app-shell .panel-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .app-shell .quick-actions,
+  .app-shell .card-actions {
+    justify-content: stretch;
+  }
+
+  .app-shell .quick-actions > *,
+  .app-shell .card-actions > * {
+    flex: 1 1 100%;
+  }
+
+  .app-shell .occupancy-kpis,
+  .app-shell .occupancy-studios-grid {
+    grid-template-columns: 1fr;
+  }
+}

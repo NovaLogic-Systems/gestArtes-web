@@ -7,10 +7,14 @@
   --inventory-shadow: 0 14px 36px rgba(31, 28, 46, 0.12);
   background: linear-gradient(150deg, #fdf7f5 0%, #f7f0fb 45%, #effaf8 100%);
   min-height: 100svh;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 .inventory-page .main {
   padding-bottom: 28px;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .inventory-banner,
@@ -419,18 +423,23 @@
 }
 
 @media (max-width: 1024px) {
+  .inventory-page .main {
+    padding: 12px 14px 20px;
+  }
 
   .inventory-layout,
   .inventory-checkout-layout,
   .inventory-detail-grid,
   .inventory-checkout-fields {
     grid-template-columns: 1fr;
+    min-width: 0;
   }
 
   .inventory-banner,
   .inventory-checkout-banner {
     align-items: start;
     flex-direction: column;
+    gap: 0.5rem;
   }
 
   .inventory-modal-actions,

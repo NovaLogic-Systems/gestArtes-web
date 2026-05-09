@@ -36,8 +36,25 @@ export default function TeacherMarketplaceConversationsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
+  const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false))
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   const teacherName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Professor'
+  const sidebarClassName = ['sidebar', isMobile && mobileOpen ? 'open' : ''].filter(Boolean).join(' ')
+  const sidebarToggleSymbol = isMobile ? (mobileOpen ? '✕' : '☰') : '☰'
+  const sidebarToggleLabel = mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'
+
+  const handleSidebarToggle = useCallback(() => {
+    if (isMobile) {
+      setMobileOpen((value) => !value)
+    }
+  }, [isMobile])
+
+  const handleMobileNavClick = useCallback(() => {
+    if (isMobile) {
+      setMobileOpen(false)
+    }
+  }, [isMobile])
 
   const loadConversations = useCallback(async () => {
     try {
@@ -73,6 +90,22 @@ export default function TeacherMarketplaceConversationsPage() {
     loadConversations()
   }, [loadConversations])
 
+  useEffect(() => {
+    const onResize = () => {
+      const mobile = window.innerWidth <= 1024
+      setIsMobile(mobile)
+
+      if (!mobile) {
+        setMobileOpen(false)
+      }
+    }
+
+    window.addEventListener('resize', onResize)
+    onResize()
+
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
   const filteredListings = useMemo(() => {
     const term = search.trim().toLowerCase()
 
@@ -100,7 +133,16 @@ export default function TeacherMarketplaceConversationsPage() {
   return (
     <div className="teacher-dashboard market-page">
       <div className="app-shell">
-        <aside className="sidebar" id="sidebar">
+        {isMobile && mobileOpen ? (
+          <button
+            type="button"
+            className="sidebar-overlay"
+            aria-label="Fechar navegação lateral"
+            onClick={() => setMobileOpen(false)}
+          />
+        ) : null}
+
+        <aside className={sidebarClassName} id="sidebar">
           <div className="brand">
             <span className="brand-dot" />
             <div>
@@ -115,7 +157,7 @@ export default function TeacherMarketplaceConversationsPage() {
               const isActive = location.pathname === item.href || location.pathname.startsWith(`${item.href}/`)
 
               return (
-                <Link key={item.href} className={`nav-link${isActive ? ' active' : ''}`} to={item.href}>
+                <Link key={item.href} className={`nav-link${isActive ? ' active' : ''}`} to={item.href} onClick={handleMobileNavClick}>
                   {item.label}
                 </Link>
               )
@@ -137,8 +179,20 @@ export default function TeacherMarketplaceConversationsPage() {
         <main className="main">
           <header className="topbar">
             <div className="topbar-left">
-              <h2>Conversas</h2>
-              <p>Lista de contactos dos alunos interessados nas suas ofertas do marketplace.</p>
+              <button
+                type="button"
+                className="sidebar-toggle-btn"
+                aria-label={sidebarToggleLabel}
+                aria-controls="sidebar"
+                aria-expanded={mobileOpen}
+                onClick={handleSidebarToggle}
+              >
+                {sidebarToggleSymbol}
+              </button>
+              <div>
+                <h2>Conversas</h2>
+                <p>Lista de contactos dos alunos interessados nas suas ofertas do marketplace.</p>
+              </div>
             </div>
             <div className="topbar-right">
               <Link className="pill" to="/teacher/marketplace">

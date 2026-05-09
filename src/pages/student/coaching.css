@@ -568,6 +568,64 @@
 }
 
 /* Responsive */
+
+@media (max-width: 1024px) {
+  .coaching-page .topbar {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding-top: 0;
+    min-height: 0;
+  }
+
+  .coaching-page .topbar-left {
+    display: flex;
+    width: 100%;
+    flex-wrap: nowrap;
+  }
+
+  .coaching-page .topbar-left p {
+    margin-top: 4px;
+    flex-basis: auto;
+  }
+
+  .coaching-page .topbar-right {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    z-index: 10;
+  }
+
+  .coaching-page .topbar-right .cta,
+  .coaching-page .topbar-right .pill,
+  .coaching-page .topbar-right .menu-toggle,
+  .coaching-page .topbar-right .sidebar-toggle-btn {
+    flex: 0 1 auto;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .coaching-page .topbar-right {
+    gap: 6px;
+  }
+
+  .coaching-page .topbar-right .cta,
+  .coaching-page .topbar-right .pill,
+  .coaching-page .topbar-right .menu-toggle,
+  .coaching-page .topbar-right .sidebar-toggle-btn {
+    flex: 1 1 calc(50% - 3px);
+    justify-content: center;
+    font-size: 0.82rem;
+    padding: 6px 10px;
+  }
+}
+
 @media (max-width: 1024px) {
   .coaching-page .app-shell {
     grid-template-columns: 1fr;

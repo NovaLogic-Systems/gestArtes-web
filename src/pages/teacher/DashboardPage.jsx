@@ -153,8 +153,7 @@ export default function DashboardPage() {
   const displayName =
     [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'Professor'
 
-  const sidebarHidden = isMobile || sidebarCollapsed
-  const appShellClassName = ['app-shell', sidebarHidden ? 'sidebar-hidden' : ''].filter(Boolean).join(' ')
+  const appShellClassName = ['app-shell', !isMobile && sidebarCollapsed ? 'sidebar-hidden' : ''].filter(Boolean).join(' ')
   const sidebarClassName = ['sidebar', isMobile && mobileOpen ? 'open' : ''].filter(Boolean).join(' ')
   const sidebarToggleSymbol = isMobile ? (mobileOpen ? '✕' : '☰') : (sidebarCollapsed ? '▶' : '◀')
   const sidebarToggleLabel = isMobile
@@ -177,7 +176,11 @@ export default function DashboardPage() {
     const onResize = () => {
       const mobile = window.innerWidth <= 1024
       setIsMobile(mobile)
-      if (!mobile) setMobileOpen(false)
+      if (!mobile) {
+        setMobileOpen(false)
+      } else {
+        setSidebarCollapsed(false)
+      }
     }
     window.addEventListener('resize', onResize)
     onResize()
@@ -247,10 +250,6 @@ export default function DashboardPage() {
     setNotificationsOpen(next)
     if (next && !notificationsLoaded) void loadNotificationPreview()
   }, [loadNotificationPreview, notificationsLoaded, notificationsOpen])
-
-  function showComingSoonToast() {
-    setToast({ title: 'Em breve', description: 'Funcionalidade em breve disponível.', variant: 'info' })
-  }
 
   return (
     <div className="teacher-dashboard">
@@ -440,13 +439,13 @@ export default function DashboardPage() {
                 <h3>Ações rápidas</h3>
                 <p className="panel-subtle">Operações do dia a dia.</p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  <Button variant="cta" type="button" onClick={showComingSoonToast}>
+                  <Button variant="cta" as={Link} to="/teacher/availability">
                     Submeter disponibilidade
                   </Button>
-                  <Button variant="cta" type="button" onClick={showComingSoonToast}>
+                  <Button variant="cta" as={Link} to="/teacher/sessions/confirmation">
                     Confirmar conclusão
                   </Button>
-                  <Button variant="ctaSecondary" type="button" onClick={showComingSoonToast}>
+                  <Button variant="ctaSecondary" as={Link} to="/teacher/sessions/confirmation">
                     Registar falta sem aviso
                   </Button>
                 </div>

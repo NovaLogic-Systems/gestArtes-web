@@ -10,9 +10,13 @@ import './NotificationsPage.css'
 const NAV_ITEMS = [
   { label: 'Painel', href: '/student/dashboard' },
   { label: 'Coaching', href: '/student/coaching' },
+  { label: 'Mapa de Coaching', href: '/student/coaching/map' },
   { label: 'Inventário da Escola', href: '/student/inventory' },
+  { label: 'As Minhas Rendas', href: '/student/inventory/rentals' },
   { label: 'Marketplace', href: '/student/marketplace' },
+  { label: 'Os Meus Anúncios', href: '/student/marketplace/my-listings' },
   { label: 'Perdidos e Achados', href: '/student/lostfound' },
+  { label: 'Notificações', href: '/student/notifications' },
   { label: 'Minha Conta', href: '/student/account' },
 ]
 
@@ -126,7 +130,7 @@ export default function NotificationsPage() {
             </div>
           </div>
 
-          <div className="nav-group">
+          <nav className="nav-group" aria-label="Navegação do aluno">
             <h2>Aluno</h2>
             {NAV_ITEMS.map((item) => {
               const isActive = location.pathname === item.href || location.pathname.startsWith(`${item.href}/`)
@@ -136,6 +140,7 @@ export default function NotificationsPage() {
                   key={item.href}
                   className={`nav-link${isActive ? ' active' : ''}`}
                   to={item.href}
+                  aria-current={isActive ? 'page' : undefined}
                   onClick={() => {
                     if (isMobile) {
                       setMobileOpen(false)
@@ -156,24 +161,26 @@ export default function NotificationsPage() {
             >
               Terminar Sessão
             </button>
-          </div>
+          </nav>
         </aside>
 
         <main className="main">
           <header className="topbar">
             <div className="topbar-left">
               <button
-                className="menu-toggle"
+                className="sidebar-toggle-btn"
                 type="button"
                 aria-controls="sidebar"
                 aria-expanded={mobileOpen}
                 aria-label={mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'}
                 onClick={() => setMobileOpen((current) => !current)}
               >
-                ☰ Menu
+                {mobileOpen ? '✕' : '☰'}
               </button>
-              <h2>Notificações</h2>
-              <p>Alertas de coaching, sistema e marketplace</p>
+              <div>
+                <h2>Notificações</h2>
+                <p>Alertas de coaching, sistema e marketplace</p>
+              </div>
             </div>
 
             <div className="topbar-right">
