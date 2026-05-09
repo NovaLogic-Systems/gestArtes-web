@@ -23,6 +23,8 @@ import './AdmissionRequestsPage.css'
 const NAV_ITEMS = [
   { label: 'Painel', href: '/teacher/dashboard' },
   { label: 'Pedidos de admissão', href: '/teacher/admission-requests' },
+  { label: 'Marketplace', href: '/teacher/marketplace' },
+  { label: 'Os meus anúncios', href: '/teacher/marketplace/my-listings' },
 ]
 
 function toInteger(value, fallback = 0) {
@@ -180,8 +182,8 @@ function normalizeRequest(item) {
   const sessionId = toInteger(item?.sessionId ?? item?.SessionID)
   const studentName = String(
     item?.studentName
-      ?? [item?.studentFirstName, item?.studentLastName].filter(Boolean).join(' ')
-      ?? 'Estudante',
+    ?? [item?.studentFirstName, item?.studentLastName].filter(Boolean).join(' ')
+    ?? 'Estudante',
   ).trim() || 'Estudante'
   const studentEmail = String(item?.studentEmail ?? item?.email ?? '').trim()
   const requestedAt = item?.requestedAt ?? item?.RequestedAt ?? null
@@ -441,7 +443,7 @@ export default function AdmissionRequestsPage() {
       return request.maxParticipants - request.enrolledCount <= 1
     })
   }, [filteredRequests])
-  
+
   const selectedCapacityState = useMemo(
     () => (selectedRequest ? getCapacityState(selectedRequest) : null),
     [selectedRequest],
@@ -630,16 +632,16 @@ export default function AdmissionRequestsPage() {
 
   return (
     <div className="teacher-admission-requests">
-    <div className={appShellClassName}>
-      {isMobile && mobileOpen ? (
-        <button
-          type="button"
-          className="sidebar-overlay"
-          aria-label="Fechar navegação lateral"
-          onClick={() => setMobileOpen(false)}
-        />
-      ) : null}
-      <aside className={sidebarClassName} id="sidebar">
+      <div className={appShellClassName}>
+        {isMobile && mobileOpen ? (
+          <button
+            type="button"
+            className="sidebar-overlay"
+            aria-label="Fechar navegação lateral"
+            onClick={() => setMobileOpen(false)}
+          />
+        ) : null}
+        <aside className={sidebarClassName} id="sidebar">
           <div className="brand">
             <span className="brand-dot" />
             <div>
@@ -702,69 +704,8 @@ export default function AdmissionRequestsPage() {
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
               />
-              <Link className="pill" to="/teacher/dashboard">
-                Painel docente
-              </Link>
 
-              <div
-                className="notifications-hover-area"
-                ref={notificationBoxRef}
-                onMouseEnter={openNotificationsOnHover}
-                onMouseLeave={closeNotificationsOnHover}
-              >
-                <NotificationsBell
-                  onClick={handleNotificationsClick}
-                  count={notificationUnreadCount}
-                  onMouseEnter={openNotificationsOnHover}
-                />
-
-                {notificationsOpen ? (
-                  <div className="notifications-popover" onMouseEnter={openNotificationsOnHover} onMouseLeave={closeNotificationsOnHover}>
-                    <div className="notifications-popover-header">
-                      <div className="notifications-popover-sub">Últimas notificações</div>
-                    </div>
-
-                  {notificationsLoading ? <p className="notifications-state">A carregar...</p> : null}
-
-                  {!notificationsLoading && notificationsError ? (
-                    <p className="notifications-state error">{notificationsError}</p>
-                  ) : null}
-
-                  {!notificationsLoading && !notificationsError && notifications.length === 0 ? (
-                    <p className="notifications-state">Ainda não tens notificações.</p>
-                  ) : null}
-
-                  {!notificationsLoading && notifications.length > 0 ? (
-                    <ul className="notifications-list">
-                      {notifications.map((notification) => (
-                        <li key={notification.id} className="notifications-item">
-                          <div className="notifications-item-content">
-                            <strong>{notification.title}</strong>
-                            {notification.message ? <p>{notification.message}</p> : null}
-                            <small>{formatNotificationDate(notification.createdAt)}</small>
-                          </div>
-                          <button 
-                            className="notifications-delete-btn" 
-                            title="Eliminar notificação"
-                            onClick={() => handleDeleteNotification(notification.id)}
-                          >
-                            ×
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-
-                  <Link
-                    to="/teacher/notifications"
-                    className="notifications-more-link"
-                    onClick={() => setNotificationsOpen(false)}
-                  >
-                    Ver Mais
-                  </Link>
-                  </div>
-                ) : null}
-              </div>
+              <NotificationsBell pageLink="/teacher/notifications" />
             </div>
           </header>
 

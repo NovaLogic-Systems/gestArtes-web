@@ -1,12 +1,6 @@
-/**
- * @file src/components/ListingForm.jsx
- * @author NovaLogic System
- * @institution IPCA
- * @project GestArtes - Projeto 50+10 para Entartes
- */
-
-import { useEffect, useMemo, useReducer } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { resolveMarketplacePhotoUrl } from '../utils/marketplace-photo-url'
+import Badge from './ui/Badge'
 
 const DEFAULT_VALUES = {
   title: '',
@@ -17,36 +11,58 @@ const DEFAULT_VALUES = {
   location: '',
 }
 
-const INITIAL_STATE = {
-  values: DEFAULT_VALUES,
-  selectedFile: null,
-  previewUrl: '',
-  error: '',
+function normalizeValues(source = {}) {
+  return {
+    ...DEFAULT_VALUES,
+    ...source,
+    price: source?.price ?? '',
+    categoryId: source?.categoryId ?? source?.category?.categoryId ?? '',
+    conditionId: source?.conditionId ?? source?.condition?.conditionId ?? '',
+  }
 }
 
-function formReducer(state, action) {
-  switch (action.type) {
-    case 'SET_FORM_STATE':
-      return {
-        ...state,
-        values: action.payload.values,
-        previewUrl: action.payload.previewUrl,
-        selectedFile: action.payload.selectedFile,
-        error: action.payload.error,
-      }
-    case 'SET_VALUES':
-      return { ...state, values: action.payload }
-    case 'SET_SELECTED_FILE':
-      return { ...state, selectedFile: action.payload }
-    case 'SET_PREVIEW_URL':
-      return { ...state, previewUrl: action.payload }
-    case 'SET_ERROR':
-      return { ...state, error: action.payload }
-    case 'RESET_ERROR':
-      return { ...state, error: '' }
-    default:
-      return state
+function resolveStatusVariant(statusName) {
+  const normalized = String(statusName || '').trim().toLowerCase()
+
+  if (!normalized) {
+    return 'neutral'
   }
+
+  if (normalized.includes('reject') || normalized.includes('rejeit')) {
+    return 'danger'
+  }
+
+  if (normalized.includes('pending') || normalized.includes('pend')) {
+    return 'warning'
+  }
+
+  if (normalized.includes('active') || normalized.includes('approved') || normalized.includes('published')) {
+    return 'success'
+  }
+
+  return 'neutral'
+}
+
+function resolveStatusLabel(statusName) {
+  const normalized = String(statusName || '').trim()
+
+  if (!normalized) {
+    return ''
+  }
+
+  if (/pending|pend/i.test(normalized)) {
+    return 'Pendente de moderação'
+  }
+
+  if (/reject|rejeit/i.test(normalized)) {
+    return 'Rejeitado'
+  }
+
+  if (/active|approved|published|publicad|aprov/i.test(normalized)) {
+    return 'Ativo'
+  }
+
+  return normalized
 }
 
 export default function ListingForm({
@@ -58,39 +74,27 @@ export default function ListingForm({
   onSubmit,
   onCancel,
 }) {
-  const [formState, dispatch] = useReducer(formReducer, INITIAL_STATE)
-  const { values, selectedFile, previewUrl, error } = formState
+  const [values, setValues] = useState(() => normalizeValues(initialValues))
+  const [selectedFile, setSelectedFile] = useState(null)
+  const [error, setError] = useState('')
+
+  const previewUrl = useMemo(() => {
+    if (selectedFile) {
+      return URL.createObjectURL(selectedFile)
+    }
+
+    return resolveMarketplacePhotoUrl(initialValues?.photoUrl)
+  }, [initialValues?.photoUrl, selectedFile])
 
   useEffect(() => {
-    dispatch({
-      type: 'SET_FORM_STATE',
-      payload: {
-        values: {
-          ...DEFAULT_VALUES,
-          ...initialValues,
-          price: initialValues?.price ?? '',
-          categoryId: initialValues?.categoryId ?? initialValues?.category?.categoryId ?? '',
-          conditionId: initialValues?.conditionId ?? initialValues?.condition?.conditionId ?? '',
-        },
-        previewUrl: resolveMarketplacePhotoUrl(initialValues?.photoUrl),
-        selectedFile: null,
-        error: '',
-      },
-    })
-  }, [initialValues])
-
-  useEffect(() => {
-    if (!selectedFile) {
+    if (!selectedFile || !previewUrl.startsWith('blob:')) {
       return undefined
     }
 
-    const objectUrl = URL.createObjectURL(selectedFile)
-    dispatch({ type: 'SET_PREVIEW_URL', payload: objectUrl })
-
     return () => {
-      URL.revokeObjectURL(objectUrl)
+      URL.revokeObjectURL(previewUrl)
     }
-  }, [selectedFile])
+  }, [previewUrl, selectedFile])
 
   const submitDisabled = useMemo(() => {
     return busy || !String(values.title || '').trim() || !String(values.price || '').trim() || !values.conditionId
@@ -117,19 +121,24 @@ export default function ListingForm({
     return conditions.find((condition) => String(condition.conditionId) === String(values.conditionId))?.conditionName || 'Estado'
   }, [conditions, values.conditionId])
 
+  const currentStatusLabel = useMemo(() => {
+    return resolveStatusLabel(initialValues?.status?.statusName || initialValues?.status)
+  }, [initialValues?.status])
+
+  const currentStatusVariant = useMemo(() => {
+    return resolveStatusVariant(initialValues?.status?.statusName || initialValues?.status)
+  }, [initialValues?.status])
+
   function handleChange(field, value) {
-    dispatch({
-      type: 'SET_VALUES',
-      payload: {
-        ...values,
-        [field]: value,
-      },
-    })
+    setValues((current) => ({
+      ...current,
+      [field]: value,
+    }))
   }
 
   async function handleSubmit(event) {
     event.preventDefault()
-    dispatch({ type: 'RESET_ERROR' })
+    setError('')
 
     try {
       await onSubmit?.(
@@ -142,19 +151,32 @@ export default function ListingForm({
         selectedFile,
       )
     } catch (submitError) {
-      dispatch({ type: 'SET_ERROR', payload: submitError?.message || 'Nao foi possivel guardar o anuncio.' })
+      setError(submitError?.message || 'Nao foi possivel guardar o anuncio.')
     }
   }
 
   return (
     <div className="market-form-layout">
       <form className="market-form" onSubmit={handleSubmit}>
+        {currentStatusLabel ? (
+          <div className="market-form-full market-form-status-box">
+            <div>
+              <span className="market-form-label">Estado atual</span>
+              <Badge variant={currentStatusVariant} size="sm">
+                {currentStatusLabel}
+              </Badge>
+            </div>
+            {initialValues?.rejectionReason ? (
+              <p className="market-form-status-note">Motivo da rejeição: {initialValues.rejectionReason}</p>
+            ) : null}
+          </div>
+        ) : null}
+
         <label className="market-form-full">
           <span>Titulo</span>
           <input
             value={values.title}
             onChange={(event) => handleChange('title', event.target.value)}
-            placeholder="Ex.: Sapatos de Jazz n. 39"
             maxLength={100}
             required
           />
@@ -202,7 +224,6 @@ export default function ListingForm({
             value={values.location}
             maxLength={100}
             onChange={(event) => handleChange('location', event.target.value)}
-            placeholder="Ex.: EntArtes - rececao"
           />
         </label>
 
@@ -213,7 +234,6 @@ export default function ListingForm({
             maxLength={255}
             value={values.description}
             onChange={(event) => handleChange('description', event.target.value)}
-            placeholder="Detalhes do artigo, estado e forma de entrega"
           />
         </label>
 
@@ -222,7 +242,7 @@ export default function ListingForm({
           <input
             type="file"
             accept="image/png,image/jpeg,image/webp"
-            onChange={(event) => dispatch({ type: 'SET_SELECTED_FILE', payload: event.target.files?.[0] || null })}
+            onChange={(event) => setSelectedFile(event.target.files?.[0] || null)}
           />
         </label>
 

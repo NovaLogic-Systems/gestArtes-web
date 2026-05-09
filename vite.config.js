@@ -9,10 +9,14 @@ import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import fs from 'node:fs'
 import path from 'node:path'
-import process from 'node:process'
+import { fileURLToPath } from 'node:url'
 
-function parseBoolean(value, fallback) {
-  if (value === undefined || value === null || value === '') return fallback
+const configDir = path.dirname(fileURLToPath(import.meta.url))
+
+function parseBoolean(value, fallback = false) {
+  if (value === undefined || value === null || value === '') {
+    return fallback
+  }
 
   const normalized = String(value).trim().toLowerCase()
   if (['1', 'true', 'yes', 'on'].includes(normalized)) return true
@@ -20,29 +24,21 @@ function parseBoolean(value, fallback) {
   return fallback
 }
 
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '')
-  const enableHttps = parseBoolean(
-    env.VITE_ENABLE_HTTPS,
-    Boolean(env.VITE_SSL_KEY_PATH && env.VITE_SSL_CERT_PATH),
-  )
-
-  function loadHttps() {
-    if (!enableHttps) return undefined
-
-    const keyPath = env.VITE_SSL_KEY_PATH
-    const certPath = env.VITE_SSL_CERT_PATH
-    if (!keyPath || !certPath) return undefined
-    try {
-      return {
-        key: fs.readFileSync(path.resolve(process.cwd(), keyPath)),
-        cert: fs.readFileSync(path.resolve(process.cwd(), certPath)),
-      }
-    } catch {
-      console.warn('[vite] SSL certs not found; running without HTTPS')
-      return undefined
-    }
+function resolveOptionalPath(value) {
+  if (!value) {
+    return ''
   }
+
+  return path.resolve(configDir, value)
+}
+
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, configDir, '')
+  const enableHttps = parseBoolean(env.VITE_ENABLE_HTTPS, false)
+  const sslKeyPath = resolveOptionalPath(env.VITE_SSL_KEY_PATH)
+  const sslCertPath = resolveOptionalPath(env.VITE_SSL_CERT_PATH)
+  const hasSslFiles = sslKeyPath && sslCertPath && fs.existsSync(sslKeyPath) && fs.existsSync(sslCertPath)
+  const apiProxyTarget = env.VITE_API_PROXY_TARGET || env.VITE_API_URL || 'https://localhost:3001'
 
   const apiTarget = env.VITE_API_URL || 'http://localhost:3001'
 
@@ -53,13 +49,19 @@ export default defineConfig(({ mode }) => {
       globals: true,
     },
     server: {
-      https: loadHttps(),
+      host: 'localhost',
+      https: enableHttps && hasSslFiles
+        ? {
+            key: fs.readFileSync(sslKeyPath),
+            cert: fs.readFileSync(sslCertPath),
+          }
+        : false,
       proxy: {
         '/api': {
           target: apiTarget,
           changeOrigin: true,
           secure: false,
-          rewrite: (p) => p.replace(/^\/api/, ''),
+          rewrite: (requestPath) => requestPath.replace(/^\/api/, ''),
         },
         '/uploads': {
           target: apiTarget,
