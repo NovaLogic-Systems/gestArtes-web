@@ -44,24 +44,30 @@ export default defineConfig(({ mode }) => {
     }
   }
 
+  const apiTarget = env.VITE_API_URL || 'http://localhost:3001'
+
   return {
     plugins: [react()],
+    test: {
+      environment: 'jsdom',
+      globals: true,
+    },
     server: {
       https: loadHttps(),
       proxy: {
         '/api': {
-          target: env.VITE_API_URL || 'http://localhost:3001',
+          target: apiTarget,
           changeOrigin: true,
           secure: false,
           rewrite: (p) => p.replace(/^\/api/, ''),
         },
         '/uploads': {
-          target: env.VITE_API_URL || 'http://localhost:3001',
+          target: apiTarget,
           changeOrigin: true,
           secure: false,
         },
         '/socket.io': {
-          target: env.VITE_API_URL || 'http://localhost:3001',
+          target: apiTarget,
           changeOrigin: true,
           secure: false,
           ws: true,
