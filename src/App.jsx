@@ -225,7 +225,6 @@ function App() {
         <Route path="/student/marketplace" element={<MarketplacePage />} />
         <Route path="/student/marketplace/conversas" element={<MarketplaceConversationsPage />} />
         <Route path="/student/marketplace/my-listings" element={<MyListingsPage />} />
-        <Route path="/student/notifications" element={<StudentNotificationsPage />} />
         <Route path="/student/lostfound" element={<LostFoundPage />} />
         <Route path="/student/account" element={<AccountPage />} />
       </Route>
