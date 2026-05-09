@@ -35,6 +35,7 @@ import TeacherMarketplacePage from './pages/teacher/MarketplacePage'
 import TeacherMarketplaceListingsPage from './pages/teacher/MyListingsPage'
 import TeacherLayout from './components/layout/teacher/TeacherLayout';
 import NotificationsPage from './pages/teacher/NotificationsPage';
+import StudentNotificationsPage from './pages/student/NotificationsPage';
 
 function PlaceholderPage({ title }) {
   return (

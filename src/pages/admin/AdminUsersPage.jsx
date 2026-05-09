@@ -6,25 +6,18 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
+import AdminShell from './AdminShell'
 import WithRole from '../../components/WithRole'
 import { useAuth } from '../../hooks/useAuth'
 import adminUsersService from '../../services/adminUsersService'
 import { maskEmail } from '../../utils/masking'
 import { ADMIN_ROLE_OPTIONS, toAppRole } from '../../utils/roles'
+import Table from '../../components/ui/Table'
+import Badge from '../../components/ui/Badge'
+import Modal from '../../components/ui/Modal'
+import Input from '../../components/ui/Input'
 import '../admin-studios.css'
-
-const navigationItems = [
-  { href: '/admin/dashboard', label: 'Painel' },
-  { href: '/admin/validations', label: 'Validações' },
-  { href: '/admin/studios', label: 'Estúdios' },
-  { href: '/admin/users', label: 'Utilizadores' },
-  { href: '/admin/lostfound', label: 'Perdidos e Achados' },
-  { href: '/admin/inventory', label: 'Inventário da Escola' },
-  { href: '/admin/marketplace', label: 'Marketplace' },
-  { href: '/admin/finance', label: 'Finanças' },
-  { href: '/admin/audit', label: 'Auditoria' },
-]
 
 const emptyForm = {
   firstName: '',
@@ -32,68 +25,55 @@ const emptyForm = {
   email: '',
   phoneNumber: '',
   password: '',
-  role: 'student',
+  roles: ['student'],
   birthDate: '',
   guardianName: '',
   guardianPhone: '',
+  studentNumber: '',
 }
 
 function formatDate(value) {
-  if (!value) {
-    return '—'
-  }
-
+  if (!value) return '—'
   const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) {
-    return '—'
-  }
+  if (Number.isNaN(parsed.getTime())) return '—'
+  return parsed.toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' })
+}
 
-  return parsed.toLocaleString('pt-PT', {
-    dateStyle: 'short',
-    timeStyle: 'short',
-  })
+function safeISODate(value) {
+  if (!value) return ''
+  const d = new Date(value)
+  return Number.isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10)
 }
 
 export default function AdminUsersPage() {
-  const navigate = useNavigate()
   const location = useLocation()
-  const { logout, user } = useAuth()
+  const { user } = useAuth()
 
   const [users, setUsers] = useState([])
+  const [filteredUsers, setFilteredUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [form, setForm] = useState(emptyForm)
-  const [isMobile, setIsMobile] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
-  const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || maskEmail(user?.email) || 'Utilizador'
-  const sidebarActivePath = location.pathname
-  const sidebarHidden = isMobile || sidebarCollapsed
-  const appShellClassName = ['app-shell', sidebarHidden ? 'sidebar-hidden' : '']
-    .filter(Boolean)
-    .join(' ')
-  const sidebarClassName = ['sidebar', isMobile && mobileOpen ? 'open' : '']
-    .filter(Boolean)
-    .join(' ')
-  const sidebarToggleSymbol = isMobile
-    ? mobileOpen ? '✕' : '☰'
-    : sidebarCollapsed ? '▶' : '◀'
-  const sidebarToggleLabel = isMobile
-    ? mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'
-    : sidebarCollapsed ? 'Mostrar barra lateral' : 'Esconder barra lateral'
+  // Filters
+  const [searchTerm, setSearchTerm] = useState('')
+  const [roleFilter, setRoleFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
 
-  const selectedRole = useMemo(() => toAppRole(form.role), [form.role])
+  // Edit Modal
+  const [editUser, setEditUser] = useState(null)
+  const [editForm, setEditForm] = useState(null)
+
+  const isFormStudent = useMemo(() => Array.isArray(form.roles) && form.roles.includes('student'), [form.roles])
 
   const loadUsers = useCallback(async () => {
     setLoading(true)
     setError('')
-
     try {
       const entries = await adminUsersService.listUsers()
-      setUsers(entries)
+      setUsers(Array.isArray(entries) ? entries : [])
     } catch (requestError) {
       setError(requestError?.response?.data?.error || 'Não foi possível carregar os utilizadores.')
     } finally {
@@ -106,353 +86,406 @@ export default function AdminUsersPage() {
   }, [loadUsers])
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(max-width: 1024px)')
+    let result = [...users]
 
-    const updateLayout = () => {
-      setIsMobile(mediaQuery.matches)
-
-      if (!mediaQuery.matches) {
-        setMobileOpen(false)
-      }
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase()
+      result = result.filter(u => 
+        (u.firstName + ' ' + (u.lastName || '')).toLowerCase().includes(term) ||
+        u.email.toLowerCase().includes(term) ||
+        (u.studentNumber && u.studentNumber.toLowerCase().includes(term))
+      )
     }
 
-    updateLayout()
-
-    if (typeof mediaQuery.addEventListener === 'function') {
-      mediaQuery.addEventListener('change', updateLayout)
-      return () => mediaQuery.removeEventListener('change', updateLayout)
+    if (roleFilter !== 'all') {
+      result = result.filter(u => (u.roles && u.roles.includes(roleFilter)) || u.role === roleFilter)
     }
 
-    mediaQuery.addListener(updateLayout)
-    return () => mediaQuery.removeListener(updateLayout)
-  }, [])
-
-  useEffect(() => {
-    document.body.classList.add('studio-page')
-
-    return () => {
-      document.body.classList.remove('studio-page')
+    if (statusFilter !== 'all') {
+      const isStatusActive = statusFilter === 'active'
+      result = result.filter(u => u.isActive === isStatusActive)
     }
-  }, [])
+
+    setFilteredUsers(result)
+  }, [users, searchTerm, roleFilter, statusFilter])
 
   function updateForm(field, value) {
-    setForm((current) => ({
-      ...current,
-      [field]: value,
-    }))
+    setForm((current) => ({ ...current, [field]: value }))
+  }
+
+  function handleRoleToggle(roleValue) {
+    setForm((current) => {
+      const currentRoles = Array.isArray(current.roles) ? current.roles : []
+      const roles = currentRoles.includes(roleValue)
+        ? currentRoles.filter(r => r !== roleValue)
+        : [...currentRoles, roleValue]
+      return { ...current, roles: roles.length ? roles : ['student'] } // Prevent empty roles
+    })
   }
 
   async function handleSubmit(event) {
     event.preventDefault()
-
-    if (submitting) {
-      return
-    }
+    if (submitting) return
 
     setSubmitting(true)
     setError('')
     setNotice('')
 
     try {
+      const primaryRole = Array.isArray(form.roles) ? form.roles[0] : 'student'
       const payload = {
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
         email: form.email.trim().toLowerCase(),
         phoneNumber: form.phoneNumber.trim(),
         password: form.password,
-        role: form.role,
+        role: primaryRole, // Backend create-user uses role
         birthDate: form.birthDate || undefined,
         guardianName: form.guardianName.trim(),
         guardianPhone: form.guardianPhone.trim(),
+        studentNumber: form.studentNumber.trim() || undefined,
       }
 
       const createdUser = await adminUsersService.createUser(payload)
-      setNotice(`Utilizador ${maskEmail(createdUser.email)} criado com sucesso.`)
+      
+      if (Array.isArray(form.roles) && form.roles.length >= 1) {
+         await adminUsersService.updateUserRoles(createdUser.userId, { 
+           roles: form.roles,
+           studentNumber: payload.studentNumber,
+           birthDate: payload.birthDate,
+           guardianName: payload.guardianName,
+           guardianPhone: payload.guardianPhone
+         })
+      }
+
+      setNotice(`Utilizador criado com sucesso.`)
       setForm(emptyForm)
       await loadUsers()
     } catch (requestError) {
-      setError(requestError?.response?.data?.error || 'Não foi possível criar o utilizador.')
+      const apiError = requestError?.response?.data
+      if (apiError?.errors && Array.isArray(apiError.errors)) {
+        // Handle express-validator style errors
+        const msg = apiError.errors.map(err => err.msg).join(', ')
+        setError(`Erro de validação: ${msg}`)
+      } else {
+        setError(apiError?.error || apiError?.message || 'Não foi possível criar o utilizador.')
+      }
     } finally {
       setSubmitting(false)
     }
   }
 
-  async function handleLogout(event) {
-    event.preventDefault()
+  function handleEditClick(u) {
+    setEditUser(u)
+    setEditForm({
+      firstName: u.firstName || '',
+      lastName: u.lastName || '',
+      email: u.email || '',
+      phoneNumber: u.phoneNumber || '',
+      isActive: u.isActive,
+      roles: Array.isArray(u.roles) && u.roles.length ? u.roles : [toAppRole(u.role)],
+      studentNumber: u.studentNumber || '',
+      birthDate: safeISODate(u.birthDate),
+      guardianName: u.guardianName || '',
+      guardianPhone: u.guardianPhone || '',
+    })
+  }
+
+  async function handleEditSubmit(e) {
+    e.preventDefault()
+    if (!editUser || submitting) return
+    setSubmitting(true)
+    setError('')
+    setNotice('')
 
     try {
-      await logout()
+      const isStudent = Array.isArray(editForm.roles) && editForm.roles.includes('student')
+      
+      await adminUsersService.updateUser(editUser.userId, {
+        firstName: editForm.firstName.trim(),
+        lastName: editForm.lastName.trim(),
+        email: editForm.email.trim().toLowerCase(),
+        phoneNumber: editForm.phoneNumber.trim(),
+        isActive: editForm.isActive,
+        studentNumber: isStudent ? editForm.studentNumber.trim() : undefined,
+        birthDate: isStudent && editForm.birthDate ? editForm.birthDate : undefined,
+        guardianName: isStudent ? editForm.guardianName.trim() : undefined,
+        guardianPhone: isStudent ? editForm.guardianPhone.trim() : undefined,
+      })
+
+      await adminUsersService.updateUserRoles(editUser.userId, {
+        roles: editForm.roles,
+        studentNumber: isStudent ? editForm.studentNumber.trim() : undefined,
+        birthDate: isStudent && editForm.birthDate ? editForm.birthDate : undefined,
+        guardianName: isStudent ? editForm.guardianName.trim() : undefined,
+        guardianPhone: isStudent ? editForm.guardianPhone.trim() : undefined,
+      })
+
+      setNotice('Utilizador atualizado com sucesso.')
+      setEditUser(null)
+      await loadUsers()
+    } catch (requestError) {
+      const apiError = requestError?.response?.data
+      if (apiError?.errors && Array.isArray(apiError.errors)) {
+        const msg = apiError.errors.map(err => err.msg).join(', ')
+        setError(`Erro de validação: ${msg}`)
+      } else {
+        setError(apiError?.error || apiError?.message || 'Não foi possível atualizar o utilizador.')
+      }
     } finally {
-      navigate('/login', { replace: true })
+      setSubmitting(false)
     }
   }
 
-  const handleSidebarToggle = () => {
-    if (isMobile) {
-      setMobileOpen((currentValue) => !currentValue)
-      return
+  const columns = [
+    {
+      key: 'userId',
+      header: 'ID',
+      width: '60px',
+      render: (u) => String(u.userId).padStart(3, '0')
+    },
+    {
+      key: 'name',
+      header: 'Nome',
+      render: (u) => [u.firstName, u.lastName].filter(Boolean).join(' ') || '—'
+    },
+    {
+      key: 'email',
+      header: 'Email',
+      render: (u) => maskEmail(u.email) || '—'
+    },
+    {
+      key: 'studentNumber',
+      header: 'Nº Aluno',
+      render: (u) => {
+        if (!u.studentNumber) return '—'
+        // If it's a student account with format ST-1234, just extract the number
+        const match = u.studentNumber.match(/\d+/)
+        return match ? match[0] : u.studentNumber
+      }
+    },
+    {
+      key: 'roles',
+      header: 'Roles',
+      render: (u) => (
+        <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+          {(Array.isArray(u.roles) && u.roles.length ? u.roles : [u.role]).map(r => {
+             const roleVal = toAppRole(r)
+             const option = ADMIN_ROLE_OPTIONS.find(opt => opt.value === roleVal)
+             return (
+               <Badge key={r} variant="neutral" size="sm">
+                 {option?.label || r || '—'}
+               </Badge>
+             )
+          })}
+        </div>
+      )
+    },
+    {
+      key: 'status',
+      header: 'Estado',
+      render: (u) => (
+        <Badge variant={u.isActive ? 'success' : 'danger'} size="sm">
+          {u.isActive ? 'Ativo' : 'Suspenso'}
+        </Badge>
+      )
+    },
+    {
+      key: 'createdAt',
+      header: 'Criado em',
+      render: (u) => formatDate(u.createdAt)
+    },
+    {
+      key: 'actions',
+      header: '',
+      render: (u) => (
+        <button className="ghost-btn" onClick={() => handleEditClick(u)} style={{ padding: '0.25rem 0.5rem', fontSize: '0.85rem' }}>
+          Editar
+        </button>
+      )
     }
-
-    setSidebarCollapsed((currentValue) => !currentValue)
-  }
-
-  const handleMobileNavClick = () => {
-    if (isMobile) {
-      setMobileOpen(false)
-    }
-  }
+  ]
 
   return (
-    <div className={appShellClassName}>
-      {isMobile && mobileOpen ? (
-        <button
-          type="button"
-          className="sidebar-overlay"
-          aria-label="Fechar navegação lateral"
-          onClick={() => setMobileOpen(false)}
-        />
-      ) : null}
+    <AdminShell
+      title="Gestão de Utilizadores"
+      subtitle="Criação e gestão de contas, atribuição de roles e status."
+      activePath={location.pathname}
+      topbarEnd={<span className="pill">Admin</span>}
+    >
+      <section className="content-grid">
+        {notice && <div className="soft-box" role="status" aria-live="polite">{notice}</div>}
+        {error && <div className="soft-box error" role="alert">{error}</div>}
 
-      <aside className={sidebarClassName} id="sidebar">
-        <div className="brand">
-          <span className="brand-dot" />
-          <div>
-            <h1>gestArtes</h1>
-            <p>{displayName}</p>
-          </div>
-        </div>
-
-        <div className="nav-group">
-          <h2>Gestão</h2>
-
-          {navigationItems.map((item) => (
-            <Link
-              key={item.href}
-              className={`nav-link${sidebarActivePath === item.href ? ' active' : ''}`}
-              to={item.href}
-              onClick={handleMobileNavClick}
-            >
-              {item.label}
-            </Link>
-          ))}
-
-          <a className="nav-link" href="/login" title={`Terminar sessão de ${displayName}`} onClick={handleLogout}>
-            Terminar Sessão
-          </a>
-        </div>
-      </aside>
-
-      <main className="main">
-        <header className="topbar">
-          <div className="topbar-left">
-            <div className="topbar-heading">
-              <button
-                type="button"
-                className="sidebar-toggle-btn"
-                aria-label={sidebarToggleLabel}
-                onClick={handleSidebarToggle}
+        <article className="panel">
+          <div className="panel-header" style={{ flexWrap: 'wrap', gap: '1rem' }}>
+            <h3>Utilizadores registados ({filteredUsers.length})</h3>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                placeholder="Pesquisar..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                style={{ padding: '0.35rem 0.7rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }}
+              />
+              <select
+                value={roleFilter}
+                onChange={e => setRoleFilter(e.target.value)}
+                style={{ padding: '0.35rem 0.7rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }}
               >
-                {sidebarToggleSymbol}
-              </button>
-              <h2>Gestão de Utilizadores</h2>
+                <option value="all">Todas as Roles</option>
+                {ADMIN_ROLE_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              <select
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value)}
+                style={{ padding: '0.35rem 0.7rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }}
+              >
+                <option value="all">Todos os Estados</option>
+                <option value="active">Ativo</option>
+                <option value="suspended">Suspenso</option>
+              </select>
+              <button type="button" className="ghost-btn" onClick={loadUsers}>Atualizar</button>
             </div>
-            <p>Criação de contas com seleção de role e mapeamento explícito de Direção para Admin.</p>
           </div>
 
-          <div className="topbar-right">
-            <span className="pill">Admin</span>
-          </div>
-        </header>
+          <Table
+            columns={columns}
+            rows={filteredUsers}
+            getRowKey={(u) => u.userId}
+            emptyState={loading ? 'A carregar utilizadores...' : 'Sem utilizadores encontrados.'}
+            headBackground="#f8f9fa"
+          />
+        </article>
 
-        <section className="content-grid">
-          {notice ? (
-            <div className="soft-box" role="status" aria-live="polite">
-              {notice}
-            </div>
-          ) : null}
-
-          {error ? (
-            <div className="soft-box error" role="alert">
-              {error}
-            </div>
-          ) : null}
-
+        <WithRole roles={['admin']}>
           <article className="panel">
             <div className="panel-header">
-              <h3>Utilizadores registados</h3>
-              <button type="button" className="ghost-btn" onClick={() => void loadUsers()}>
-                Atualizar
-              </button>
+              <h3>Novo utilizador</h3>
             </div>
-
-            {loading ? (
-              <div className="soft-box">A carregar utilizadores...</div>
-            ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Nome</th>
-                      <th>Email</th>
-                      <th>Role</th>
-                      <th>Estado</th>
-                      <th>Criado em</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.length ? (
-                      users.map((entry) => (
-                        <tr key={entry.userId}>
-                          <td>{[entry.firstName, entry.lastName].filter(Boolean).join(' ') || '—'}</td>
-                          <td>{maskEmail(entry.email) || '—'}</td>
-                          <td>{entry.roleLabel || entry.role || '—'}</td>
-                          <td>{entry.isActive ? 'Ativo' : 'Inativo'}</td>
-                          <td>{formatDate(entry.createdAt)}</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={5}>Sem utilizadores disponíveis.</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </article>
-
-          <WithRole roles={['admin']}>
-            <article className="panel">
-              <div className="panel-header">
-                <h3>Novo utilizador</h3>
-              </div>
-
-              <p>
-                A opção <strong>Direção</strong> é guardada internamente como role de sistema <strong>admin</strong>.
-              </p>
-
-              <form className="form-grid two" onSubmit={handleSubmit}>
-                <label>
-                  Nome
-                  <input
-                    type="text"
-                    value={form.firstName}
-                    onChange={(event) => updateForm('firstName', event.target.value)}
-                    autoComplete="given-name"
-                    required
-                  />
-                </label>
-
-                <label>
-                  Apelido
-                  <input
-                    type="text"
-                    value={form.lastName}
-                    onChange={(event) => updateForm('lastName', event.target.value)}
-                    autoComplete="family-name"
-                  />
-                </label>
-
-                <label>
-                  Email
-                  <input
-                    type="email"
-                    value={form.email}
-                    onChange={(event) => updateForm('email', event.target.value)}
-                    autoComplete="email"
-                    required
-                  />
-                </label>
-
-                <label>
-                  Telefone
-                  <input
-                    type="text"
-                    value={form.phoneNumber}
-                    onChange={(event) => updateForm('phoneNumber', event.target.value)}
-                    autoComplete="tel"
-                  />
-                </label>
-
-                <label>
-                  Palavra-passe
-                  <input
-                    type="password"
-                    value={form.password}
-                    onChange={(event) => updateForm('password', event.target.value)}
-                    autoComplete="new-password"
-                    minLength={8}
-                    required
-                  />
-                </label>
-
-                <label>
-                  Role
-                  <select
-                    value={form.role}
-                    onChange={(event) => updateForm('role', event.target.value)}
-                  >
-                    {ADMIN_ROLE_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                {selectedRole === 'student' ? (
-                  <>
-                    <label>
-                      Data de nascimento
-                      <input
-                        type="date"
-                        value={form.birthDate}
-                        onChange={(event) => updateForm('birthDate', event.target.value)}
-                        required
+            <p>A opção <strong>Direção</strong> é guardada internamente como role de sistema <strong>admin</strong>.</p>
+            
+            <form className="form-grid two" onSubmit={handleSubmit}>
+              <Input label="Nome" required value={form.firstName} onChange={e => updateForm('firstName', e.target.value)} />
+              <Input label="Apelido" value={form.lastName} onChange={e => updateForm('lastName', e.target.value)} />
+              <Input label="Email" type="email" required value={form.email} onChange={e => updateForm('email', e.target.value)} />
+              <Input label="Telefone" value={form.phoneNumber} onChange={e => updateForm('phoneNumber', e.target.value)} />
+              <Input label="Palavra-passe" type="password" required minLength={8} value={form.password} onChange={e => updateForm('password', e.target.value)} />
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Roles</span>
+                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                  {ADMIN_ROLE_OPTIONS.map(opt => (
+                    <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 'normal' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={Array.isArray(form.roles) && form.roles.includes(opt.value)} 
+                        onChange={() => handleRoleToggle(opt.value)} 
                       />
+                      {opt.label}
                     </label>
-
-                    <label>
-                      Nome do encarregado
-                      <input
-                        type="text"
-                        value={form.guardianName}
-                        onChange={(event) => updateForm('guardianName', event.target.value)}
-                      />
-                    </label>
-
-                    <label>
-                      Telefone do encarregado
-                      <input
-                        type="text"
-                        value={form.guardianPhone}
-                        onChange={(event) => updateForm('guardianPhone', event.target.value)}
-                      />
-                    </label>
-                  </>
-                ) : null}
-
-                <div className="card-actions form-actions">
-                  <button className="cta" type="submit" disabled={submitting}>
-                    {submitting ? 'A guardar...' : 'Criar utilizador'}
-                  </button>
-                  <button
-                    className="ghost-btn"
-                    type="button"
-                    onClick={() => {
-                      setForm(emptyForm)
-                      setError('')
-                      setNotice('')
-                    }}
-                  >
-                    Limpar
-                  </button>
+                  ))}
                 </div>
-              </form>
-            </article>
-          </WithRole>
-        </section>
-      </main>
-    </div>
+              </div>
+
+              {isFormStudent && (
+                <>
+                  <Input label="Número de Aluno (Opcional)" value={form.studentNumber} onChange={e => updateForm('studentNumber', e.target.value)} placeholder="Gerado automaticamente se vazio" />
+                  <Input label="Data de nascimento" type="date" required value={form.birthDate} onChange={e => updateForm('birthDate', e.target.value)} />
+                  <Input label="Nome do encarregado" value={form.guardianName} onChange={e => updateForm('guardianName', e.target.value)} />
+                  <Input label="Telefone do encarregado" value={form.guardianPhone} onChange={e => updateForm('guardianPhone', e.target.value)} />
+                </>
+              )}
+
+              <div className="card-actions form-actions" style={{ gridColumn: '1 / -1' }}>
+                <button className="cta" type="submit" disabled={submitting}>
+                  {submitting ? 'A guardar...' : 'Criar utilizador'}
+                </button>
+                <button className="ghost-btn" type="button" onClick={() => { setForm(emptyForm); setError(''); setNotice('') }}>
+                  Limpar
+                </button>
+              </div>
+            </form>
+          </article>
+        </WithRole>
+
+        {editUser && editForm && (
+          <Modal
+            open={true}
+            onClose={() => setEditUser(null)}
+            title="Editar Utilizador"
+            size="md"
+          >
+            {error && <div className="soft-box error" style={{ marginBottom: '1rem' }} role="alert">{error}</div>}
+            {notice && <div className="soft-box" style={{ marginBottom: '1rem' }} role="status">{notice}</div>}
+            
+            <form onSubmit={handleEditSubmit} className="form-grid two">
+              <Input label="Nome" required value={editForm.firstName} onChange={e => setEditForm(prev => ({...prev, firstName: e.target.value}))} />
+              <Input label="Apelido" value={editForm.lastName} onChange={e => setEditForm(prev => ({...prev, lastName: e.target.value}))} />
+              <Input label="Email" type="email" required value={editForm.email} onChange={e => setEditForm(prev => ({...prev, email: e.target.value}))} />
+              <Input label="Telefone" value={editForm.phoneNumber} onChange={e => setEditForm(prev => ({...prev, phoneNumber: e.target.value}))} />
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                <span style={{ color: 'var(--text-h)', fontSize: '0.95rem', fontWeight: 600 }}>Estado</span>
+                <select 
+                  value={editForm.isActive ? 'active' : 'suspended'} 
+                  onChange={e => setEditForm(prev => ({...prev, isActive: e.target.value === 'active'}))}
+                  style={{
+                    background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '0.875rem',
+                    padding: '0.75rem 0.9rem', color: 'var(--text-h)', font: 'inherit', outline: 'none', width: '100%'
+                  }}
+                >
+                  <option value="active">Ativo</option>
+                  <option value="suspended">Suspenso</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', gridColumn: '1 / -1' }}>
+                <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Roles</span>
+                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                  {ADMIN_ROLE_OPTIONS.map(opt => (
+                    <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 'normal' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={Array.isArray(editForm.roles) && editForm.roles.includes(opt.value)} 
+                        onChange={() => {
+                          setEditForm(prev => {
+                            const currentRoles = Array.isArray(prev.roles) ? prev.roles : []
+                            const roles = currentRoles.includes(opt.value) ? currentRoles.filter(r => r !== opt.value) : [...currentRoles, opt.value]
+                            return { ...prev, roles: roles.length ? roles : ['student'] }
+                          })
+                        }} 
+                      />
+                      {opt.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {Array.isArray(editForm.roles) && editForm.roles.includes('student') && (
+                <>
+                  <Input label="Número de Aluno (Opcional)" value={editForm.studentNumber} onChange={e => setEditForm(prev => ({...prev, studentNumber: e.target.value}))} placeholder="Gerado automaticamente se vazio" />
+                  <Input label="Data de nascimento" type="date" required value={editForm.birthDate} onChange={e => setEditForm(prev => ({...prev, birthDate: e.target.value}))} />
+                  <Input label="Nome do encarregado" value={editForm.guardianName} onChange={e => setEditForm(prev => ({...prev, guardianName: e.target.value}))} />
+                  <Input label="Telefone do encarregado" value={editForm.guardianPhone} onChange={e => setEditForm(prev => ({...prev, guardianPhone: e.target.value}))} />
+                </>
+              )}
+
+              <div className="card-actions form-actions" style={{ gridColumn: '1 / -1', marginTop: '1rem' }}>
+                <button type="submit" className="cta" disabled={submitting}>
+                  {submitting ? 'A guardar...' : 'Guardar Alterações'}
+                </button>
+                <button type="button" className="ghost-btn" onClick={() => setEditUser(null)}>
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </Modal>
+        )}
+
+      </section>
+    </AdminShell>
   )
 }
