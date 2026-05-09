@@ -16,13 +16,11 @@ const variantStyles = {
 	},
 	cta: {
 		background: 'linear-gradient(135deg, #0b9d8f, #10b2a3)',
-		boxShadow: '0 10px 24px rgba(11, 157, 143, 0.25)',
 		color: '#fff',
 		borderColor: 'transparent',
 	},
 	ctaSecondary: {
 		background: 'linear-gradient(135deg, #55436d, #6a5490)',
-		boxShadow: '0 10px 24px rgba(85, 67, 109, 0.25)',
 		color: '#fff',
 		borderColor: 'transparent',
 	},

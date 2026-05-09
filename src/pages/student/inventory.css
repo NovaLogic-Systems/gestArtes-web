@@ -448,3 +448,86 @@
     width: 100%;
   }
 }
+
+/* modal vars */
+.student-inventory-modal {
+  --bg: #ffffff;
+  --border: #e2d9eb;
+  --text: #6d6480;
+  --text-h: #1f1c2e;
+  --teal: #0b9d8f;
+  --shadow: 0 20px 44px rgba(31, 28, 46, 0.2);
+}
+
+.student-inventory-modal .modal-form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.student-inventory-modal .form-label {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.student-inventory-modal .form-label span {
+  font-weight: 600;
+  color: #1f1c2e;
+  font-size: 0.9rem;
+}
+
+.student-inventory-modal .form-input,
+.student-inventory-modal .form-select {
+  border: 1px solid #d7ccdf;
+  border-radius: 10px;
+  padding: 9px 12px;
+  font: inherit;
+  background: #fff;
+  color: #2e2942;
+  width: 100%;
+  box-sizing: border-box;
+  color-scheme: light;
+}
+
+.student-inventory-modal .rental-summary {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #faf7fd;
+  padding: 12px 14px;
+  display: grid;
+  gap: 4px;
+}
+
+.student-inventory-modal .rental-summary p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #4c4666;
+}
+
+.student-inventory-modal .rental-summary strong {
+  color: #1f1c2e;
+}
+
+.student-inventory-modal .modal-error {
+  margin: 0;
+  color: #8b2e39;
+  background: #fff3f5;
+  border: 1px solid #f3c6cc;
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 0.9rem;
+}
+
+.student-inventory-modal .modal-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+@media (max-width: 720px) {
+  .student-inventory-modal .modal-footer-actions {
+    flex-direction: column;
+  }
+  .student-inventory-modal .modal-footer-actions > * {
+    width: 100%;
+  }
+}

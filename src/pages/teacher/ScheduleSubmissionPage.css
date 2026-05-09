@@ -1,0 +1,164 @@
+.teacher-admission-requests .schedule-board {
+  overflow: auto;
+  max-height: 50vh;
+}
+
+.teacher-admission-requests .schedule-grid {
+  min-width: 980px;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 6px;
+}
+
+.teacher-admission-requests .schedule-grid th {
+  background: #f6effc;
+  border: 1px solid #e2d7ee;
+  border-radius: 9px;
+  text-align: center;
+  padding: 9px 10px;
+  color: #4d4063;
+  font-size: 0.86rem;
+}
+
+.teacher-admission-requests .schedule-grid td {
+  padding: 0;
+  vertical-align: top;
+}
+
+.teacher-admission-requests .availability-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 12px;
+}
+
+.teacher-admission-requests .availability-toolbar label {
+  min-width: 200px;
+}
+
+.teacher-admission-requests .availability-slot {
+  border-radius: 10px;
+  border: 1px solid #d8cae6;
+  background: #fff;
+  padding: 8px;
+  min-height: 82px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.teacher-admission-requests .availability-slot.unavailable {
+  background: #f6f2fa;
+  border-color: #dfd6ea;
+}
+
+.teacher-admission-requests .availability-slot h4 {
+  margin: 0 0 8px;
+  font-size: 0.8rem;
+  color: #4e4468;
+}
+
+.teacher-admission-requests .availability-slot .ghost-btn {
+  width: 100%;
+}
+
+.teacher-admission-requests .availability-slot .ghost-btn:disabled {
+  cursor: not-allowed;
+  color: #8a809c;
+  background: #f3edf9;
+  border-color: #ddd2ea;
+}
+
+.teacher-admission-requests .availability-slot.selected {
+  background: #e9faf5;
+  border-color: #90d9c8;
+}
+
+.teacher-admission-requests .availability-slot.selected .ghost-btn {
+  border-color: #60b9a4;
+  color: #1f6a5a;
+}
+
+.teacher-admission-requests .ghost-btn {
+  border: 1px solid #cab9db;
+  border-radius: 10px;
+  background: #fff;
+  color: #43335f;
+  padding: 8px 10px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.86rem;
+}
+
+.teacher-admission-requests .form-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.teacher-admission-requests .form-grid.two {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  align-items: start;
+}
+
+.teacher-admission-requests label {
+  display: grid;
+  gap: 5px;
+  font-size: 0.9rem;
+  color: #4b4565;
+}
+
+.teacher-admission-requests input, 
+.teacher-admission-requests select, 
+.teacher-admission-requests textarea {
+  border: 1px solid #d7ccdf;
+  border-radius: 10px;
+  padding: 9px 10px;
+  background: #fff;
+  font: inherit;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.teacher-admission-requests textarea {
+  resize: vertical;
+}
+
+.teacher-admission-requests .no-resize {
+  resize: none;
+}
+
+.teacher-admission-requests .submission-error {
+  color: #8b2e39;
+  background: #fff3f5;
+  padding: 12px;
+  border: 1px solid #f3c6cc;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.teacher-admission-requests .availability-slot.pending {
+  background: #fff3cd;
+  border-color: #ffeeba;
+}
+
+.teacher-admission-requests .availability-slot.pending button {
+  color: #856404;
+  border-color: #ffeeba;
+  background: #fff3cd;
+  font-weight: 600;
+}
+
+.teacher-admission-requests .availability-slot.approved {
+  background: #d4edda;
+  border-color: #c3e6cb;
+}
+
+.teacher-admission-requests .availability-slot.approved button {
+  color: #155724;
+  border-color: #c3e6cb;
+  background: #d4edda;
+  font-weight: 600;
+}
