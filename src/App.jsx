@@ -18,6 +18,7 @@ import AuditPage from './pages/admin/AuditPage'
 import AdminUsersPage from './pages/admin/AdminUsersPage'
 import AdminMarketplaceConversationsPage from './pages/admin/AdminMarketplaceConversationsPage'
 import MarketplaceModerationPage from './pages/admin/MarketplaceModerationPage'
+import AdminDashboardPage from './pages/admin/AdminDashboardPage'
 import DashboardPage from './pages/student/DashboardPage'
 import CoachingStudentPage from './pages/student/CoachingPage'
 import JoinRequestsTeacherView from './components/JoinRequestsTeacherView'
@@ -197,12 +198,7 @@ const TeacherDashboard = () => (
     </div>
   </TeacherLayout>
 )
-const AdminDashboard = () => (
-  <ProtectedPlaceholderPage
-    title="Admin Dashboard"
-    actionLink={{ to: '/admin/studios', label: 'Gestão de estúdios' }}
-  />
-)
+const AdminDashboard = () => <AdminDashboardPage />
 
 function App() {
   return (
