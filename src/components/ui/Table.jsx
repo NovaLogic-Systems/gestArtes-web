@@ -1,3 +1,10 @@
+/**
+ * @file src/components/ui/Table.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import { cn } from './shared'
 
 function Table({
@@ -8,11 +15,13 @@ function Table({
 	emptyState = 'Sem registos para apresentar.',
 	striped = true,
 	compact = false,
-	headBackground = '#f8f1fc',
+	headBackground = 'var(--table-head-bg)',
 	cellPadding,
 	className,
 	style,
 	renderRowActions,
+	rowActionsVerticalAlign,
+	rowActionsHeader,
 }) {
 	const resolvedCellPadding = cellPadding ?? (compact ? '0.56rem 0.65rem' : '0.625rem 0.7rem')
 
@@ -58,8 +67,14 @@ function Table({
 									background: headBackground,
 									borderBottom: '1px solid var(--border)',
 									padding: resolvedCellPadding,
+									textAlign: 'center',
+									color: 'var(--text-h)',
+									fontSize: '0.85rem',
+									fontWeight: 700,
 								}}
-							/>
+							>
+								{rowActionsHeader || ''}
+							</th>
 						) : null}
 					</tr>
 				</thead>
@@ -87,14 +102,21 @@ function Table({
 												color: 'var(--text-h)',
 												padding: resolvedCellPadding,
 												textAlign: column.align ?? 'left',
-												verticalAlign: 'top',
+												verticalAlign: column.verticalAlign ?? 'top',
 											}}
 										>
 											{column.render ? column.render(row, index) : row[column.key]}
 										</td>
 									))}
 									{renderRowActions ? (
-										<td style={{ borderBottom: '1px solid var(--border)', padding: resolvedCellPadding }}>
+										<td
+											style={{
+												borderBottom: '1px solid var(--border)',
+												padding: resolvedCellPadding,
+												textAlign: 'center',
+												...(rowActionsVerticalAlign ? { verticalAlign: rowActionsVerticalAlign } : {}),
+											}}
+										>
 											{renderRowActions(row, index)}
 										</td>
 									) : null}

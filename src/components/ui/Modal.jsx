@@ -1,3 +1,10 @@
+/**
+ * @file src/components/ui/Modal.jsx
+ * @author NovaLogic System
+ * @institution IPCA
+ * @project GestArtes - Projeto 50+10 para Entartes
+ */
+
 import { createPortal } from 'react-dom'
 import { useEffect } from 'react'
 import { cn } from './shared'
@@ -73,6 +80,7 @@ function Modal({
 					boxShadow: 'var(--shadow)',
 					display: 'grid',
 					gap: '1rem',
+					colorScheme: 'light',
 					maxHeight: 'calc(100vh - 2.5rem)',
 					maxWidth: 'calc(100vw - 2.5rem)',
 					overflow: 'auto',
