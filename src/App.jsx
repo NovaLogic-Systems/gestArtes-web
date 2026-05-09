@@ -28,6 +28,7 @@ import RentalRequestsPage from './pages/student/RentalRequestsPage'
 import MarketplacePage from './pages/student/MarketplacePage'
 import MyListingsPage from './pages/student/MyListingsPage'
 import MarketplaceConversationsPage from './pages/student/MarketplaceConversationsPage'
+import AccountPage from './pages/student/AccountPage'
 import TeacherLayout from './components/layout/teacher/TeacherLayout';
 import NotificationsPage from './pages/teacher/NotificationsPage';
 
@@ -220,8 +221,7 @@ function App() {
           <Route path="/student/marketplace/conversas" element={<MarketplaceConversationsPage />} />
         <Route path="/student/marketplace/my-listings" element={<MyListingsPage />} />
         <Route path="/student/notifications" element={<StudentSectionPage title="Notificações" />} />
-        <Route path="/student/lostfound" element={<StudentSectionPage title="Perdidos e Achados" />} />
-        <Route path="/student/account" element={<StudentSectionPage title="Minha Conta" />} />
+        <Route path="/student/account" element={<AccountPage />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['teacher']} />}>
