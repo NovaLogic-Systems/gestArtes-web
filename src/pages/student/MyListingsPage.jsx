@@ -5,7 +5,7 @@
  * @project GestArtes - Projeto 50+10 para Entartes
  */
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import ListingCard from '../../components/ListingCard'
@@ -19,19 +19,27 @@ import {
   getMyMarketplaceListings,
   updateMarketplaceListing,
 } from '../../services/marketplace'
+import NotificationsBell from '../../components/NotificationsBell'
 import './DashboardPage.css'
 import './marketplace.css'
+import { STUDENT_NAV_ITEMS as NAV_ITEMS } from './studentNav'
 
-const NAV_ITEMS = [
-  { label: 'Painel', href: '/student/dashboard' },
-  { label: 'Coaching', href: '/student/coaching' },
-  { label: 'Inventário da Escola', href: '/student/inventory' },
-  { label: 'Marketplace', href: '/student/marketplace' },
-  { label: 'Conversas', href: '/student/marketplace/conversas' },
-  { label: 'Meus anúncios', href: '/student/marketplace/my-listings' },
-  { label: 'Perdidos e Achados', href: '/student/lostfound' },
-  { label: 'Minha Conta', href: '/student/account' },
-]
+function isVisibleListing(listing) {
+  const statusName = String(listing?.status?.statusName || listing?.status || '').trim().toLowerCase()
+
+  if (!statusName) {
+    return true
+  }
+
+  return !(
+    statusName.includes('removed') ||
+    statusName.includes('remov') ||
+    statusName.includes('inactive') ||
+    statusName.includes('inativo') ||
+    statusName.includes('hidden') ||
+    statusName.includes('ocult')
+  )
+}
 
 export default function MyListingsPage() {
   const { logout, user } = useAuth()
@@ -51,16 +59,21 @@ export default function MyListingsPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false))
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   const studentName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Aluno'
+  const sidebarHidden = isMobile || sidebarCollapsed
+  const appShellClassName = ['app-shell', sidebarHidden ? 'sidebar-hidden' : ''].filter(Boolean).join(' ')
   const sidebarClassName = ['sidebar', isMobile && mobileOpen ? 'open' : ''].filter(Boolean).join(' ')
-  const sidebarToggleSymbol = isMobile ? (mobileOpen ? '✕' : '☰') : '☰'
-  const sidebarToggleLabel = mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'
+  const sidebarToggleSymbol = isMobile ? (mobileOpen ? '✕' : '☰') : (sidebarCollapsed ? '▶' : '◀')
+  const sidebarToggleLabel = isMobile ? (mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral') : (sidebarCollapsed ? 'Mostrar barra lateral' : 'Esconder barra lateral')
 
   const handleSidebarToggle = useCallback(() => {
     if (isMobile) {
       setMobileOpen((value) => !value)
+      return
     }
+    setSidebarCollapsed((value) => !value)
   }, [isMobile])
 
   const handleMobileNavClick = useCallback(() => {
@@ -88,6 +101,8 @@ export default function MyListingsPage() {
     loadData()
   }, [loadData])
 
+  const filteredListings = useMemo(() => listings.filter(isVisibleListing), [listings])
+
   useEffect(() => {
     const onResize = () => {
       const mobile = window.innerWidth <= 1024
@@ -95,6 +110,7 @@ export default function MyListingsPage() {
 
       if (!mobile) {
         setMobileOpen(false)
+        setSidebarCollapsed(false)
       }
     }
 
@@ -122,8 +138,12 @@ export default function MyListingsPage() {
       return
     }
 
-    await deleteMarketplaceListing(listing.listingId)
-    await loadData()
+    try {
+      await deleteMarketplaceListing(listing.listingId)
+      await loadData()
+    } catch (requestError) {
+      setError(requestError?.response?.data?.error || 'Não foi possível apagar o anúncio.')
+    }
   }
 
   async function handleEditSubmit(values, file) {
@@ -140,7 +160,7 @@ export default function MyListingsPage() {
 
   return (
     <div className="student-dashboard market-page">
-      <div className="app-shell">
+      <div className={appShellClassName}>
         {isMobile && mobileOpen ? (
           <button
             type="button"
@@ -203,6 +223,7 @@ export default function MyListingsPage() {
               </div>
             </div>
             <div className="topbar-right">
+              <NotificationsBell pageLink="/student/notifications" />
               <Link className="pill" to="/student/marketplace">
                 Voltar ao feed
               </Link>
@@ -216,11 +237,11 @@ export default function MyListingsPage() {
               {error ? <p className="error-banner">{error}</p> : null}
               {loading ? <p className="panel-subtle">A carregar os teus anúncios...</p> : null}
 
-              {!loading && listings.length === 0 ? (
+              {!loading && filteredListings.length === 0 ? (
                 <p className="empty">Ainda não tens anúncios publicados.</p>
               ) : (
                 <div className="market-listing-grid">
-                  {listings.map((listing) => (
+                  {filteredListings.map((listing) => (
                     <ListingCard
                       key={listing.listingId}
                       listing={listing}

@@ -17,6 +17,10 @@ vi.mock('../services/realtimeNotifications', () => ({
   subscribeToNotifications: vi.fn(() => vi.fn())
 }))
 
+vi.mock('../hooks/useAuth', () => ({
+  useAuth: vi.fn(() => ({ user: null, role: null, roles: [], loading: false, switchRole: vi.fn() }))
+}))
+
 describe('NotificationsBell component', () => {
   beforeEach(() => {
     vi.clearAllMocks()

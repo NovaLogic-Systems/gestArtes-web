@@ -52,12 +52,14 @@
   top: -7px;
 }
 
-.student-dashboard .notifications-popover {
+.student-dashboard .notifications-popover,
+.coaching-page .notifications-popover,
+.app-shell .notifications-root .notifications-popover {
   background: #fff;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line, #e8e0f0);
   border-radius: 14px;
-  box-shadow: var(--soft-shadow);
-  color: var(--ink);
+  box-shadow: 0 8px 32px rgba(31, 28, 46, 0.16);
+  color: var(--ink, #1f1c2e);
   min-width: min(340px, calc(100vw - 32px));
   padding: 12px;
   position: absolute;
@@ -66,23 +68,31 @@
   z-index: 50;
 }
 
-.student-dashboard .notifications-popover-header {
+.student-dashboard .notifications-popover-header,
+.coaching-page .notifications-popover-header,
+.app-shell .notifications-root .notifications-popover-header {
   align-items: center;
   display: flex;
   justify-content: space-between;
   margin-bottom: 8px;
 }
 
-.student-dashboard .notifications-state {
+.student-dashboard .notifications-state,
+.coaching-page .notifications-state,
+.app-shell .notifications-root .notifications-state {
   color: var(--muted);
   margin: 10px 0;
 }
 
-.student-dashboard .notifications-state.error {
+.student-dashboard .notifications-state.error,
+.coaching-page .notifications-state.error,
+.app-shell .notifications-root .notifications-state.error {
   color: #8b2e39;
 }
 
-.student-dashboard .notifications-list {
+.student-dashboard .notifications-list,
+.coaching-page .notifications-list,
+.app-shell .notifications-root .notifications-list {
   display: grid;
   gap: 8px;
   list-style: none;
@@ -90,7 +100,9 @@
   padding: 0;
 }
 
-.student-dashboard .notifications-item {
+.student-dashboard .notifications-item,
+.coaching-page .notifications-item,
+.app-shell .notifications-root .notifications-item {
   border: 1px solid #efe8f7;
   border-radius: 10px;
   padding: 10px;
@@ -108,7 +120,9 @@
   width: 100%;
 }
 
-.student-dashboard .notifications-item.unread {
+.student-dashboard .notifications-item.unread,
+.coaching-page .notifications-item.unread,
+.app-shell .notifications-root .notifications-item.unread {
   background: #fff3ee;
   border-color: #f2c2af;
 }
@@ -128,7 +142,9 @@
   color: var(--muted);
 }
 
-.student-dashboard .notifications-more-link {
+.student-dashboard .notifications-more-link,
+.coaching-page .notifications-more-link,
+.app-shell .notifications-root .notifications-more-link {
   color: #8c402a;
   display: inline-flex;
   font-weight: 700;

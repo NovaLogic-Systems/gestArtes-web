@@ -1,22 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
-import notificationPreviewService from '../../services/notificationPreviewService'
 import Badge from '../../components/ui/Badge'
 import Button from '../../components/ui/Button'
 import LoadingSkeleton from '../../components/ui/LoadingSkeleton'
 import Modal from '../../components/ui/Modal'
 import Toast from '../../components/ui/Toast'
-import './AdmissionRequestsPage.css'
+import '../admin-studios.css'
 import NotificationsBell from '../../components/NotificationsBell'
 import './SessionConfirmationPage.css'
-
-const NAV_ITEMS = [
-  { label: 'Painel', href: '/teacher/dashboard' },
-  { label: 'Pedidos de admissão', href: '/teacher/admission-requests' },
-  { label: 'Confirmação de sessões', href: '/teacher/sessions/confirmation' },
-]
+import { TEACHER_NAV_ITEMS as NAV_ITEMS } from './teacherNav'
 
 const NO_SHOW_STATUSES = new Set(['no_show', 'noshow', 'no-show'])
 const ATTENDANCE_CONFIRMED_STATUSES = new Set(['present', 'presente', 'confirmed', 'confirmado', 'attended'])
@@ -31,20 +25,6 @@ function formatDate(value) {
 function formatTime(value) {
   if (!value) return '—'
   return String(value).slice(0, 5)
-}
-
-function formatNotificationDate(value) {
-  if (!value) return ''
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return ''
-  const now = new Date()
-  const diffMs = now - parsed
-  const diffMins = Math.floor(diffMs / 60000)
-  if (diffMins < 1) return 'agora mesmo'
-  if (diffMins < 60) return `há ${diffMins} min`
-  const diffHours = Math.floor(diffMins / 60)
-  if (diffHours < 24) return `há ${diffHours}h`
-  return new Intl.DateTimeFormat('pt-PT', { dateStyle: 'short' }).format(parsed)
 }
 
 function resolveAttendanceBadge(statusName) {
@@ -63,6 +43,13 @@ function isPresent(statusName) {
   const n = String(statusName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
   return ATTENDANCE_CONFIRMED_STATUSES.has(n)
 }
+
+const normalizeText = (text) =>
+  String(text || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
 
 function normalizeSessions(payload) {
   const items = Array.isArray(payload?.sessions) ? payload.sessions : []
@@ -105,6 +92,9 @@ export default function SessionConfirmationPage() {
   const [sessions, setSessions] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [searchTerm, setSearchTerm] = useState(() => {
+    return new URLSearchParams(location.search).get('q') || ''
+  })
   const [toast, setToast] = useState(null)
 
   const [noShowModal, setNoShowModal] = useState(null)
@@ -114,15 +104,6 @@ export default function SessionConfirmationPage() {
 
   const [confirmingSession, setConfirmingSession] = useState(null)
 
-  const [notificationsOpen, setNotificationsOpen] = useState(false)
-  const [notificationsLoaded, setNotificationsLoaded] = useState(false)
-  const [notificationsLoading, setNotificationsLoading] = useState(false)
-  const [notificationsError, setNotificationsError] = useState('')
-  const [notifications, setNotifications] = useState([])
-  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0)
-  const notificationCloseTimerRef = useRef(null)
-
-  const notificationBoxRef = useRef(null)
   const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'Professor'
 
   const sidebarHidden = isMobile || sidebarCollapsed
@@ -142,6 +123,11 @@ export default function SessionConfirmationPage() {
   }, [isMobile])
 
   useEffect(() => {
+    document.body.classList.add('studio-page')
+    return () => document.body.classList.remove('studio-page')
+  }, [])
+
+  useEffect(() => {
     const onResize = () => {
       const mobile = window.innerWidth <= 1024
       setIsMobile(mobile)
@@ -156,7 +142,9 @@ export default function SessionConfirmationPage() {
     setLoading(true)
     setError('')
     try {
-      const { data } = await api.get('/teacher/sessions/pending')
+      const { data } = await api.get('/teacher/sessions/pending', {
+        params: { view: 'confirmation' },
+      })
       setSessions(normalizeSessions(data))
     } catch {
       setError('Não foi possível carregar as sessões. Tenta novamente.')
@@ -168,70 +156,6 @@ export default function SessionConfirmationPage() {
   useEffect(() => {
     loadSessions()
   }, [loadSessions])
-
-  useEffect(() => {
-    notificationPreviewService.getPreview({ limit: 0, includeUnreadCount: true })
-      .then((preview) => setNotificationUnreadCount(preview.unreadCount))
-      .catch(() => { })
-  }, [])
-
-  useEffect(() => {
-    if (!notificationsOpen) return
-    const onClick = (e) => {
-      if (notificationBoxRef.current && !notificationBoxRef.current.contains(e.target)) {
-        setNotificationsOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', onClick)
-    return () => document.removeEventListener('mousedown', onClick)
-  }, [notificationsOpen])
-
-  const openNotificationsOnHover = useCallback(() => {
-    if (notificationCloseTimerRef.current) {
-      window.clearTimeout(notificationCloseTimerRef.current)
-      notificationCloseTimerRef.current = null
-    }
-
-    setNotificationsOpen(true)
-
-    if (!notificationsLoaded) {
-      loadNotifications()
-    }
-  }, [loadNotifications, notificationsLoaded])
-
-  const closeNotificationsOnHover = useCallback(() => {
-    if (notificationCloseTimerRef.current) {
-      window.clearTimeout(notificationCloseTimerRef.current)
-    }
-
-    notificationCloseTimerRef.current = window.setTimeout(() => {
-      setNotificationsOpen(false)
-      notificationCloseTimerRef.current = null
-    }, 120)
-  }, [])
-
-  const loadNotifications = useCallback(async () => {
-    if (notificationsLoaded || notificationsLoading) return
-    setNotificationsLoading(true)
-    setNotificationsError('')
-    try {
-      const preview = await notificationPreviewService.getPreview({ limit: 4, includeUnreadCount: true })
-      setNotifications(preview.items)
-      setNotificationsLoaded(true)
-      setNotificationUnreadCount(preview.unreadCount)
-    } catch {
-      setNotificationsError('Não foi possível carregar as notificações.')
-    } finally {
-      setNotificationsLoading(false)
-    }
-  }, [notificationsLoaded, notificationsLoading])
-
-  const handleNotificationsToggle = useCallback(() => {
-    setNotificationsOpen((v) => {
-      if (!v) loadNotifications()
-      return !v
-    })
-  }, [loadNotifications])
 
   async function handleLogout() {
     await logout()
@@ -309,8 +233,18 @@ export default function SessionConfirmationPage() {
     ? (mobileOpen ? '✕' : '☰')
     : (sidebarCollapsed ? '▶' : '◀')
 
+  const filteredSessions = useMemo(() => {
+    const term = normalizeText(searchTerm)
+    if (!term) return sessions
+    return sessions.filter((s) =>
+      normalizeText([s.studioName, s.modalityName, s.date, String(s.sessionId)]
+        .concat(s.students?.map((st) => st.studentName) ?? [])
+        .join(' ')).includes(term)
+    )
+  }, [sessions, searchTerm])
+
   return (
-    <div className="teacher-admission-requests">
+    <div className="teacher-session-confirmation">
       <div className={appShellClassName}>
         {isMobile && mobileOpen ? (
           <button
@@ -325,7 +259,7 @@ export default function SessionConfirmationPage() {
             <span className="brand-dot" aria-hidden="true" />
             <div>
               <h1>gestArtes</h1>
-              <p>Professor</p>
+              <p>{displayName}</p>
             </div>
           </div>
 
@@ -341,12 +275,8 @@ export default function SessionConfirmationPage() {
                 {item.label}
               </Link>
             ))}
-          </div>
-
-          <div className="sidebar-footer">
-            <span className="sidebar-user">{displayName}</span>
-            <button type="button" className="nav-link logout-link" onClick={handleLogout}>
-              Terminar sessão
+            <button className="nav-link" type="button" onClick={handleLogout}>
+              Terminar Sessão
             </button>
           </div>
         </aside>
@@ -354,21 +284,30 @@ export default function SessionConfirmationPage() {
         <main className="main">
           <header className="topbar">
             <div className="topbar-left">
-              <button
-                type="button"
-                className="menu-toggle"
-                aria-label={isMobile ? (mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral') : (sidebarCollapsed ? 'Mostrar barra lateral' : 'Esconder barra lateral')}
-                onClick={handleSidebarToggle}
-              >
-                {sidebarToggleSymbol}
-              </button>
-              <div>
-                <h2>Confirmação de sessões</h2>
-                <p>Valida a presença dos alunos e confirma a conclusão da sessão</p>
+              <div className="topbar-heading">
+                <button
+                  type="button"
+                  className="sidebar-toggle-btn"
+                  aria-label={isMobile ? (mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral') : (sidebarCollapsed ? 'Mostrar barra lateral' : 'Esconder barra lateral')}
+                  aria-controls="sidebar"
+                  aria-expanded={mobileOpen}
+                  onClick={handleSidebarToggle}
+                >
+                  {sidebarToggleSymbol}
+                </button>
+                <h2>Confirmação de sessões concluídas</h2>
               </div>
+              <p>Valida a presença dos alunos e confirma apenas sessões que já terminaram</p>
             </div>
-            <div className="topbar-right" style={{ position: 'relative' }}>
-              <NotificationsBell pageLink="/teacher/notifications" count={notificationUnreadCount} />
+            <div className="topbar-right">
+              <input
+                type="search"
+                className="topbar-search"
+                placeholder="Pesquisar sessões..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <NotificationsBell pageLink="/teacher/notifications" />
             </div>
           </header>
 
@@ -390,15 +329,15 @@ export default function SessionConfirmationPage() {
                   </div>
                 ))}
               </div>
-            ) : sessions.length === 0 && !error ? (
+            ) : filteredSessions.length === 0 && !error ? (
               <div className="panel empty-state">
                 <p className="empty-state-icon" aria-hidden="true">✓</p>
-                <h3>Sem sessões para confirmar</h3>
-                <p>Todas as sessões concluídas já foram confirmadas ou ainda não existem sessões terminadas.</p>
+                <h3>{searchTerm ? 'Nenhuma sessão encontrada.' : 'Sem sessões para confirmar'}</h3>
+                <p>{searchTerm ? 'Tenta outro termo de pesquisa.' : 'Todas as sessões concluídas já foram confirmadas ou ainda não existem sessões terminadas.'}</p>
               </div>
             ) : (
               <div className="sessions-grid">
-                {sessions.map((session) => {
+                {filteredSessions.map((session) => {
                   const allHandled = session.students.every(
                     (st) => isNoShow(st.attendanceStatus) || isPresent(st.attendanceStatus),
                   )

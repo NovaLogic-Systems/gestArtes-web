@@ -17,16 +17,14 @@ import StudioOccupancyPage from './pages/admin/StudioOccupancyPage'
 import FinancialDashboardPage from './pages/admin/FinancialDashboardPage'
 import AuditPage from './pages/admin/AuditPage'
 import AdminUsersPage from './pages/admin/AdminUsersPage'
-import AdminMarketplaceConversationsPage from './pages/admin/AdminMarketplaceConversationsPage'
 import MarketplaceModerationPage from './pages/admin/MarketplaceModerationPage'
 import AdminDashboardPage from './pages/admin/AdminDashboardPage'
 import AdminInventoryPage from './pages/admin/AdminInventoryPage'
+import AdminNotificationsPage from './pages/admin/NotificationsPage'
 import DashboardPage from './pages/student/DashboardPage'
 import CoachingStudentPage from './pages/student/CoachingPage'
-import JoinRequestsTeacherView from './components/JoinRequestsTeacherView'
 import AdmissionRequestsPage from './pages/teacher/AdmissionRequestsPage'
 import SessionConfirmationPage from './pages/teacher/SessionConfirmationPage'
-import TeacherMarketplaceConversationsPage from './pages/teacher/TeacherMarketplaceConversationsPage'
 import TeacherInventoryPage from './pages/teacher/InventoryPage'
 import InventoryPage from './pages/student/InventoryPage'
 import LostFoundPage from './pages/student/LostFoundPage'
@@ -34,18 +32,17 @@ import RentalCheckoutPage from './pages/student/RentalCheckoutPage'
 import RentalRequestsPage from './pages/student/RentalRequestsPage'
 import TeacherDashboardPage from './pages/teacher/DashboardPage'
 import MarketplacePage from './pages/student/MarketplacePage'
-import MarketplaceConversationsPage from './pages/student/MarketplaceConversationsPage'
 import AccountPage from './pages/student/AccountPage'
 import MyListingsPage from './pages/student/MyListingsPage'
 import TeacherMarketplacePage from './pages/teacher/MarketplacePage'
 import TeacherMarketplaceListingsPage from './pages/teacher/MyListingsPage'
-import TeacherLayout from './components/layout/teacher/TeacherLayout';
 import NotificationsPage from './pages/teacher/NotificationsPage';
 import StudentNotificationsPage from './pages/student/NotificationsPage';
 import ScheduleSubmissionPage from './pages/teacher/ScheduleSubmissionPage'
 import LostFoundAdminPage from './pages/admin/LostFoundAdminPage'
-import CoachingMapPage from './pages/student/CoachingMapPage'
 import CreateCoachingPage from './pages/teacher/CreateCoachingPage'
+import TeacherAccountPage from './pages/teacher/AccountPage'
+import TeacherCoachingPage from './pages/teacher/TeacherCoachingPage'
 import MyHistoryPage from './pages/student/MyHistoryPage'
 
 function PlaceholderPage({ title }) {
@@ -198,18 +195,6 @@ function ProtectedPlaceholderPage({ title, actionLink }) {
 
 const StudentSectionPage = ({ title }) => <PlaceholderPage title={title} />
 const CoachingPage = () => <CoachingStudentPage />
-const TeacherDashboard = () => (
-  <TeacherLayout>
-    <ProtectedPlaceholderPage
-      title="Teacher Dashboard"
-      actionLink={{ to: '/teacher/admission-requests', label: 'Pedidos de admissão' }}
-    />
-    <div style={{ padding: '0 2rem 2rem 2rem', maxWidth: '1200px', margin: '0 auto' }}>
-      <h2 style={{ marginBottom: '1rem' }}>Aprovação de Coaching (Join Requests)</h2>
-      <JoinRequestsTeacherView />
-    </div>
-  </TeacherLayout>
-)
 const AdminDashboard = () => <AdminDashboardPage />
 
 function App() {
@@ -229,12 +214,12 @@ function App() {
         <Route path="/student/inventory/checkout/:itemId" element={<RentalCheckoutPage />} />
         <Route path="/student/inventory/rentals" element={<RentalRequestsPage />} />
         <Route path="/student/marketplace" element={<MarketplacePage />} />
-        <Route path="/student/marketplace/conversas" element={<MarketplaceConversationsPage />} />
+        <Route path="/student/marketplace/conversas" element={<Navigate to="/student/marketplace" replace />} />
         <Route path="/student/marketplace/my-listings" element={<MyListingsPage />} />
         <Route path="/student/lostfound" element={<LostFoundPage />} />
         <Route path="/student/account" element={<AccountPage />} />
-        <Route path="/student/coaching/map" element={<CoachingMapPage />} />
         <Route path="/student/history" element={<MyHistoryPage />} />
+        <Route path="/student/notifications" element={<StudentNotificationsPage />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['teacher']} />}>
@@ -242,18 +227,15 @@ function App() {
         <Route path="/teacher/dashboard" element={<TeacherDashboardPage />} />
         <Route path="/teacher/admission-requests" element={<AdmissionRequestsPage />} />
         <Route path="/teacher/sessions/confirmation" element={<SessionConfirmationPage />} />
-        <Route path="/teacher/schedule" element={<ProtectedPlaceholderPage title="Horário" />} />
-        <Route path="/teacher/availability" element={<ScheduleSubmissionPage />} />
-        <Route path="/teacher/coaching" element={<ProtectedPlaceholderPage title="Coaching" />} />
+        <Route path="/teacher/schedule" element={<ScheduleSubmissionPage />} />
+        <Route path="/teacher/availability" element={<Navigate to="/teacher/schedule" replace />} />
+        <Route path="/teacher/coaching" element={<TeacherCoachingPage />} />
         <Route path="/teacher/inventory" element={<TeacherInventoryPage />} />
-        <Route path="/teacher/marketplace" element={<ProtectedPlaceholderPage title="Marketplace" />} />
-        <Route path="/teacher/account" element={<ProtectedPlaceholderPage title="Minha Conta" />} />
-        <Route path="/teacher/marketplace/conversas" element={<TeacherMarketplaceConversationsPage />} />
         <Route path="/teacher/marketplace" element={<TeacherMarketplacePage />} />
-        <Route path="/teacher/marketplace/conversas" element={<TeacherMarketplaceConversationsPage />} />
+        <Route path="/teacher/marketplace/conversas" element={<Navigate to="/teacher/marketplace" replace />} />
         <Route path="/teacher/marketplace/my-listings" element={<TeacherMarketplaceListingsPage />} />
         <Route path="/teacher/notifications" element={<NotificationsPage />} />
-        <Route path="/teacher/account" element={<ProtectedPlaceholderPage title="Minha Conta" />} />
+        <Route path="/teacher/account" element={<TeacherAccountPage />} />
         <Route path="/teacher/coaching/create" element={<CreateCoachingPage />} />
       </Route>
 
@@ -264,11 +246,13 @@ function App() {
         <Route path="/admin/studio-occupancy" element={<StudioOccupancyPage />} />
         <Route path="/admin/inventory" element={<AdminInventoryPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
-        <Route path="/admin/marketplace/conversas" element={<AdminMarketplaceConversationsPage />} />
+        <Route path="/admin/marketplace/conversas" element={<Navigate to="/admin/marketplace" replace />} />
         <Route path="/admin/marketplace" element={<MarketplaceModerationPage />} />
         <Route path="/admin/finance" element={<FinancialDashboardPage />} />
         <Route path="/admin/audit" element={<AuditPage />} />
-        <Route path="/admin/lostfound" element={<LostFoundAdminPage />} />
+        <Route path="/admin/lost-and-found" element={<LostFoundAdminPage />} />
+        <Route path="/admin/lostfound" element={<Navigate to="/admin/lost-and-found" replace />} />
+        <Route path="/admin/notifications" element={<AdminNotificationsPage />} />
         <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
       </Route>
 

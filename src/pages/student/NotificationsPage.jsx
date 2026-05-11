@@ -2,23 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import NotificationsBell from '../../components/NotificationsBell'
 import { useAuth } from '../../hooks/useAuth'
-import notificationService, { formatNotificationDate } from '../../services/notificationService'
+import notificationService, { formatNotificationDate, invalidateNotificationCache } from '../../services/notificationService'
 import { subscribeToNotifications } from '../../services/realtimeNotifications'
 import './DashboardPage.css'
 import './NotificationsPage.css'
-
-const NAV_ITEMS = [
-  { label: 'Painel', href: '/student/dashboard' },
-  { label: 'Coaching', href: '/student/coaching' },
-  { label: 'Mapa de Coaching', href: '/student/coaching/map' },
-  { label: 'Inventário da Escola', href: '/student/inventory' },
-  { label: 'As Minhas Rendas', href: '/student/inventory/rentals' },
-  { label: 'Marketplace', href: '/student/marketplace' },
-  { label: 'Os Meus Anúncios', href: '/student/marketplace/my-listings' },
-  { label: 'Perdidos e Achados', href: '/student/lostfound' },
-  { label: 'Notificações', href: '/student/notifications' },
-  { label: 'Minha Conta', href: '/student/account' },
-]
+import { STUDENT_NAV_ITEMS as NAV_ITEMS } from './studentNav'
 
 const FILTERS = [
   { label: 'Todas', value: 'all' },
@@ -39,6 +27,15 @@ export default function NotificationsPage() {
   const [activeFilter, setActiveFilter] = useState('all')
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false))
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+
+  const sidebarHidden = isMobile || sidebarCollapsed
+  const appShellClassName = ['app-shell', sidebarHidden ? 'sidebar-hidden' : ''].filter(Boolean).join(' ')
+  const sidebarClassName = ['sidebar', isMobile && mobileOpen ? 'open' : ''].filter(Boolean).join(' ')
+  const sidebarToggleSymbol = isMobile ? (mobileOpen ? '✕' : '☰') : sidebarCollapsed ? '▶' : '◀'
+  const sidebarToggleLabel = isMobile
+    ? (mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral')
+    : (sidebarCollapsed ? 'Mostrar barra lateral' : 'Esconder barra lateral')
 
   const loadNotifications = useCallback(async () => {
     setLoading(true)
@@ -59,6 +56,7 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     return subscribeToNotifications((notification) => {
+      invalidateNotificationCache()
       setNotifications((current) => [notification, ...current.filter((item) => item.id !== notification.id)])
     })
   }, [])
@@ -78,6 +76,23 @@ export default function NotificationsPage() {
 
     return () => window.removeEventListener('resize', onResize)
   }, [])
+
+  useEffect(() => {
+    if (!isMobile) {
+      return
+    }
+
+    setSidebarCollapsed(false)
+  }, [isMobile])
+
+  const handleSidebarToggle = useCallback(() => {
+    if (isMobile) {
+      setMobileOpen((value) => !value)
+      return
+    }
+
+    setSidebarCollapsed((value) => !value)
+  }, [isMobile])
 
   const filteredNotifications = useMemo(() => {
     if (activeFilter === 'all') {
@@ -120,8 +135,17 @@ export default function NotificationsPage() {
 
   return (
     <div className="student-dashboard student-notifications-page">
-      <div className="app-shell">
-        <aside className={`sidebar${mobileOpen ? ' open' : ''}`} id="sidebar">
+      <div className={appShellClassName}>
+        {isMobile && mobileOpen ? (
+          <button
+            type="button"
+            className="sidebar-overlay"
+            aria-label="Fechar navegação lateral"
+            onClick={() => setMobileOpen(false)}
+          />
+        ) : null}
+
+        <aside className={sidebarClassName} id="sidebar">
           <div className="brand">
             <span className="brand-dot" />
             <div>
@@ -172,21 +196,17 @@ export default function NotificationsPage() {
                 type="button"
                 aria-controls="sidebar"
                 aria-expanded={mobileOpen}
-                aria-label={mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'}
-                onClick={() => setMobileOpen((current) => !current)}
+                aria-label={sidebarToggleLabel}
+                onClick={handleSidebarToggle}
               >
-                {mobileOpen ? '✕' : '☰'}
+                {sidebarToggleSymbol}
               </button>
               <div>
                 <h2>Notificações</h2>
-                <p>Alertas de coaching, sistema e marketplace</p>
               </div>
             </div>
 
             <div className="topbar-right">
-              <Link className="pill" to="/student/account">
-                Minha Conta
-              </Link>
               <NotificationsBell />
             </div>
           </header>

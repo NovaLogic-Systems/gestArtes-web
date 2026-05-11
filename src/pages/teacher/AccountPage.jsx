@@ -1,5 +1,5 @@
 /**
- * @file src/pages/student/AccountPage.jsx
+ * @file src/pages/teacher/AccountPage.jsx
  * @author NovaLogic System
  * @institution IPCA
  * @project GestArtes - Projeto 50+10 para Entartes
@@ -14,40 +14,15 @@ import LoadingSkeleton from '../../components/ui/LoadingSkeleton'
 import Modal from '../../components/ui/Modal'
 import { useAuth } from '../../hooks/useAuth'
 import toast from 'react-hot-toast'
-import { changeStudentPassword, fetchStudentAccount, updateStudentPhoneNumber } from '../../services/studentAccount'
+import { changeTeacherPassword, fetchTeacherAccount, updateTeacherPhoneNumber } from '../../services/teacherAccount'
 import NotificationsBell from '../../components/NotificationsBell'
-import './DashboardPage.css'
-import './account.css'
-import { STUDENT_NAV_ITEMS as NAV_ITEMS } from './studentNav'
-
-function formatDateLabel(value) {
-	if (!value) {
-		return '—'
-	}
-
-	const date = new Date(value)
-
-	if (Number.isNaN(date.getTime())) {
-		return String(value)
-	}
-
-	return new Intl.DateTimeFormat('pt-PT', {
-		day: '2-digit',
-		month: '2-digit',
-		year: 'numeric',
-	}).format(date)
-}
-
-function normalizePhoneNumber(value) {
-	return String(value || '').trim()
-}
+import '../student/DashboardPage.css'
+import '../student/account.css'
+import { TEACHER_NAV_ITEMS as NAV_ITEMS } from './teacherNav'
 
 function getInitials(profile) {
 	const parts = [profile?.firstName, profile?.lastName].filter(Boolean)
-	if (!parts.length) {
-		return 'A'
-	}
-
+	if (!parts.length) return 'P'
 	return parts
 		.map((part) => String(part).trim().charAt(0))
 		.filter(Boolean)
@@ -60,24 +35,22 @@ function formatCount(value) {
 	return new Intl.NumberFormat('pt-PT').format(Number(value || 0))
 }
 
-function splitPlanLabel(value) {
-	const normalized = String(value || '').trim()
-	if (!normalized) {
-		return { name: '', level: '' }
-	}
-
-	const match = normalized.match(/^(.*?)(?:\s+(\d+))$/)
-	if (!match) {
-		return { name: normalized, level: '' }
-	}
-
-	return {
-		name: match[1].trim() || normalized,
-		level: match[2].trim(),
-	}
+function formatDateLabel(value) {
+	if (!value) return '—'
+	const date = new Date(value)
+	if (Number.isNaN(date.getTime())) return String(value)
+	return new Intl.DateTimeFormat('pt-PT', {
+		day: '2-digit',
+		month: '2-digit',
+		year: 'numeric',
+	}).format(date)
 }
 
-export default function AccountPage() {
+function normalizePhoneNumber(value) {
+	return String(value || '').trim()
+}
+
+export default function TeacherAccountPage() {
 	const { logout, user } = useAuth()
 	const location = useLocation()
 	const navigate = useNavigate()
@@ -94,21 +67,20 @@ export default function AccountPage() {
 	const [passwordError, setPasswordError] = useState('')
 	const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false))
 	const [mobileOpen, setMobileOpen] = useState(false)
+	const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 	const [passwordForm, setPasswordForm] = useState({
 		currentPassword: '',
 		newPassword: '',
 		confirmPassword: '',
 	})
 
-	const studentName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Aluno'
+	const teacherName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Professor'
 	const profile = account?.profile ?? null
-	const trainingPlan = account?.trainingPlan ?? null
 	const statistics = account?.statistics ?? null
-	const modalityDistribution = Array.isArray(trainingPlan?.modalityDistribution) ? trainingPlan.modalityDistribution : []
+	const modalities = Array.isArray(account?.modalities) ? account.modalities : []
 	const normalizedPhone = normalizePhoneNumber(profile?.phoneNumber)
 	const phoneDirty = normalizePhoneNumber(phoneNumber) !== normalizedPhone
-	const trainingPlanLabel = splitPlanLabel(trainingPlan?.name)
-	const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+
 	const sidebarHidden = isMobile || sidebarCollapsed
 	const appShellClassName = ['app-shell', sidebarHidden ? 'sidebar-hidden' : ''].filter(Boolean).join(' ')
 	const sidebarClassName = ['sidebar', isMobile && mobileOpen ? 'open' : ''].filter(Boolean).join(' ')
@@ -126,9 +98,7 @@ export default function AccountPage() {
 	}, [isMobile])
 
 	const handleMobileNavClick = useCallback(() => {
-		if (isMobile) {
-			setMobileOpen(false)
-		}
+		if (isMobile) setMobileOpen(false)
 	}, [isMobile])
 
 	const loadAccount = useCallback(async () => {
@@ -136,63 +106,52 @@ export default function AccountPage() {
 			setLoading(true)
 			setError('')
 
-			const response = await fetchStudentAccount()
+			const response = await fetchTeacherAccount()
 			setAccount(response)
 			setPhoneNumber(normalizePhoneNumber(response?.profile?.phoneNumber))
 		} catch (requestError) {
 			setAccount(null)
 			setPhoneNumber('')
-			setError(requestError?.response?.data?.error || 'Não foi possível carregar a conta do aluno.')
+			setError(requestError?.response?.data?.error || 'Não foi possível carregar a conta do professor.')
 		} finally {
 			setLoading(false)
 		}
 	}, [])
 
-	useEffect(() => {
-		loadAccount()
-	}, [loadAccount])
+	useEffect(() => { loadAccount() }, [loadAccount])
 
 	useEffect(() => {
 		const onResize = () => {
 			const mobile = window.innerWidth <= 1024
 			setIsMobile(mobile)
-
-			if (!mobile) {
-				setMobileOpen(false)
-			}
+			if (!mobile) setMobileOpen(false)
 		}
-
 		window.addEventListener('resize', onResize)
 		onResize()
-
 		return () => window.removeEventListener('resize', onResize)
 	}, [])
 
 	const statCards = useMemo(() => ([
-		{ label: 'Sessões inscritas', value: formatCount(statistics?.totalSessionsEnrolled) },
+		{ label: 'Sessões totais', value: formatCount(statistics?.totalSessions) },
 		{ label: 'Sessões concluídas', value: formatCount(statistics?.completedSessions) },
-		{ label: 'Pedidos de adesão', value: formatCount(statistics?.totalJoinRequests) },
-		{ label: 'Requisições de inventário', value: formatCount(statistics?.totalInventoryRentals) },
-		{ label: 'Compras no marketplace', value: formatCount(statistics?.totalMarketplacePurchases) },
+		{ label: 'Próximas sessões', value: formatCount(statistics?.upcomingSessions) },
+		{ label: 'Sessões este mês', value: formatCount(statistics?.monthSessions) },
+		{ label: 'Pedidos de adesão pendentes', value: formatCount(statistics?.pendingAdmissions) },
+		{ label: 'Disponibilidades em aprovação', value: formatCount(statistics?.pendingAvailabilities) },
 	]), [statistics])
 
 	const handlePhoneSave = async () => {
-		if (!phoneDirty || phoneSaving) {
-			return
-		}
-
+		if (!phoneDirty || phoneSaving) return
 		try {
 			setPhoneSaving(true)
 			setPhoneError('')
 
-			const response = await updateStudentPhoneNumber(phoneNumber)
+			const response = await updateTeacherPhoneNumber(phoneNumber)
 			const nextProfile = response?.profile ?? null
-
 			if (nextProfile) {
 				setAccount((current) => (current ? { ...current, profile: nextProfile } : current))
 				setPhoneNumber(normalizePhoneNumber(nextProfile.phoneNumber))
 			}
-
 			toast.success('Número de telemóvel atualizado com sucesso.')
 		} catch (requestError) {
 			setPhoneError(requestError?.response?.data?.error || 'Não foi possível atualizar o número de telemóvel.')
@@ -204,19 +163,12 @@ export default function AccountPage() {
 	const closePasswordModal = () => {
 		setPasswordOpen(false)
 		setPasswordError('')
-		setPasswordForm({
-			currentPassword: '',
-			newPassword: '',
-			confirmPassword: '',
-		})
+		setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
 	}
 
 	const handlePasswordSubmit = async (event) => {
 		event.preventDefault()
-
-		if (passwordSaving) {
-			return
-		}
+		if (passwordSaving) return
 
 		if (passwordForm.newPassword !== passwordForm.confirmPassword) {
 			setPasswordError('As passwords nova e de confirmação não coincidem.')
@@ -227,7 +179,7 @@ export default function AccountPage() {
 			setPasswordSaving(true)
 			setPasswordError('')
 
-			await changeStudentPassword({
+			await changeTeacherPassword({
 				currentPassword: passwordForm.currentPassword,
 				newPassword: passwordForm.newPassword,
 			})
@@ -282,15 +234,14 @@ export default function AccountPage() {
 						<span className="brand-dot" />
 						<div>
 							<h1>gestArtes</h1>
-							<p>{studentName}</p>
+							<p>{teacherName}</p>
 						</div>
 					</div>
 
 					<div className="nav-group">
-						<h2>Aluno</h2>
+						<h2>Professor</h2>
 						{NAV_ITEMS.map((item) => {
 							const isActive = location.pathname === item.href || location.pathname.startsWith(`${item.href}/`)
-
 							return (
 								<Link key={item.href} className={`nav-link${isActive ? ' active' : ''}`} to={item.href} onClick={handleMobileNavClick}>
 									{item.label}
@@ -324,42 +275,40 @@ export default function AccountPage() {
 							>
 								{sidebarToggleSymbol}
 							</button>
-
 							<div>
 								<h2>Minha Conta</h2>
 							</div>
 						</div>
-
 						<div className="topbar-right">
-							<NotificationsBell pageLink="/student/notifications" />
+							<NotificationsBell pageLink="/teacher/notifications" />
 						</div>
 					</header>
 
 					{error ? <p className="inventory-error-banner">{error}</p> : null}
 					{passwordMessage ? <p className="account-success-banner">{passwordMessage}</p> : null}
 
-					{loading ? (
-						renderSkeleton()
-					) : (
+					{loading ? renderSkeleton() : (
 						<section className="account-layout">
 							<div className="account-column">
 								<article className="panel account-panel account-profile-panel">
 									<div className="account-profile-header">
 										<div className="account-avatar">
-											{profile?.photoUrl ? <img src={profile.photoUrl} alt={`${profile.firstName} ${profile.lastName}`} /> : getInitials(profile)}
+											{profile?.photoUrl
+												? <img src={profile.photoUrl} alt={`${profile.firstName} ${profile.lastName}`} />
+												: getInitials(profile)}
 										</div>
 										<div className="account-profile-copy">
-											<p className="inventory-kicker">Perfil do estudante</p>
+											<p className="inventory-kicker">Perfil do professor</p>
 											<h3>{[profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || '—'}</h3>
 											<div className="account-badges">
-												<Badge variant="info" size="sm">{profile?.studentCode || 'ST-0000'}</Badge>
-														<Badge variant="neutral" size="sm">{trainingPlanLabel.name || trainingPlan?.name || 'Plano por definir'}</Badge>
+												<Badge variant="info" size="sm">{profile?.teacherCode || '—'}</Badge>
+												<Badge variant="neutral" size="sm">{modalities.length} modalidade(s)</Badge>
 											</div>
 										</div>
 									</div>
 
 									<div className="account-note">
-										<p>Para alterar os teus dados pessoais contacta diretamente a escola.</p>
+										<p>Para alterar dados pessoais para além do telemóvel/password contacta a direção da escola.</p>
 									</div>
 
 									<div className="account-readonly-grid">
@@ -367,8 +316,7 @@ export default function AccountPage() {
 										<div className="account-readonly-item"><span>Último nome</span><strong>{profile?.lastName || '—'}</strong></div>
 										<div className="account-readonly-item"><span>Email</span><strong>{profile?.email || '—'}</strong></div>
 										<div className="account-readonly-item"><span>Número de telemóvel</span><strong>{profile?.phoneNumber || '—'}</strong></div>
-										<div className="account-readonly-item"><span>Data de nascimento</span><strong>{formatDateLabel(profile?.birthDate)}</strong></div>
-										<div className="account-readonly-item"><span>Responsável</span><strong>{profile?.guardianName || '—'}</strong></div>
+										<div className="account-readonly-item"><span>Membro desde</span><strong>{formatDateLabel(profile?.memberSince)}</strong></div>
 									</div>
 								</article>
 
@@ -384,13 +332,15 @@ export default function AccountPage() {
 										<Input
 											label="Número de telemóvel"
 											type="tel"
+											inputMode="tel"
+											autoComplete="tel"
+											placeholder="912345678"
 											value={phoneNumber}
 											onChange={(event) => {
-												setPhoneNumber(event.target.value)
-																					setPhoneError('')
+												setPhoneNumber(event.target.value.replace(/[^\d+\s]/g, ''))
+												setPhoneError('')
 											}}
 											helperText="Este número é usado para contacto operacional da escola."
-											autoComplete="tel"
 										/>
 
 										<div className="quick-actions">
@@ -409,7 +359,7 @@ export default function AccountPage() {
 											</Button>
 										</div>
 
-											{phoneError ? <p className="account-error-message">{phoneError}</p> : null}
+										{phoneError ? <p className="account-error-message">{phoneError}</p> : null}
 									</div>
 								</article>
 							</div>
@@ -418,7 +368,7 @@ export default function AccountPage() {
 								<article className="panel account-panel">
 									<div className="account-panel-head">
 										<div>
-											<h3>Estatísticas da conta</h3>
+											<h3>Estatísticas</h3>
 											<p>Resumo da tua atividade na plataforma.</p>
 										</div>
 									</div>
@@ -436,36 +386,23 @@ export default function AccountPage() {
 								<article className="panel account-panel">
 									<div className="account-panel-head">
 										<div>
-											<h3>Plano formativo</h3>
-											<p>Informação apenas para consulta.</p>
+											<h3>Modalidades que leciono</h3>
+											<p>Definidas pela direção. Informação apenas para consulta.</p>
 										</div>
 									</div>
 
-									<div className="account-plan-card">
-										<div>
-											<p className="account-plan-label">Plano atual</p>
-											<h4>{trainingPlan?.name || 'Sem plano definido'}</h4>
-										</div>
-										<div className="account-plan-badges">
-											{trainingPlanLabel.level ? <Badge variant="neutral" size="sm">Nível {trainingPlanLabel.level}</Badge> : null}
-											<Badge variant="info" size="sm">{modalityDistribution.length} modalidade(s)</Badge>
-										</div>
-									</div>
-
-									{modalityDistribution.length ? (
+									{modalities.length ? (
 										<ul className="account-list">
-											{modalityDistribution.map((item) => (
-												<li key={item.modalityName}>
-													<span>{item.modalityName}</span>
-													<strong>{formatCount(item.sessions)}</strong>
+											{modalities.map((m) => (
+												<li key={m.modalityId}>
+													<span>{m.modalityName}</span>
 												</li>
 											))}
 										</ul>
 									) : (
-										<p className="account-empty">Ainda não há plano formativo associado.</p>
+										<p className="account-empty">Ainda não há modalidades associadas.</p>
 									)}
 								</article>
-
 							</div>
 						</section>
 					)}

@@ -6,17 +6,8 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { io } from 'socket.io-client';
-import { 
-  FiUsers, 
-  FiCheckCircle, 
-  FiFileText, 
-  FiTrendingUp, 
-  FiBell, 
-  FiSend, 
-  FiActivity,
-  FiCalendar
-} from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import AdminShell from './AdminShell';
 import dashboardService from '../../services/dashboardService';
@@ -25,16 +16,21 @@ import './dashboard.css';
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const ADMIN_DASHBOARD_SOCKET_EVENT = 'admin:dashboard:update';
+const NOTIFICATION_TYPES = [
+  { value: 'system', label: 'Sistema' },
+  { value: 'coaching', label: 'Coaching' },
+  { value: 'marketplace', label: 'Marketplace' },
+  { value: 'schedule', label: 'Agenda' },
+  { value: 'penalty', label: 'Penalização' },
+  { value: 'join_request', label: 'Pedidos de adesão' },
+];
 
 export default function AdminDashboardPage() {
   const { token } = useAuth();
   const [snapshot, setSnapshot] = useState(null);
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
-  const [notice, setNotice] = useState({ title: '', message: '', targetRole: 'all' });
-  const [socket, setSocket] = useState(null);
-  const [operationalSummary, setOperationalSummary] = useState(null);
-  const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [notice, setNotice] = useState({ title: '', message: '', targetRole: 'all', type: 'system' });
 
   const fetchSnapshot = useCallback(async () => {
     try {
@@ -73,8 +69,6 @@ export default function AdminDashboardPage() {
       console.error('Socket connection error:', err.message);
     });
 
-    setSocket(newSocket);
-
     return () => {
       newSocket.disconnect();
     };
@@ -91,24 +85,13 @@ export default function AdminDashboardPage() {
     try {
       await dashboardService.publishNotice(notice);
       toast.success('Aviso publicado com sucesso!');
-      setNotice({ title: '', message: '', targetRole: 'all' });
+      setNotice({ title: '', message: '', targetRole: 'all', type: 'system' });
       fetchSnapshot(); // Refresh notices list
     } catch (error) {
       console.error('Error publishing notice:', error);
       toast.error('Erro ao publicar aviso.');
     } finally {
       setPublishing(false);
-    }
-  };
-
-  const handleGenerateSummary = async () => {
-    try {
-      const data = await dashboardService.getOperationalSummary();
-      setOperationalSummary(data);
-      setShowSummaryModal(true);
-    } catch (error) {
-      console.error('Error generating operational summary:', error);
-      toast.error('Erro ao gerar resumo operacional.');
     }
   };
 
@@ -142,22 +125,30 @@ export default function AdminDashboardPage() {
         <section className="content-grid">
           {/* KPI Section */}
           <div className="kpi-grid">
-            <article className="kpi">
+            <button className="kpi" type="button" style={{textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', appearance: 'none', border: '1px solid var(--border)'}}>
+
               <h3>Pedidos Pendentes</h3>
               <strong>{snapshot?.kpis?.pendingRequests || 0}</strong>
-            </article>
-            <article className="kpi">
+            
+</button>
+            <button className="kpi" type="button" style={{textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', appearance: 'none', border: '1px solid var(--border)'}}>
+
               <h3>Validações Pendentes</h3>
               <strong>{snapshot?.kpis?.pendingValidations || 0}</strong>
-            </article>
-            <article className="kpi">
+            
+</button>
+            <button className="kpi" type="button" style={{textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', appearance: 'none', border: '1px solid var(--border)'}}>
+
               <h3>Submissões Pendentes</h3>
               <strong>{snapshot?.kpis?.pendingSubmissions || 0}</strong>
-            </article>
-            <article className="kpi">
+            
+</button>
+            <button className="kpi" type="button" style={{textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', appearance: 'none', border: '1px solid var(--border)'}}>
+
               <h3>Receita Mensal</h3>
               <strong>{snapshot?.kpis?.monthlyRevenue || 0}€</strong>
-            </article>
+            
+</button>
           </div>
 
           <div className="split">
@@ -202,12 +193,12 @@ export default function AdminDashboardPage() {
               <article className="panel">
                 <h3>Ações Rápidas</h3>
                 <div className="quick-actions-list">
-                  <button className="cta" onClick={handleGenerateSummary}>
-                    Gerar Resumo Operacional
-                  </button>
-                  <button className="cta secondary" onClick={() => window.print()}>
-                    Exportar Relatório
-                  </button>
+                  <Link className="cta" to="/admin/validations">Fila de Validação</Link>
+                  <Link className="cta" to="/admin/users">Utilizadores</Link>
+                  <Link className="cta secondary" to="/admin/finance">Exportar CSV Financeiro</Link>
+                  <Link className="cta secondary" to="/admin/studio-occupancy">Ocupação dos Estúdios</Link>
+                  <Link className="cta secondary" to="/admin/inventory">Inventário</Link>
+                  <Link className="cta secondary" to="/admin/lost-and-found">Perdidos e Achados</Link>
                 </div>
               </article>
 
@@ -228,6 +219,19 @@ export default function AdminDashboardPage() {
                     onChange={(e) => setNotice({ ...notice, message: e.target.value })}
                     required
                   ></textarea>
+
+                  <select
+                    aria-label="Tipo de notificação"
+                    value={notice.type}
+                    onChange={(e) => setNotice({ ...notice, type: e.target.value })}
+                  >
+                    {NOTIFICATION_TYPES.map((type) => (
+                      <option key={type.value} value={type.value}>
+                        {type.label}
+                      </option>
+                    ))}
+                  </select>
+
                   <select 
                     value={notice.targetRole}
                     onChange={(e) => setNotice({ ...notice, targetRole: e.target.value })}
@@ -267,50 +271,6 @@ export default function AdminDashboardPage() {
         </section>
       </div>
 
-      {/* Operational Summary Modal (Simplified for this task) */}
-      {showSummaryModal && operationalSummary && (
-        <div className="summary-modal-overlay" onClick={() => setShowSummaryModal(false)}>
-          <div className="summary-modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Resumo Operacional</h3>
-              <button className="close-btn" onClick={() => setShowSummaryModal(false)}>&times;</button>
-            </div>
-            <div className="modal-body">
-              <table className="summary-table">
-                <thead>
-                  <tr>
-                    <th>Estúdio</th>
-                    <th>Capacidade</th>
-                    <th>Sessões</th>
-                    <th>Participantes</th>
-                    <th>Taxa de Ocupação</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {operationalSummary.studios?.map(studio => (
-                    <tr key={studio.studioId}>
-                      <td>{studio.studioName}</td>
-                      <td>{studio.capacity}</td>
-                      <td>{studio.totalSessions}</td>
-                      <td>{studio.totalParticipants}</td>
-                      <td>{studio.occupancyRate}%</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td><strong>Total</strong></td>
-                    <td>-</td>
-                    <td>{operationalSummary.summary?.totalSessions}</td>
-                    <td>{operationalSummary.summary?.totalParticipants}</td>
-                    <td><strong>{operationalSummary.summary?.averageOccupancyRate}%</strong></td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
     </AdminShell>
   );
 }

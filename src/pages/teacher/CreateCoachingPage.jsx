@@ -8,28 +8,22 @@
  * POST /coaching/sessions | GET /studios/compatible?modalityId=
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import api from '../../services/api'
-import notificationPreviewService from '../../services/notificationPreviewService'
+import NotificationsBell from '../../components/NotificationsBell'
 import '../admin-studios.css'
+import { TEACHER_NAV_ITEMS as NAV_ITEMS } from './teacherNav'
 
-const NAV_ITEMS = [
-  { href: '/teacher/dashboard', label: 'Painel' },
-  { href: '/teacher/admission-requests', label: 'Pedidos de Admissão' },
-  { href: '/teacher/sessions/confirmation', label: 'Confirmação de Sessões' },
-  { href: '/teacher/coaching', label: 'Coaching' },
-  { href: '/teacher/coaching/create', label: 'Criar Iniciativa' },
-  { href: '/teacher/availability', label: 'Disponibilidade' },
-  { href: '/teacher/inventory', label: 'Inventário' },
-  { href: '/teacher/marketplace', label: 'Marketplace' },
-  { href: '/teacher/marketplace/my-listings', label: 'Os Meus Anúncios' },
-  { href: '/teacher/notifications', label: 'Notificações' },
-]
+function getTodayISO() {
+  const now = new Date()
+  const tzOffset = now.getTimezoneOffset() * 60000
+  return new Date(now.getTime() - tzOffset).toISOString().slice(0, 10)
+}
 
-const EMPTY_FORM = {
-  date: '',
+const buildEmptyForm = () => ({
+  date: getTodayISO(),
   startTime: '',
   endTime: '',
   modalityId: '',
@@ -38,7 +32,7 @@ const EMPTY_FORM = {
   pricePerHour: '',
   isExternal: false,
   isOutsideStdHours: false,
-}
+})
 
 const inputStyle = {
   border: '1px solid #e2e4f0',
@@ -72,7 +66,7 @@ function CreateCoachingPage() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
-  const [form, setForm] = useState(EMPTY_FORM)
+  const [form, setForm] = useState(buildEmptyForm())
   const [modalities, setModalities] = useState([])
   const [studios, setStudios] = useState([])
   const [loadingStudios, setLoadingStudios] = useState(false)
@@ -80,13 +74,6 @@ function CreateCoachingPage() {
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
 
-  const [notificationsOpen, setNotificationsOpen] = useState(false)
-  const [notificationsLoaded, setNotificationsLoaded] = useState(false)
-  const [notificationsLoading, setNotificationsLoading] = useState(false)
-  const [notifications, setNotifications] = useState([])
-  const [unreadCount, setUnreadCount] = useState(0)
-
-  const notificationBoxRef = useRef(null)
   const displayName = user?.fullName || user?.name || user?.email || 'Professor'
   const sidebarHidden = isMobile || sidebarCollapsed
   const appShellCls = ['app-shell', sidebarHidden ? 'sidebar-hidden' : ''].filter(Boolean).join(' ')
@@ -128,30 +115,6 @@ function CreateCoachingPage() {
     return () => mq.removeListener(update)
   }, [])
 
-  useEffect(() => {
-    if (!notificationsOpen) return undefined
-    const handler = (e) => {
-      if (notificationBoxRef.current && !notificationBoxRef.current.contains(e.target))
-        setNotificationsOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [notificationsOpen])
-
-  const handleNotificationsClick = async () => {
-    const next = !notificationsOpen
-    setNotificationsOpen(next)
-    if (next && !notificationsLoaded) {
-      setNotificationsLoading(true)
-      try {
-        const preview = await notificationPreviewService.getPreview({ limit: 4, includeUnreadCount: true })
-        setNotifications(preview.items)
-        setUnreadCount(preview.unreadCount)
-        setNotificationsLoaded(true)
-      } finally { setNotificationsLoading(false) }
-    }
-  }
-
   const handleLogout = async (e) => {
     e.preventDefault()
     try { await logout() } finally { navigate('/login', { replace: true }) }
@@ -185,7 +148,7 @@ function CreateCoachingPage() {
         isOutsideStdHours: form.isOutsideStdHours,
       })
       setSuccess(true)
-      setForm(EMPTY_FORM)
+      setForm(buildEmptyForm())
     } catch (err) {
       setError(err?.response?.data?.message || 'Não foi possível criar a iniciativa. Verifica a tua disponibilidade e a do estúdio.')
     } finally {
@@ -226,24 +189,8 @@ function CreateCoachingPage() {
             </div>
             <p>Define data, estúdio, capacidade e preço — a direção tem 48h para validar</p>
           </div>
-          <div className="topbar-right" ref={notificationBoxRef}>
-            <button type="button" className="pill notifications-pill" onClick={handleNotificationsClick}>
-              Notificações{unreadCount > 0 ? ` (${unreadCount})` : ''}
-            </button>
-            {notificationsOpen ? (
-              <div className="notifications-popover">
-                <div className="notifications-popover-header"><strong>Notificações</strong></div>
-                {notificationsLoading ? <p className="notifications-state">A carregar...</p> : null}
-                {!notificationsLoading && notifications.length === 0 ? <p className="notifications-state">Sem notificações.</p> : null}
-                {notifications.map((n) => (
-                  <div key={n.id} className="notifications-item">
-                    <strong>{n.title}</strong>
-                    {n.message ? <p>{n.message}</p> : null}
-                  </div>
-                ))}
-                <Link to="/teacher/notifications" className="notifications-more-link" onClick={() => setNotificationsOpen(false)}>Ver Mais</Link>
-              </div>
-            ) : null}
+          <div className="topbar-right">
+            <NotificationsBell pageLink="/teacher/notifications" />
           </div>
         </header>
 

@@ -5,30 +5,17 @@
  * @project GestArtes - Projeto 50+10 para Entartes
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import notificationPreviewService from '../../services/notificationPreviewService'
 import api from '../../services/api'
+import NotificationsBell from '../../components/NotificationsBell'
+import { ADMIN_NAV_ITEMS as navigationItems } from './adminNav'
 import '../admin-studios.css'
+import Modal from '../../components/ui/Modal'
+import Button from '../../components/ui/Button'
 
-const navigationItems = [
-  { href: '/admin', label: 'Painel' },
-  { href: '/admin/validations', label: 'Validações' },
-  { href: '/admin/studios', label: 'Estúdios' },
-  { href: '/admin/users', label: 'Utilizadores' },
-  { href: '/admin/inventory', label: 'Inventário da Escola' },
-  { href: '/admin/marketplace', label: 'Marketplace' },
-  { href: '/admin/finance', label: 'Finanças' },
-  { href: '/admin/audit', label: 'Auditoria' },
-]
 
-function formatNotificationDate(value) {
-  if (!value) return ''
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return ''
-  return parsed.toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' })
-}
 
 function formatDate(value) {
   if (!value) return '—'
@@ -85,34 +72,72 @@ function ValidationsPage() {
   const location = useLocation()
   const { logout, user } = useAuth()
 
+  const daysPT = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado']
+
+  const formatMode = (mode) => {
+    if (mode === 'weekly') return 'Semanal (Recorrente)'
+    if (mode === 'range' || mode === 'semester') return 'Pontual'
+    return mode || '—'
+  }
+
+  const formatSlotSummary = (a) => {
+    try {
+      if (a.mode === 'weekly' && a.slot && Array.isArray(a.slot.days)) {
+        return a.slot.days.map((d) => {
+          const dayName = daysPT[d.dayOfWeek] || d.dayOfWeek
+          const start = (d.startTime || '').substring(0, 5)
+          const end = (d.endTime || '').substring(0, 5)
+          return `${dayName} (${start}-${end})`
+        }).join('; ')
+      }
+
+      if (a.mode === 'weekly' && a.slot && a.slot.dayOfWeek !== undefined) {
+        const dayName = daysPT[a.slot.dayOfWeek] || a.slot.dayOfWeek
+        const start = (a.slot.startTime || '').substring(0, 5)
+        const end = (a.slot.endTime || '').substring(0, 5)
+        return `${dayName}, ${start} - ${end}`
+      }
+
+      if (a.mode === 'range' && a.slot) {
+        return `${formatDate(a.slot.startDateTime)} → ${formatDate(a.slot.endDateTime)}`
+      }
+
+      return '—'
+    } catch {
+      return '—'
+    }
+  }
+
   const [isMobile, setIsMobile] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [activeTab, setActiveTab] = useState('bookings')
 
   const [bookings, setBookings] = useState([])
-  const [joinRequests, setJoinRequests] = useState([])
   const [loadingBookings, setLoadingBookings] = useState(true)
   const [rejectingId, setRejectingId] = useState(null)
   const [rejectReason, setRejectReason] = useState('')
   const [sortBookings, setSortBookings] = useState('urgent')
   const [filterModality, setFilterModality] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
 
   const [finalizations, setFinalizations] = useState([])
   const [loadingFinals, setLoadingFinals] = useState(true)
   const [sortFinals, setSortFinals] = useState('recent')
   const [filterTeacher, setFilterTeacher] = useState('')
+  const [filterModalityFinals, setFilterModalityFinals] = useState('')
 
-  const [notificationsOpen, setNotificationsOpen] = useState(false)
-  const [notificationsLoaded, setNotificationsLoaded] = useState(false)
-  const [notificationsLoading, setNotificationsLoading] = useState(false)
-  const [notificationsError, setNotificationsError] = useState('')
-  const [notifications, setNotifications] = useState([])
-  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0)
+  const [availabilityRequests, setAvailabilityRequests] = useState([])
+  const [loadingAvailability, setLoadingAvailability] = useState(true)
+  const [availabilityModalOpen, setAvailabilityModalOpen] = useState(false)
+  const [availabilityModalData, setAvailabilityModalData] = useState(null)
+  const [joinRequests, setJoinRequests] = useState([])
+  const [loadingJoinRequests, setLoadingJoinRequests] = useState(true)
+
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
+  const [loadingId, setLoadingId] = useState(null)
 
-  const notificationBoxRef = useRef(null)
   const displayName = user?.fullName || user?.name || user?.email || 'Utilizador'
 
   const sidebarActivePath = location.pathname
@@ -126,31 +151,26 @@ function ValidationsPage() {
 
   const loadBookings = useCallback(async () => {
     setLoadingBookings(true)
+    setError('')
     try {
-      const [bookingsResult, joinResult] = await Promise.allSettled([
-        api.get('/admin/validations/pending-approval'),
-        api.get('/admin/coachingjoin-requests/pending'),
-      ])
-
-      if (bookingsResult.status === 'fulfilled') {
-        const sessions = bookingsResult.value.data?.sessions
-        setBookings(Array.isArray(sessions) ? sessions : [])
-      } else {
-        setBookings([
-          { sessionId: 1, teacherName: 'João Silva', requesterName: 'Ana Clara', date: '2026-05-15', startTime: '18:00', endTime: '19:00', studioName: 'Estúdio A', modalityName: 'Piano', createdAt: new Date(Date.now() - 36 * 3600 * 1000).toISOString() },
-          { sessionId: 2, teacherName: 'Maria Santos', requesterName: 'Carlos Gomes', date: '2026-05-16', startTime: '19:30', endTime: '21:00', studioName: 'Estúdio B', modalityName: 'Canto', createdAt: new Date(Date.now() - 10 * 3600 * 1000).toISOString() },
-        ])
-      }
-
-      if (joinResult.status === 'fulfilled') {
-        const requests = joinResult.value.data
-        setJoinRequests(Array.isArray(requests) ? requests : [])
-      } else {
-        setJoinRequests([])
-      }
-    } finally {
-      setLoadingBookings(false)
+      const { data } = await api.get('/admin/validations/pending-approval')
+      const sessions = data?.sessions
+      setBookings(Array.isArray(sessions) ? sessions : [])
+    } catch {
+      setBookings([])
+      setError('Não foi possível carregar os pedidos de coaching pendentes.')
     }
+
+    try {
+      const { data } = await api.get('/admin/validations/availability')
+      const list = Array.isArray(data) ? data : (Array.isArray(data?.availability) ? data.availability : [])
+      setAvailabilityRequests(list)
+    } catch {
+      setAvailabilityRequests([])
+    } finally {
+      setLoadingAvailability(false)
+    }
+    setLoadingBookings(false)
   }, [])
 
   const loadFinalizations = useCallback(async () => {
@@ -166,31 +186,23 @@ function ValidationsPage() {
     }
   }, [])
 
-  const loadNotificationPreview = useCallback(async () => {
-    setNotificationsLoading(true)
-    setNotificationsError('')
+  const loadJoinRequests = useCallback(async () => {
+    setLoadingJoinRequests(true)
     try {
-      const preview = await notificationPreviewService.getPreview({ limit: 4, includeUnreadCount: true })
-      setNotifications(preview.items)
-      setNotificationUnreadCount(preview.unreadCount)
-      setNotificationsLoaded(true)
+      const { data } = await api.get('/admin/coaching/join-requests/pending')
+      const items = data?.requests || data || []
+      setJoinRequests(Array.isArray(items) ? items : [])
     } catch {
-      setNotificationsError('Não foi possível carregar as notificações.')
+      setJoinRequests([])
     } finally {
-      setNotificationsLoading(false)
+      setLoadingJoinRequests(false)
     }
   }, [])
 
-  const refreshNotificationCount = useCallback(async () => {
-    try {
-      const preview = await notificationPreviewService.getPreview({ limit: 0, includeUnreadCount: true })
-      setNotificationUnreadCount(preview.unreadCount)
-    } catch { /* noop */ }
-  }, [])
-
   useEffect(() => {
-    void Promise.all([loadBookings(), loadFinalizations(), refreshNotificationCount()])
-  }, [loadBookings, loadFinalizations, refreshNotificationCount])
+    void Promise.all([loadBookings(), loadFinalizations(), loadJoinRequests()])
+    return undefined
+  }, [loadBookings, loadFinalizations, loadJoinRequests])
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 1024px)')
@@ -209,26 +221,9 @@ function ValidationsPage() {
     return () => document.body.classList.remove('studio-page')
   }, [])
 
-  useEffect(() => {
-    if (!notificationsOpen) return undefined
-    const handleClick = (e) => {
-      if (notificationBoxRef.current && !notificationBoxRef.current.contains(e.target)) {
-        setNotificationsOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [notificationsOpen])
-
   const handleSidebarToggle = () => {
     if (isMobile) { setMobileOpen((v) => !v); return }
     setSidebarCollapsed((v) => !v)
-  }
-
-  const handleNotificationsClick = () => {
-    const next = !notificationsOpen
-    setNotificationsOpen(next)
-    if (next && !notificationsLoaded) void loadNotificationPreview()
   }
 
   const handleLogout = async (e) => {
@@ -252,21 +247,41 @@ function ValidationsPage() {
     setError('')
     try {
       await api.patch(`/admin/validations/${id}/reject`, { reason: rejectReason })
-      setNotice('Marcação rejeitada.')
+      setNotice('Pedido de coaching rejeitado com sucesso.')
       setRejectingId(null)
       setRejectReason('')
       await loadBookings()
-    } catch { setError('Não foi possível rejeitar a marcação.') }
+    } catch { setError('Não foi possível rejeitar o pedido de coaching.') }
   }
 
-  const handleApproveJoin = async (id) => {
+  const handleApproveAvailability = async (id) => {
     setNotice('')
     setError('')
+    setLoadingId(id)
     try {
-      await api.patch(`/admin/coachingjoin-requests/${id}/approve`)
-      setNotice('Pedido de adesão aprovado.')
+      await api.patch(`/admin/validations/availability/${id}/approve`)
+      setNotice('Disponibilidade aprovada com sucesso.')
       await loadBookings()
-    } catch { setError('Não foi possível aprovar o pedido de adesão.') }
+    } catch {
+      setError('Não foi possível aprovar a disponibilidade.')
+    } finally {
+      setLoadingId(null)
+    }
+  }
+
+  const handleRejectAvailability = async (id, notes = '') => {
+    setNotice('')
+    setError('')
+    setLoadingId(id)
+    try {
+      await api.patch(`/admin/validations/availability/${id}/reject`, { reviewNotes: notes })
+      setNotice('Disponibilidade rejeitada.')
+      await loadBookings()
+    } catch {
+      setError('Não foi possível rejeitar a disponibilidade.')
+    } finally {
+      setLoadingId(null)
+    }
   }
 
   const handleFinalize = async (id) => {
@@ -279,22 +294,58 @@ function ValidationsPage() {
     } catch { setError('Não foi possível finalizar a sessão.') }
   }
 
+  const handleApproveJoin = async (id) => {
+    setNotice('')
+    setError('')
+    setLoadingId(id)
+    try {
+      await api.patch(`/admin/coaching/join-requests/${id}/approve`)
+      setNotice('Pedido de adesão aprovado.')
+      await loadJoinRequests()
+    } catch {
+      setError('Não foi possível aprovar a adesão.')
+    } finally {
+      setLoadingId(null)
+    }
+  }
+
+  const handleRejectJoin = async (id) => {
+    setNotice('')
+    setError('')
+    setLoadingId(id)
+    try {
+      await api.patch(`/admin/coaching/join-requests/${id}/reject`)
+      setNotice('Pedido de adesão rejeitado.')
+      await loadJoinRequests()
+    } catch {
+      setError('Não foi possível rejeitar a adesão.')
+    } finally {
+      setLoadingId(null)
+    }
+  }
+
   const modalities = [...new Set(bookings.map((b) => b.modalityName).filter(Boolean))]
   const teachers = [...new Set(finalizations.map((s) => s.teacherName).filter(Boolean))]
+  const modalitiesFinals = [...new Set(finalizations.map((s) => s.modalityName).filter(Boolean))]
 
-  const sortedBookings = [...bookings]
+  const searchFilter = useMemo(() => searchTerm.trim().toLowerCase(), [searchTerm])
+
+  const sortedBookings = useMemo(() => [...bookings]
     .filter((b) => !filterModality || b.modalityName === filterModality)
+    .filter((b) => !searchFilter || [b.teacherName, b.requesterName, b.studioName, b.modalityName, b.date].join(' ').toLowerCase().includes(searchFilter))
     .sort((a, b) => sortBookings === 'urgent'
       ? new Date(a.createdAt) - new Date(b.createdAt)
       : new Date(b.createdAt) - new Date(a.createdAt)
-    )
+    ), [bookings, filterModality, searchFilter, sortBookings])
 
-  const sortedFinals = [...finalizations]
+  const sortedFinals = useMemo(() => [...finalizations]
     .filter((s) => !filterTeacher || s.teacherName === filterTeacher)
+    .filter((s) => !filterModalityFinals || s.modalityName === filterModalityFinals)
+    .filter((s) => !searchFilter || [s.teacherName, s.studioName, s.modalityName].join(' ').toLowerCase().includes(searchFilter))
     .sort((a, b) => sortFinals === 'oldest'
-      ? new Date(a.date) - new Date(b.date)
-      : new Date(b.date) - new Date(a.date)
-    )
+      ? new Date(a.startTime) - new Date(b.startTime)
+      : new Date(b.startTime) - new Date(a.startTime)
+    ), [finalizations, filterTeacher, filterModalityFinals, searchFilter, sortFinals])
 
   return (
     <div className={appShellClassName}>
@@ -347,37 +398,17 @@ function ValidationsPage() {
               <h2>Fila de Validação</h2>
             </div>
             <p>Aprovação de marcações e fecho financeiro de sessões</p>
+            <input
+              type="search"
+              className="topbar-search"
+              placeholder="Pesquisar validações..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
 
-          <div className="topbar-right" ref={notificationBoxRef}>
-            <button type="button" className="pill notifications-pill" onClick={handleNotificationsClick}>
-              Notificações{notificationUnreadCount > 0 ? ` (${notificationUnreadCount})` : ''}
-            </button>
-
-            {notificationsOpen ? (
-              <div className="notifications-popover">
-                <div className="notifications-popover-header">
-                  <strong>Notificações</strong>
-                </div>
-                {notificationsLoading ? <p className="notifications-state">A carregar...</p> : null}
-                {!notificationsLoading && notificationsError ? <p className="notifications-state error">{notificationsError}</p> : null}
-                {!notificationsLoading && !notificationsError && notifications.length === 0 ? <p className="notifications-state">Sem notificações.</p> : null}
-                {!notificationsLoading && notifications.length > 0 ? (
-                  <ul className="notifications-list">
-                    {notifications.map((n) => (
-                      <li key={n.id} className="notifications-item">
-                        <strong>{n.title}</strong>
-                        {n.message ? <p>{n.message}</p> : null}
-                        <small>{formatNotificationDate(n.createdAt)}</small>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-                <Link to="/admin/notifications" className="notifications-more-link" onClick={() => setNotificationsOpen(false)}>
-                  Ver Mais
-                </Link>
-              </div>
-            ) : null}
+          <div className="topbar-right">
+            <NotificationsBell pageLink="/admin/notifications" />
           </div>
         </header>
 
@@ -392,7 +423,7 @@ function ValidationsPage() {
               className={activeTab === 'bookings' ? 'cta' : 'ghost-btn'}
               onClick={() => setActiveTab('bookings')}
             >
-              Aprovação de Marcações{bookings.length > 0 ? ` · ${bookings.length}` : ''}
+              Pedidos de coaching{bookings.length > 0 ? ` · ${bookings.length}` : ''}
             </button>
             <button
               type="button"
@@ -401,6 +432,13 @@ function ValidationsPage() {
             >
               Validações Finais{finalizations.length > 0 ? ` · ${finalizations.length}` : ''}
             </button>
+            <button
+              type="button"
+              className={activeTab === 'joins' ? 'cta' : 'ghost-btn'}
+              onClick={() => setActiveTab('joins')}
+            >
+              Adesões{joinRequests.length > 0 ? ` · ${joinRequests.length}` : ''}
+            </button>
           </div>
 
           {/* Tab 1 — Aprovação de Marcações */}
@@ -408,7 +446,7 @@ function ValidationsPage() {
             <>
               <article className="panel">
                 <div className="panel-header">
-                  <h3>Sessões pendentes de aprovação</h3>
+                  <h3>Pedidos de coaching pendentes</h3>
                   <div className="card-actions">
                     <select value={sortBookings} onChange={(e) => setSortBookings(e.target.value)} style={selectStyle}>
                       <option value="urgent">Mais urgentes primeiro</option>
@@ -424,9 +462,9 @@ function ValidationsPage() {
                 </div>
 
                 {loadingBookings ? (
-                  <div className="soft-box">A carregar marcações pendentes...</div>
+                  <div className="soft-box">A carregar pedidos de coaching pendentes...</div>
                 ) : sortedBookings.length === 0 ? (
-                  <div className="soft-box">Não há sessões pendentes de aprovação.</div>
+                  <div className="soft-box">Não há pedidos de coaching pendentes.</div>
                 ) : (
                   <>
                     <div className="table-wrap">
@@ -476,7 +514,7 @@ function ValidationsPage() {
                     {rejectingId !== null ? (
                       <div style={{ marginTop: '12px', padding: '14px 16px', border: '1px solid var(--studio-error-line)', borderRadius: '12px', background: 'var(--studio-error-bg)', display: 'grid', gap: '10px' }}>
                         <p style={{ margin: 0, fontWeight: 600, color: 'var(--studio-error-ink)' }}>
-                          Motivo da rejeição da sessão #{rejectingId}
+                          Motivo da rejeição do pedido de coaching #{rejectingId}
                         </p>
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                           <input
@@ -505,44 +543,84 @@ function ValidationsPage() {
                 )}
               </article>
 
-              {joinRequests.length > 0 ? (
-                <article className="panel">
-                  <div className="panel-header">
-                    <h3>Pedidos de adesão a coaching</h3>
-                  </div>
-                  <p>Pedidos de estudantes a aguardar aprovação da direção (2.ª etapa).</p>
+              {/* Availability submissions panel */}
+              <article className="panel">
+                <div className="panel-header">
+                  <h3>Pedidos de submissão de disponibilidade</h3>
+                </div>
+
+                {loadingAvailability ? (
+                  <div className="soft-box">A carregar disponibilidades...</div>
+                ) : availabilityRequests.length === 0 ? (
+                  <div className="soft-box">Não há pedidos de disponibilidade pendentes.</div>
+                ) : (
                   <div className="table-wrap">
                     <table>
                       <thead>
                         <tr>
                           <th>Professor</th>
-                          <th>Estudante</th>
-                          <th>Modalidade</th>
-                          <th>Submetido em</th>
-                          <th>Prazo</th>
-                          <th>Ações</th>
+                          <th>Tipo</th>
+                          <th>Horários / Slots</th>
+                          <th>Data do Pedido</th>
+                          <th style={{ textAlign: 'right' }}>Ações</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {joinRequests.map((j) => (
-                          <tr key={j.id}>
-                            <td>{j.teacherName}</td>
-                            <td>{j.studentName}</td>
-                            <td>{j.modality || '—'}</td>
-                            <td>{formatDate(j.submittedAt)}</td>
-                            <td><CountdownBadge submittedAt={j.submittedAt} /></td>
-                            <td>
-                              <button type="button" className="moderation-action-btn approve" onClick={() => handleApproveJoin(j.id)}>
-                                Aprovar
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
+                        {availabilityRequests.map((a) => {
+                          const teacherName = a.teacher ? `${a.teacher.firstName || ''} ${a.teacher.lastName || ''}`.trim() : (a.teacherName || '—')
+
+                          return (
+                            <tr key={a.availabilityId || a.id}>
+                              <td style={{ fontWeight: 500 }}>{teacherName}</td>
+                              <td>
+                                <span className={`badge ${a.mode === 'weekly' ? 'ok' : 'warn'}`} style={{ fontSize: '0.7rem' }}>
+                                  {formatMode(a.mode)}
+                                </span>
+                              </td>
+                              <td style={{ maxWidth: 400 }}>
+                                <div style={{ fontSize: '0.85rem', color: 'var(--studio-muted)', lineHeight: '1.4' }}>
+                                  {formatSlotSummary(a)}
+                                </div>
+                              </td>
+                              <td style={{ fontSize: '0.85rem' }}>{formatDate(a.requestedAt || a.submittedAt)}</td>
+                              <td>
+                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                  <button
+                                    type="button"
+                                    className="moderation-action-btn neutral"
+                                    onClick={() => { setAvailabilityModalData(a); setAvailabilityModalOpen(true) }}
+                                    style={{ fontSize: '0.8rem' }}
+                                  >
+                                    Detalhes
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="moderation-action-btn approve"
+                                    disabled={loadingId === (a.availabilityId || a.id)}
+                                    onClick={() => handleApproveAvailability(a.availabilityId || a.id)}
+                                    style={{ fontSize: '0.8rem', minWidth: '90px' }}
+                                  >
+                                    {loadingId === (a.availabilityId || a.id) ? '...' : 'Aprovar'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="moderation-action-btn reject"
+                                    disabled={loadingId === (a.availabilityId || a.id)}
+                                    onClick={() => handleRejectAvailability(a.availabilityId || a.id)}
+                                    style={{ fontSize: '0.8rem' }}
+                                  >
+                                    Rejeitar
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })}
                       </tbody>
                     </table>
                   </div>
-                </article>
-              ) : null}
+                )}
+              </article>
             </>
           ) : null}
 
@@ -560,6 +638,12 @@ function ValidationsPage() {
                     <select value={filterTeacher} onChange={(e) => setFilterTeacher(e.target.value)} style={selectStyle}>
                       <option value="">Todos os professores</option>
                       {teachers.map((t) => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  ) : null}
+                  {modalitiesFinals.length > 0 ? (
+                    <select value={filterModalityFinals} onChange={(e) => setFilterModalityFinals(e.target.value)} style={selectStyle}>
+                      <option value="">Todas as modalidades</option>
+                      {modalitiesFinals.map((m) => <option key={m} value={m}>{m}</option>)}
                     </select>
                   ) : null}
                 </div>
@@ -585,11 +669,11 @@ function ValidationsPage() {
                     </thead>
                     <tbody>
                       {sortedFinals.map((s) => (
-                        <tr key={s.id}>
-                          <td>{s.teacherName}</td>
-                          <td>{s.studentName}</td>
-                          <td>{formatDate(s.date)}</td>
-                          <td>{s.modality || '—'}</td>
+                        <tr key={s.sessionId}>
+                          <td>{s.teacherName || '—'}</td>
+                          <td>{s.studentName || '—'}</td>
+                          <td>{formatDate(s.startTime)}</td>
+                          <td>{s.modalityName || '—'}</td>
                           <td>
                             <span style={{
                               display: 'inline-flex', alignItems: 'center', gap: '4px',
@@ -602,7 +686,7 @@ function ValidationsPage() {
                             </span>
                           </td>
                           <td>
-                            <button type="button" className="cta" onClick={() => handleFinalize(s.id)}>
+                            <button type="button" className="cta" onClick={() => handleFinalize(s.sessionId)}>
                               Finalizar
                             </button>
                           </td>
@@ -614,7 +698,133 @@ function ValidationsPage() {
               )}
             </article>
           ) : null}
+
+          {/* Tab 3 — Adesões (Join Requests) */}
+          {activeTab === 'joins' ? (
+            <article className="panel">
+              <div className="panel-header">
+                <h3>Pedidos de adesão (Duo/Grupo)</h3>
+                <p className="panel-subtle">Estes pedidos já foram aprovados pelo professor e aguardam a validação final da gestão.</p>
+              </div>
+
+              {loadingJoinRequests ? (
+                <div className="soft-box">A carregar adesões...</div>
+              ) : joinRequests.length === 0 ? (
+                <div className="soft-box">Não há pedidos de adesão pendentes.</div>
+              ) : (
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Estudante</th>
+                        <th>Sessão</th>
+                        <th>Data Pedido</th>
+                        <th style={{ textAlign: 'right' }}>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {joinRequests.map((jr) => (
+                        <tr key={jr.joinRequestId}>
+                          <td>
+                            <div style={{ fontWeight: 600 }}>{jr.student?.firstName} {jr.student?.lastName}</div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--studio-muted)' }}>{jr.student?.email}</div>
+                          </td>
+                          <td>
+                            <div>Sessão #{jr.sessionId}</div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--studio-muted)' }}>{jr.modalityName}</div>
+                          </td>
+                          <td>{formatDate(jr.requestedAt)}</td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                              <button
+                                type="button"
+                                className="moderation-action-btn approve"
+                                disabled={loadingId === jr.joinRequestId}
+                                onClick={() => handleApproveJoin(jr.joinRequestId)}
+                              >
+                                {loadingId === jr.joinRequestId ? '...' : 'Aprovar'}
+                              </button>
+                              <button
+                                type="button"
+                                className="moderation-action-btn reject"
+                                disabled={loadingId === jr.joinRequestId}
+                                onClick={() => handleRejectJoin(jr.joinRequestId)}
+                              >
+                                Rejeitar
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </article>
+          ) : null}
         </section>
+        {availabilityModalOpen && availabilityModalData ? (
+          <Modal
+            open={availabilityModalOpen}
+            title="Disponibilidade submetida"
+            onClose={() => { setAvailabilityModalOpen(false); setAvailabilityModalData(null) }}
+            size="md"
+          >
+            <div style={{ display: 'grid', gap: '10px' }}>
+              <div>
+                <strong>Professor:</strong> {availabilityModalData.teacher ? `${availabilityModalData.teacher.firstName || ''} ${availabilityModalData.teacher.lastName || ''}`.trim() : availabilityModalData.teacherName}
+              </div>
+              {availabilityModalData.notes ? (
+                <div>
+                  <strong>Notas do professor:</strong>
+                  <div style={{ marginTop: '6px', padding: '10px', background: 'var(--studio-soft-bg)', borderRadius: '8px' }}>{availabilityModalData.notes}</div>
+                </div>
+              ) : null}
+
+              <div>
+                <strong>Slots submetidos:</strong>
+                <div style={{ marginTop: '8px', display: 'grid', gap: '8px' }}>
+                  {(() => {
+                    const a = availabilityModalData
+                    if (!a || !a.slot) return <div>—</div>
+                    try {
+                      if (a.mode === 'weekly' && Array.isArray(a.slot.days)) {
+                        return a.slot.days.map((d, idx) => {
+                          const dayName = daysPT[d.dayOfWeek] || d.dayOfWeek
+                          const start = (d.startTime || '').substring(0, 5)
+                          const end = (d.endTime || '').substring(0, 5)
+                          return <div key={idx} style={{ padding: '6px 10px', background: 'var(--studio-soft-bg)', borderRadius: '6px', fontSize: '0.9rem' }}>
+                            {dayName} — {start} → {end}
+                          </div>
+                        })
+                      }
+                      if (a.mode === 'range' || a.mode === 'semester') {
+                        return <div style={{ padding: '6px 10px', background: 'var(--studio-soft-bg)', borderRadius: '6px' }}>
+                          {formatDate(a.slot.startDateTime)} → {formatDate(a.slot.endDateTime)}
+                        </div>
+                      }
+                      if (a.slot.dayOfWeek !== undefined) {
+                        const dayName = daysPT[a.slot.dayOfWeek] || a.slot.dayOfWeek
+                        const start = (a.slot.startTime || '').substring(0, 5)
+                        const end = (a.slot.endTime || '').substring(0, 5)
+                        return <div style={{ padding: '6px 10px', background: 'var(--studio-soft-bg)', borderRadius: '6px' }}>
+                          {dayName} — {start} → {end}
+                        </div>
+                      }
+                    } catch {
+                      return <div>—</div>
+                    }
+                    return <div>—</div>
+                  })()}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
+                <Button variant="secondary" onClick={() => { setAvailabilityModalOpen(false); setAvailabilityModalData(null) }}>Fechar</Button>
+              </div>
+            </div>
+          </Modal>
+        ) : null}
       </main>
     </div>
   )

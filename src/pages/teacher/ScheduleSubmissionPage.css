@@ -108,7 +108,7 @@
   color: #4b4565;
 }
 
-.teacher-admission-requests input, 
+.teacher-admission-requests input:not(.topbar-search), 
 .teacher-admission-requests select, 
 .teacher-admission-requests textarea {
   border: 1px solid #d7ccdf;

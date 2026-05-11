@@ -1,17 +1,16 @@
-﻿/**
+/**
  * @file src/components/JoinSessionButton.jsx
  * @author NovaLogic System
  * @institution IPCA
  * @project GestArtes - Projeto 50+10 para Entartes
  */
 
-import { useMemo, useState, useEffect } from 'react'
-import { io } from 'socket.io-client'
-import api, { getAccessToken } from '../services/api'
-import { getSocketUrl } from '../utils/network'
+import { useEffect, useMemo, useState } from 'react'
+import api from '../services/api'
 import Button from './ui/Button'
 import Badge from './ui/Badge'
 import Modal from './ui/Modal'
+import { canJoinSession } from '../utils/coachingSession'
 
 function toNumber(value) {
   const parsed = Number(value)
@@ -35,26 +34,49 @@ function resolveRemainingSpots({ availableSpots, currentParticipants, maxPartici
 }
 
 const statusMap = {
-  'pending_teacher': { label: 'Pending Teacher', variant: 'warning' },
-  'pending_admin': { label: 'Pending Admin', variant: 'warning' },
-  'approved': { label: 'Approved', variant: 'success' },
-  'rejected': { label: 'Rejected', variant: 'danger' },
+  pending_teacher: { label: 'Aguarda professor', variant: 'warning' },
+  pendingteacher: { label: 'Aguarda professor', variant: 'warning' },
+  awaiting_approval: { label: 'Aguarda professor', variant: 'warning' },
+  pending_admin: { label: 'Aguarda direção', variant: 'warning' },
+  pendingadmin: { label: 'Aguarda direção', variant: 'warning' },
+  teacher_approved: { label: 'Aguarda direção', variant: 'warning' },
+  teacherapproved: { label: 'Aguarda direção', variant: 'warning' },
+  approved: { label: 'Aprovado', variant: 'success' },
+  rejected: { label: 'Rejeitado', variant: 'danger' },
+  not_approved: { label: 'Não aprovado', variant: 'danger' },
+  notapproved: { label: 'Não aprovado', variant: 'danger' },
+}
+
+function isSessionJoinable(status) {
+  const s = String(status || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '')
+  return s === 'approved' || s.includes('pending') || s.includes('aprov') || s.includes('schedul') || s.includes('agend')
 }
 
 export default function JoinSessionButton({
   sessionId,
   sessionStatus,
+  sessionStartTime,
   availableSpots,
   currentParticipants,
   maxParticipants,
+  initialRequestStatus = null,
+  userIsEnrolled = false,
   disabled = false,
   className,
   onSuccess,
   onError,
 }) {
   const [submitting, setSubmitting] = useState(false)
-  const [requestStatus, setRequestStatus] = useState(null)
+  const [requestStatus, setRequestStatus] = useState(initialRequestStatus)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
+
+  // Sync internal state with prop changes (e.g. after a parent re-fetch)
+  useEffect(() => {
+    if (initialRequestStatus !== undefined) {
+      setRequestStatus(initialRequestStatus)
+    }
+  }, [initialRequestStatus])
 
   const remainingSpots = useMemo(
     () => resolveRemainingSpots({ availableSpots, currentParticipants, maxParticipants }),
@@ -62,49 +84,19 @@ export default function JoinSessionButton({
   )
 
   const hasSpots = remainingSpots !== null && remainingSpots > 0
+  const joinable = canJoinSession({
+    sessionStatus,
+    sessionStartTime,
+    userIsEnrolled,
+    hasSpots,
+  })
+  const badgeInfo = userIsEnrolled
+    ? { label: 'Já inscrito', variant: 'success' }
+    : requestStatus
+      ? (statusMap[String(requestStatus || '').toLowerCase().trim().replace(/ /g, '_')] || { label: requestStatus, variant: 'neutral' })
+      : null
 
-  useEffect(() => {
-    async function fetchMyStatus() {
-      if (!sessionId) return
-      try {
-        const { data } = await api.get('/coaching/join-requests/my')
-        const req = data?.find(r => Number(r.sessionId) === Number(sessionId))
-        if (req) setRequestStatus(req.status)
-      } catch { 
-        // ignore
-      }
-    }
-    fetchMyStatus()
-  }, [sessionId])
-
-  useEffect(() => {
-    if (!sessionId) return
-    const socketUrl = getSocketUrl()
-
-    if (!socketUrl) return undefined
-
-    const socket = io(socketUrl, {
-      withCredentials: true,
-      auth: {
-        accessToken: getAccessToken(),
-      },
-    })
-
-    socket.on('notification', () => {
-      api.get('/coaching/join-requests/my')
-        .then(({ data }) => {
-          const req = data?.find(r => Number(r.sessionId) === Number(sessionId))
-          if (req) setRequestStatus(req.status)
-        })
-        .catch(() => {})
-    })
-
-    return () => {
-      socket.disconnect()
-    }
-  }, [sessionId])
-
-  if (!sessionId || !hasSpots || sessionStatus !== 'Approved') {
+  if (!sessionId || (!joinable && !badgeInfo)) {
     return null
   }
 
@@ -112,23 +104,32 @@ export default function JoinSessionButton({
     if (submitting || disabled) return
 
     setSubmitting(true)
+    setErrorMessage('')
     try {
       const { data } = await api.post(`/coaching/sessions/${sessionId}/join-requests`)
-      setRequestStatus(data?.status || 'pending_teacher')
+      const newStatus = data?.status || 'pending_teacher'
+      setRequestStatus(newStatus)
       setIsModalOpen(false)
-      onSuccess?.(data)
+      onSuccess?.({ ...data, status: newStatus, alreadyExisted: false })
     } catch (err) {
+      const status = err?.response?.status
+      const apiMsg = err?.response?.data?.error || err?.response?.data?.message
+      if (status === 409) {
+        setRequestStatus('pending_teacher')
+        setIsModalOpen(false)
+        onSuccess?.({ status: 'pending_teacher', alreadyExisted: true })
+      } else {
+        setErrorMessage(apiMsg || 'Não foi possível enviar o pedido. Tenta novamente.')
+      }
       onError?.(err)
     } finally {
       setSubmitting(false)
     }
   }
 
-  const badgeInfo = requestStatus ? statusMap[requestStatus] || { label: requestStatus, variant: 'neutral' } : null
-
   return (
     <div className={className} style={{ display: 'grid', gap: '0.45rem', alignItems: 'flex-start' }}>
-      {!requestStatus ? (
+      {!badgeInfo ? (
         <Button
           type="button"
           variant="cta"
@@ -136,35 +137,42 @@ export default function JoinSessionButton({
           disabled={disabled || submitting}
           onClick={() => setIsModalOpen(true)}
         >
-          Pedir adesão
+          Aderir
         </Button>
       ) : (
         <Badge variant={badgeInfo.variant}>{badgeInfo.label}</Badge>
       )}
 
-      {!requestStatus && (
+      {!badgeInfo && (
         <small style={{ color: 'var(--text)', opacity: 0.9 }}>
           {remainingSpots} {remainingSpots === 1 ? 'vaga livre' : 'vagas livres'}
         </small>
       )}
 
+      {errorMessage ? (
+        <small style={{ color: '#b91c1c' }}>{errorMessage}</small>
+      ) : null}
+
       <Modal
         open={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Confirmar Adesão"
+        onClose={() => { setIsModalOpen(false); setErrorMessage('') }}
+        title="Confirmar adesão"
         size="sm"
         footer={
           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', width: '100%' }}>
-            <Button variant="secondary" onClick={() => setIsModalOpen(false)} disabled={submitting}>
+            <Button variant="secondary" onClick={() => { setIsModalOpen(false); setErrorMessage('') }} disabled={submitting}>
               Cancelar
             </Button>
             <Button variant="cta" onClick={handleJoinRequest} disabled={submitting}>
-              {submitting ? 'A enviar...' : 'Confirmar'}
+              {submitting ? 'A enviar…' : 'Confirmar'}
             </Button>
           </div>
         }
       >
-        <p style={{ margin: 0 }}>Tem a certeza que deseja pedir adesão a esta sessão?</p>
+        <p style={{ margin: 0 }}>Pretendes aderir a esta sessão? O professor recebe o pedido e, se aprovar, segue para validação final pela direção.</p>
+        {errorMessage ? (
+          <p style={{ margin: '12px 0 0', color: '#b91c1c', fontSize: '0.875rem' }}>{errorMessage}</p>
+        ) : null}
       </Modal>
     </div>
   )

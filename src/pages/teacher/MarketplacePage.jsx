@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import NotificationsBell from '../../components/NotificationsBell'
 import ListingCard from '../../components/ListingCard'
 import ListingDetailModal from '../../components/ListingDetailModal'
 import {
@@ -11,18 +12,12 @@ import {
 } from '../../services/marketplace'
 import ListingForm from '../../components/ListingForm'
 import Modal from '../../components/ui/Modal'
-import '../student/DashboardPage.css'
+import '../admin-studios.css'
 import '../student/marketplace.css'
+import { TEACHER_NAV_ITEMS as NAV_ITEMS } from './teacherNav'
 
 const SEARCH_HISTORY_KEY = 'marketplace.search.history'
 const SEARCH_HISTORY_LIMIT = 8
-
-const NAV_ITEMS = [
-  { label: 'Painel', href: '/teacher/dashboard' },
-  { label: 'Pedidos de admissão', href: '/teacher/admission-requests' },
-  { label: 'Marketplace', href: '/teacher/marketplace' },
-  { label: 'Os meus anúncios', href: '/teacher/marketplace/my-listings' },
-]
 
 function loadSearchHistory() {
   if (typeof window === 'undefined') {
@@ -144,6 +139,11 @@ export default function TeacherMarketplacePage() {
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
+  useEffect(() => {
+    document.body.classList.add('studio-page')
+    return () => document.body.classList.remove('studio-page')
+  }, [])
+
   const filteredListings = useMemo(() => {
     const search = filters.search.trim().toLowerCase()
     const locationTerm = filters.location.trim().toLowerCase()
@@ -235,7 +235,7 @@ export default function TeacherMarketplacePage() {
   }
 
   return (
-    <div className="student-dashboard market-page">
+    <div className="market-page">
       <div className="app-shell">
         {isMobile && mobileOpen ? (
           <button
@@ -295,7 +295,6 @@ export default function TeacherMarketplacePage() {
               </button>
               <div>
                 <h2>Marketplace da Comunidade</h2>
-                <p>Explora artigos, encontra servicos e publica os teus anuncios.</p>
               </div>
             </div>
 
@@ -306,6 +305,7 @@ export default function TeacherMarketplacePage() {
               <Link className="pill" to="/teacher/marketplace/my-listings">
                 Os meus anuncios
               </Link>
+              <NotificationsBell pageLink="/teacher/notifications" />
             </div>
           </header>
 

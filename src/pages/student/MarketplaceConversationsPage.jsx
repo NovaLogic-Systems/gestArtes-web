@@ -10,19 +10,10 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { getMarketplaceListingById, listMarketplaceListings } from '../../services/marketplace'
 import { maskEmail, maskPhone } from '../../utils/masking'
+import NotificationsBell from '../../components/NotificationsBell'
 import './DashboardPage.css'
 import './marketplace.css'
-
-const NAV_ITEMS = [
-  { label: 'Painel', href: '/student/dashboard' },
-  { label: 'Coaching', href: '/student/coaching' },
-  { label: 'Inventário da Escola', href: '/student/inventory' },
-  { label: 'Marketplace', href: '/student/marketplace' },
-    { label: 'Conversas', href: '/student/marketplace/conversas' },
-  { label: 'Meus anúncios', href: '/student/marketplace/my-listings' },
-  { label: 'Perdidos e Achados', href: '/student/lostfound' },
-  { label: 'Minha Conta', href: '/student/account' },
-]
+import { STUDENT_NAV_ITEMS as NAV_ITEMS } from './studentNav'
 
 function normalizePhone(phoneNumber) {
   return String(phoneNumber || '').replace(/\D/g, '')
@@ -195,6 +186,7 @@ export default function MarketplaceConversationsPage() {
               </div>
             </div>
             <div className="topbar-right">
+              <NotificationsBell pageLink="/student/notifications" />
               <Link className="pill" to="/student/marketplace">
                 Voltar ao marketplace
               </Link>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import NotificationsBell from '../../components/NotificationsBell'
 import Badge from '../../components/ui/Badge'
 import Input from '../../components/ui/Input'
 import Modal from '../../components/ui/Modal'
@@ -11,25 +12,16 @@ import {
   deleteInventoryItem,
   listAdminInventoryItems,
   listAdminInventoryRentals,
+  approveInventoryRental,
   updateInventoryItem,
   verifyInventoryReturn,
+  rejectInventoryReturn,
 } from '../../services/inventory'
 import { resolveMarketplacePhotoUrl } from '../../utils/marketplace-photo-url'
 import '../admin-studios.css'
 import './marketplace-moderation.css'
 import './admin-inventory.css'
-
-const navigationItems = [
-  { href: '/admin/dashboard', label: 'Painel' },
-  { href: '/admin/validations', label: 'Validações' },
-  { href: '/admin/studios', label: 'Estúdios' },
-  { href: '/admin/users', label: 'Utilizadores' },
-  { href: '/admin/lostfound', label: 'Perdidos e Achados' },
-  { href: '/admin/inventory', label: 'Inventário da Escola' },
-  { href: '/admin/marketplace', label: 'Marketplace' },
-  { href: '/admin/finance', label: 'Finanças' },
-  { href: '/admin/audit', label: 'Auditoria' },
-]
+import { ADMIN_NAV_ITEMS as navigationItems } from './adminNav'
 
 const itemStatusOptions = [
   { value: 'all', label: 'Todos' },
@@ -40,6 +32,7 @@ const itemStatusOptions = [
 const initialItemForm = {
   itemName: '',
   categoryId: '',
+  categoryName: '',
   symbolicFee: '',
   totalQuantity: '1',
   description: '',
@@ -140,7 +133,7 @@ function getItemStatusLabel(status) {
 function getRentalStatusTone(status) {
   const normalized = String(status || '').trim().toLowerCase()
 
-  if (normalized.includes('completed') || normalized.includes('verified')) {
+  if (normalized.includes('completed') || normalized.includes('verified') || normalized.includes('approved')) {
     return 'success'
   }
 
@@ -148,7 +141,7 @@ function getRentalStatusTone(status) {
     return 'info'
   }
 
-  if (normalized.includes('pending')) {
+  if (normalized.includes('awaiting') || normalized.includes('pending')) {
     return 'warning'
   }
 
@@ -170,8 +163,20 @@ function getRentalStatusLabel(status) {
     return 'Em validação'
   }
 
+  if (normalized.includes('awaiting')) {
+    return 'Aguardando aprovação'
+  }
+
   if (normalized.includes('pending')) {
     return 'Pendente'
+  }
+
+  if (normalized.includes('approved')) {
+    return 'Aprovado'
+  }
+
+  if (normalized.includes('rejected')) {
+    return 'Rejeitado'
   }
 
   return 'Ativo'
@@ -193,6 +198,7 @@ function toItemForm(item) {
   return {
     itemName: item?.itemName || '',
     categoryId: item?.category?.categoryId ? String(item.category.categoryId) : '',
+    categoryName: '',
     symbolicFee: item?.symbolicFee !== null && item?.symbolicFee !== undefined ? String(item.symbolicFee) : '',
     totalQuantity: item?.totalQuantity !== null && item?.totalQuantity !== undefined ? String(item.totalQuantity) : '1',
     description: item?.description || '',
@@ -433,7 +439,7 @@ export default function AdminInventoryPage() {
   }
 
   const openCreateModal = () => {
-    const defaultCategoryId = categoryOptions[0]?.categoryId ? String(categoryOptions[0].categoryId) : ''
+    const defaultCategoryId = categoryOptions[0]?.categoryId ? String(categoryOptions[0].categoryId) : '__new__'
 
     setSelectedItem(null)
     setItemModalMode('create')
@@ -512,7 +518,9 @@ export default function AdminInventoryPage() {
     }
 
     const itemName = itemForm.itemName.trim()
+    const isCreatingCategory = itemForm.categoryId === '__new__'
     const categoryId = Number(itemForm.categoryId)
+    const categoryName = itemForm.categoryName.trim()
     const symbolicFee = Number(itemForm.symbolicFee)
     const totalQuantity = Number(itemForm.totalQuantity)
     const description = itemForm.description.trim()
@@ -523,8 +531,13 @@ export default function AdminInventoryPage() {
       return
     }
 
-    if (!Number.isInteger(categoryId) || categoryId <= 0) {
+    if (!isCreatingCategory && (!Number.isInteger(categoryId) || categoryId <= 0)) {
       setError('Seleciona uma categoria válida.')
+      return
+    }
+
+    if (isCreatingCategory && categoryName.length === 0) {
+      setError('Indica o nome da nova categoria.')
       return
     }
 
@@ -545,7 +558,7 @@ export default function AdminInventoryPage() {
     try {
       const payload = {
         itemName,
-        categoryId,
+        ...(isCreatingCategory ? { categoryName } : { categoryId }),
         symbolicFee,
         totalQuantity,
         description,
@@ -570,7 +583,7 @@ export default function AdminInventoryPage() {
   }
 
   async function handleDeleteItem(item) {
-    if (!item?.itemId || submittingAction) {
+    if (submittingAction) {
       return
     }
 
@@ -586,11 +599,11 @@ export default function AdminInventoryPage() {
 
     try {
       await deleteInventoryItem(item.itemId)
-      setNotice(`Artigo "${item.itemName}" removido.`)
+      setNotice(`Artigo "${item.itemName}" removido com sucesso.`)
       closeItemModal()
       await loadInventory()
     } catch (requestError) {
-      setError(requestError?.response?.data?.error || 'Não foi possível remover o artigo do inventário.')
+      setError(requestError?.response?.data?.error || 'Não foi possível remover o artigo.')
     } finally {
       setSubmittingAction('')
     }
@@ -617,6 +630,81 @@ export default function AdminInventoryPage() {
       await loadInventory()
     } catch (requestError) {
       setError(requestError?.response?.data?.error || 'Não foi possível validar a devolução.')
+    } finally {
+      setSubmittingAction('')
+    }
+  }
+
+  async function handleRejectReturn() {
+    if (!selectedRental?.rentalId || submittingAction) {
+      return
+    }
+
+    // Only allow rejection while the rental is still pending (no verification performed)
+    if (selectedRental?.status !== 'pending') {
+      setError('Só é possível rejeitar devoluções pendentes.')
+      return
+    }
+
+    setSubmittingAction('reject-return')
+    setError('')
+    setNotice('')
+
+    try {
+      await rejectInventoryReturn(selectedRental.rentalId, {
+        returnDate: new Date().toISOString(),
+        conditionStatus: returnForm.conditionStatus,
+        conditionNotes: returnForm.conditionNotes.trim() || null,
+      })
+
+      const adminName = auth?.user?.firstName || ''
+      setNotice(`Devolução ${selectedRental.reference} rejeitada por ${adminName}.`)
+      closeRentalModal()
+      await loadInventory()
+    } catch (requestError) {
+      setError(requestError?.response?.data?.error || 'Não foi possível rejeitar a devolução.')
+    } finally {
+      setSubmittingAction('')
+    }
+  }
+
+  async function handleApproveRental(rental) {
+    if (!rental?.rentalId || submittingAction) return
+
+    const confirmed = window.confirm(`Aceitar pedido ${rental.reference}?`)
+    if (!confirmed) return
+
+    setSubmittingAction('approve-rental')
+    setError('')
+    setNotice('')
+
+    try {
+      await approveInventoryRental(rental.rentalId, { decision: 'approve', notes: '' })
+      setNotice(`Pedido ${rental.reference} aprovado.`)
+      await loadInventory()
+    } catch (requestError) {
+      setError(requestError?.response?.data?.error || 'Não foi possível aprovar o pedido.')
+    } finally {
+      setSubmittingAction('')
+    }
+  }
+
+  async function handleAdminRejectRental(rental) {
+    if (!rental?.rentalId || submittingAction) return
+
+    const notes = window.prompt('Motivo / notas (opcional):')
+    if (notes === null) return
+
+    setSubmittingAction('approve-rental')
+    setError('')
+    setNotice('')
+
+    try {
+      await approveInventoryRental(rental.rentalId, { decision: 'reject', notes })
+      setNotice(`Pedido ${rental.reference} rejeitado.`)
+      await loadInventory()
+    } catch (requestError) {
+      setError(requestError?.response?.data?.error || 'Não foi possível rejeitar o pedido.')
     } finally {
       setSubmittingAction('')
     }
@@ -701,11 +789,11 @@ export default function AdminInventoryPage() {
               </button>
               <h2>Inventário da Escola</h2>
             </div>
-            <p>Administra o catálogo oficial, controla disponibilidade e valida devoluções de artigos alugados.</p>
           </div>
 
           <div className="topbar-right">
             <span className="pill">{metrics.rentalsActive} devoluções ativas</span>
+            <NotificationsBell pageLink="/admin/notifications" />
           </div>
         </header>
 
@@ -854,6 +942,19 @@ export default function AdminInventoryPage() {
                       ),
                     },
                     {
+                      header: 'Resultado',
+                      key: 'result',
+                      align: 'center',
+                      verticalAlign: 'middle',
+                      render: (rental) => {
+                        const verification = rental.returnVerification || {}
+                        if (verification.conditionStatus && verification.conditionVerified === false) {
+                          return <Badge variant="danger">Rejeitado</Badge>
+                        }
+                        return null
+                      },
+                    },
+                    {
                       header: 'Taxa simbólica',
                       key: 'symbolicFee',
                       align: 'right',
@@ -990,17 +1091,37 @@ export default function AdminInventoryPage() {
                     renderRowActions={(rental) => (
                     <WithRole roles={['admin']}>
                       <div className="marketplace-row-actions">
-                        <button type="button" className="moderation-action-btn neutral" onClick={() => openRentalModal(rental)}>
-                          Ver
-                        </button>
-                        <button
-                          type="button"
-                          className="moderation-action-btn approve"
-                          disabled={submittingAction === 'verify-return'}
-                          onClick={() => openRentalModal(rental)}
-                        >
-                          Verificar devolução
-                        </button>
+                        {rental.status === 'awaiting-approval' && (
+                          <>
+                            <button
+                              type="button"
+                              className="moderation-action-btn approve"
+                              disabled={submittingAction === 'approve-rental'}
+                              onClick={() => void handleApproveRental(rental)}
+                            >
+                              Aceitar
+                            </button>
+                            <button
+                              type="button"
+                              className="moderation-action-btn delete"
+                              disabled={submittingAction === 'approve-rental'}
+                              onClick={() => void handleAdminRejectRental(rental)}
+                            >
+                              Rejeitar
+                            </button>
+                          </>
+                        )}
+
+                        {rental.status === 'pending' && (
+                          <button
+                            type="button"
+                            className="moderation-action-btn approve"
+                            disabled={submittingAction === 'verify-return'}
+                            onClick={() => openRentalModal(rental)}
+                          >
+                            Verificar devolução
+                          </button>
+                        )}
                       </div>
                     </WithRole>
                   )}
@@ -1144,23 +1265,34 @@ export default function AdminInventoryPage() {
                       {category.categoryName}
                     </option>
                   ))}
+                  <option value="__new__">+ Nova categoria</option>
                 </select>
               ) : (
                 <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={itemForm.categoryId}
-                  onChange={(event) => updateItemForm('categoryId', event.target.value)}
-                  placeholder="ID da categoria"
+                  type="text"
+                  value={itemForm.categoryName}
+                  onChange={(event) => updateItemForm('categoryName', event.target.value)}
+                  placeholder="Nome da nova categoria"
+                  maxLength={50}
                   required
                 />
               )}
-              {hasCategoryOptions ? null : (
+              {hasCategoryOptions && itemForm.categoryId === '__new__' ? (
+                <input
+                  type="text"
+                  value={itemForm.categoryName}
+                  onChange={(event) => updateItemForm('categoryName', event.target.value)}
+                  placeholder="Ex.: Sopro"
+                  maxLength={50}
+                  required
+                  style={{ marginTop: '0.5rem' }}
+                />
+              ) : null}
+              {!hasCategoryOptions ? (
                 <small style={{ color: 'var(--studio-muted)', fontSize: '0.8rem' }}>
-                  Sem categorias carregadas do catálogo atual. Introduz o ID da categoria.
+                  Sem categorias carregadas. O nome será criado como nova categoria.
                 </small>
-              )}
+              ) : null}
             </label>
 
             <label>
@@ -1257,6 +1389,14 @@ export default function AdminInventoryPage() {
             <div className="marketplace-modal-footer-actions">
               <button type="button" className="moderation-action-btn neutral" onClick={closeRentalModal}>
                 Cancelar
+              </button>
+              <button
+                type="button"
+                className="moderation-action-btn reject"
+                disabled={submittingAction === 'reject-return' || selectedRental?.status !== 'pending'}
+                onClick={handleRejectReturn}
+              >
+                Rejeitar devolução
               </button>
               <button
                 type="button"

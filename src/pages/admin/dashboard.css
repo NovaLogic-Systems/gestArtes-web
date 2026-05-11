@@ -17,7 +17,7 @@
   --ink: #1f1c2e;
   --lavender: #f5edfb;
   
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: inherit;
   animation: fadeIn 0.4s ease-out;
 }
 
@@ -195,27 +195,8 @@
   gap: 8px;
 }
 
-.cta {
-  display: inline-block;
-  border: 0;
-  border-radius: 10px;
-  padding: 10px 13px;
-  text-decoration: none;
-  color: #fff;
-  background: linear-gradient(135deg, var(--teal), #10b2a3);
-  cursor: pointer;
-  font-size: 0.88rem;
-  font-weight: 600;
-  transition: opacity 0.2s;
-}
 
-.cta:hover {
-  opacity: 0.9;
-}
 
-.cta.secondary {
-  background: linear-gradient(135deg, #55436d, #6a5490);
-}
 
 /* Admin Notice Form */
 .admin-notice-form {

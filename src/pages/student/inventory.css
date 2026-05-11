@@ -138,6 +138,8 @@
   border: 1px solid var(--inventory-line);
   border-radius: 16px;
   box-shadow: 0 10px 22px rgba(31, 28, 46, 0.09);
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
@@ -148,19 +150,24 @@
   color: #6d6480;
   cursor: pointer;
   display: grid;
-  height: 190px;
+  flex: 0 0 auto;
+  height: clamp(128px, 16vw, 168px);
+  max-height: 168px;
   justify-items: center;
   padding: 0;
   width: 100%;
+  overflow: hidden;
 }
 
 .inventory-card-image img {
+  display: block;
   height: 100%;
   object-fit: cover;
   width: 100%;
 }
 
 .inventory-card-body {
+  flex: 1 1 auto;
   display: grid;
   gap: 0.6rem;
   padding: 0.8rem;
@@ -309,8 +316,9 @@
 }
 
 .inventory-history-main {
-  max-width: 1060px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
+  align-content: start;
   width: 100%;
   display: grid;
   gap: 0.9rem;
@@ -411,15 +419,13 @@
 }
 
 .inventory-history-panel {
-  max-width: 1060px;
   width: 100%;
-  margin: 0 auto;
+  margin: 0;
 }
 
 .inventory-history-banner {
-  max-width: 1060px;
   width: 100%;
-  margin: 0 auto;
+  margin: 0;
 }
 
 @media (max-width: 1024px) {

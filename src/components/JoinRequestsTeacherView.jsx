@@ -51,7 +51,8 @@ export default function JoinRequestsTeacherView() {
       const response = await api.get('/coaching/join-requests/teacher-pending')
       const payload = response.data?.requests || response.data || []
       setRequests(Array.isArray(payload) ? payload : [])
-    } catch { setError('Não foi possível carregar os pedidos de adesão.')
+    } catch {
+      setError('Não foi possível carregar os pedidos pendentes.')
     } finally {
       setLoading(false)
     }

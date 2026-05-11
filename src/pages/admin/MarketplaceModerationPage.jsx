@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import NotificationsBell from '../../components/NotificationsBell'
 import { useAuth } from '../../hooks/useAuth'
 import adminMarketplaceService from '../../services/adminMarketplaceService'
 import Badge from '../../components/ui/Badge'
@@ -17,18 +18,7 @@ import WithRole from '../../components/WithRole'
 import { resolveMarketplacePhotoUrl } from '../../utils/marketplace-photo-url'
 import '../admin-studios.css'
 import './marketplace-moderation.css'
-
-const navigationItems = [
-  { href: '/admin/dashboard', label: 'Painel' },
-  { href: '/admin/validations', label: 'Validações' },
-  { href: '/admin/studios', label: 'Estúdios' },
-  { href: '/admin/users', label: 'Utilizadores' },
-  { href: '/admin/lostfound', label: 'Perdidos e Achados' },
-  { href: '/admin/inventory', label: 'Inventário da Escola' },
-  { href: '/admin/marketplace', label: 'Marketplace' },
-  { href: '/admin/finance', label: 'Finanças' },
-  { href: '/admin/audit', label: 'Auditoria' },
-]
+import { ADMIN_NAV_ITEMS as navigationItems } from './adminNav'
 
 const statusOptions = [
   { value: 'all', label: 'Todos' },
@@ -87,7 +77,33 @@ function getStatusTone(statusName) {
 }
 
 function getStatusLabel(listing) {
-  return listing?.status?.statusName || (listing?.isActive ? 'Ativo' : 'Inativo')
+  const normalized = String(listing?.status?.statusName || '').trim().toLowerCase()
+
+  if (!normalized) {
+    return listing?.isActive ? 'Ativo' : 'Inativo'
+  }
+
+  if (normalized.includes('pend')) {
+    return 'Pendente'
+  }
+
+  if (normalized.includes('rejeit') || normalized.includes('reject')) {
+    return 'Rejeitado'
+  }
+
+  if (normalized.includes('remov') || normalized.includes('hidden')) {
+    return 'Removido'
+  }
+
+  if (normalized.includes('aprov') || normalized.includes('approved') || normalized.includes('active')) {
+    return 'Aprovado'
+  }
+
+  if (normalized.includes('inactive')) {
+    return 'Inativo'
+  }
+
+  return listing?.isActive ? 'Ativo' : 'Inativo'
 }
 
 function statusMatchesFilter(listing, statusFilter) {
@@ -130,6 +146,117 @@ function marketplaceSearchText(listing) {
     .filter(Boolean)
     .join(' ')
     .toLowerCase()
+}
+
+function MarketplaceListingActionsMenu({
+  listing,
+  isApproved,
+  onView,
+  onApprove,
+  onReject,
+  onDelete,
+  submittingAction,
+}) {
+  const [open, setOpen] = useState(false)
+  const menuRef = useRef(null)
+
+  useEffect(() => {
+    if (!open) {
+      return undefined
+    }
+
+    const handlePointerDown = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setOpen(false)
+      }
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [open])
+
+  const closeMenu = () => setOpen(false)
+
+  return (
+    <div className="marketplace-row-actions-menu" ref={menuRef}>
+      <button
+        type="button"
+        className="moderation-action-btn neutral marketplace-row-actions-trigger"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={`Abrir ações para ${listing.title || 'anúncio'}`}
+        onClick={() => setOpen((current) => !current)}
+      >
+        ⋯
+      </button>
+
+      {open ? (
+        <div className="marketplace-row-actions-panel" role="menu" aria-label="Ações do anúncio">
+          <button
+            type="button"
+            className="marketplace-row-actions-item"
+            role="menuitem"
+            onClick={() => {
+              closeMenu()
+              onView(listing)
+            }}
+          >
+            Ver detalhe
+          </button>
+
+          <button
+            type="button"
+            className="marketplace-row-actions-item"
+            role="menuitem"
+            disabled={submittingAction === 'approve' || isApproved}
+            onClick={() => {
+              closeMenu()
+              onApprove(listing)
+            }}
+          >
+            {isApproved ? 'Já aprovado' : 'Aprovar'}
+          </button>
+
+          <button
+            type="button"
+            className="marketplace-row-actions-item"
+            role="menuitem"
+            disabled={submittingAction === 'reject'}
+            onClick={() => {
+              closeMenu()
+              onReject(listing)
+            }}
+          >
+            Rejeitar
+          </button>
+
+          <button
+            type="button"
+            className="marketplace-row-actions-item marketplace-row-actions-item--danger"
+            role="menuitem"
+            disabled={submittingAction === 'delete'}
+            onClick={() => {
+              closeMenu()
+              onDelete(listing)
+            }}
+          >
+            Apagar
+          </button>
+        </div>
+      ) : null}
+    </div>
+  )
 }
 
 export default function MarketplaceModerationPage() {
@@ -385,7 +512,7 @@ export default function MarketplaceModerationPage() {
   }
 
   return (
-    <div className={appShellClassName}>
+    <div className={`admin-marketplace-moderation ${appShellClassName}`}>
       {isMobile && mobileOpen ? (
         <button
           type="button"
@@ -438,11 +565,11 @@ export default function MarketplaceModerationPage() {
               </button>
               <h2>Moderação do Marketplace</h2>
             </div>
-            <p>Pesquisa anúncios, revisa o conteúdo e aprova ou rejeita antes da publicação.</p>
           </div>
 
           <div className="topbar-right">
             <span className="pill">{counts.pending} pendentes</span>
+            <NotificationsBell pageLink="/admin/notifications" />
           </div>
         </header>
 
@@ -526,7 +653,7 @@ export default function MarketplaceModerationPage() {
               />
             </div>
 
-            <div className="marketplace-status-tabs" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.85rem' }}>
+            <div className="marketplace-status-tabs">
               {statusOptions.map((option) => {
                 const active = filters.status === option.value
 
@@ -534,7 +661,7 @@ export default function MarketplaceModerationPage() {
                   <button
                     key={option.value}
                     type="button"
-                    className={active ? 'pill' : 'ghost-btn'}
+                    className={active ? 'marketplace-status-pill active' : 'marketplace-status-pill'}
                     onClick={() => updateFilter('status', option.value)}
                   >
                     {option.label}
@@ -550,6 +677,7 @@ export default function MarketplaceModerationPage() {
                 <Table
                   columns={[
                     {
+                      verticalAlign: 'middle',
                       header: 'Anúncio',
                       key: 'title',
                       render: (listing) => (
@@ -562,6 +690,7 @@ export default function MarketplaceModerationPage() {
                       ),
                     },
                     {
+                      verticalAlign: 'middle',
                       header: 'Vendedor',
                       key: 'seller',
                       render: (listing) => (
@@ -574,17 +703,20 @@ export default function MarketplaceModerationPage() {
                       ),
                     },
                     {
+                      verticalAlign: 'middle',
                       header: 'Preço',
                       key: 'price',
                       align: 'right',
                       render: (listing) => formatMoney(listing.price),
                     },
                     {
+                      verticalAlign: 'middle',
                       header: 'Localização',
                       key: 'location',
                       render: (listing) => listing.location || '—',
                     },
                     {
+                      verticalAlign: 'middle',
                       header: 'Estado',
                       key: 'status',
                       render: (listing) => (
@@ -597,37 +729,18 @@ export default function MarketplaceModerationPage() {
                   rows={filteredListings}
                   getRowKey={(listing) => listing.listingId}
                   emptyState="Não existem anúncios com os filtros atuais."
+                  rowActionsVerticalAlign="middle"
                   renderRowActions={(listing) => (
                     <WithRole roles={['admin']}>
-                      <div className="marketplace-row-actions">
-                        <button type="button" className="moderation-action-btn neutral" onClick={() => openListing(listing)}>
-                          Ver
-                        </button>
-                        <button
-                          type="button"
-                          className="moderation-action-btn approve"
-                          disabled={submittingAction === 'approve' || getStatusTone(listing.status?.statusName) === 'success'}
-                          onClick={() => void handleModeration('approve', listing)}
-                        >
-                          Aprovar
-                        </button>
-                        <button
-                          type="button"
-                          className="moderation-action-btn reject"
-                          disabled={submittingAction === 'reject'}
-                          onClick={() => openListing(listing, true)}
-                        >
-                          Rejeitar
-                        </button>
-                        <button
-                          type="button"
-                          className="moderation-action-btn delete"
-                          disabled={submittingAction === 'delete'}
-                          onClick={() => void handleModeration('delete', listing)}
-                        >
-                          Apagar
-                        </button>
-                      </div>
+                      <MarketplaceListingActionsMenu
+                        listing={listing}
+                        isApproved={getStatusTone(listing.status?.statusName) === 'success'}
+                        submittingAction={submittingAction}
+                        onView={openListing}
+                        onApprove={(item) => void handleModeration('approve', item)}
+                        onReject={(item) => openListing(item, true)}
+                        onDelete={(item) => void handleModeration('delete', item)}
+                      />
                     </WithRole>
                   )}
                 />
@@ -641,7 +754,6 @@ export default function MarketplaceModerationPage() {
         open={isModalOpen}
         onClose={closeModal}
         title={selectedListing?.title || 'Detalhe do anúncio'}
-        description="Revê o anúncio, consulta a informação enviada e decide o estado de publicação."
         size="xl"
         footer={
           <WithRole roles={['admin']}>

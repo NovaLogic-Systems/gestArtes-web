@@ -9,34 +9,41 @@
  * Filtros: período, número de aluno.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
 import { useAuth } from '../../hooks/useAuth'
 import api from '../../services/api'
-import notificationPreviewService from '../../services/notificationPreviewService'
+import NotificationsBell from '../../components/NotificationsBell'
 import '../admin-studios.css'
-
-const NAV_ITEMS = [
-  { href: '/admin/dashboard', label: 'Painel' },
-  { href: '/admin/validations', label: 'Validações' },
-  { href: '/admin/studios', label: 'Estúdios' },
-  { href: '/admin/studio-occupancy', label: 'Ocupação de Estúdios' },
-  { href: '/admin/users', label: 'Utilizadores' },
-  { href: '/admin/lostfound', label: 'Perdidos e Achados' },
-  { href: '/admin/inventory', label: 'Inventário' },
-  { href: '/admin/marketplace', label: 'Marketplace' },
-  { href: '/admin/finance', label: 'Finanças' },
-  { href: '/admin/audit', label: 'Auditoria' },
-]
+import { ADMIN_NAV_ITEMS as NAV_ITEMS } from './adminNav'
 
 const ENTRY_TYPE_LABELS = {
-  CoachingFee: 'Taxa de coaching',
-  NoShowPenalty: 'Penalização por falta sem aviso',
-  CancellationFee: 'Taxa de cancelamento',
-  ExtraHour: 'Acréscimo por hora extra',
+  session_revenue: 'Taxa de coaching',
+  no_show_fee: 'Penalização por falta sem aviso',
+  cancellation_fee: 'Taxa de cancelamento',
+  inventory_fee: 'Taxa de inventário',
+  marketplace_fee: 'Taxa de marketplace',
+}
+
+const REVENUE_ENTRY_TYPES = ['session_revenue']
+const PENALTY_ENTRY_TYPES = ['no_show_fee', 'cancellation_fee']
+
+function resolveSessionStatusLabel(value) {
+  if (!value) return null
+  const norm = String(value).toLowerCase().replace(/[^a-z0-9]/g, '')
+  if (norm.includes('finalized') || norm.includes('finalizad')) return { label: 'Finalizada', variant: 'ok' }
+  if (norm.includes('noshow')) return { label: 'Falta sem aviso', variant: 'warn' }
+  if (norm.includes('canceljustified') || norm.includes('cancelledjustified') || norm.includes('justified')) return { label: 'Cancelada (justificada)', variant: 'warn' }
+  if (norm.includes('cancel')) return { label: 'Cancelada', variant: 'warn' }
+  if (norm.includes('reject')) return { label: 'Rejeitada', variant: 'warn' }
+  if (norm.includes('finalizationvalidationpending')) return { label: 'Aguarda validação', variant: 'warn' }
+  if (norm.includes('completionconfirmationpending')) return { label: 'Aguarda confirmação', variant: 'warn' }
+  if (norm.includes('pendingapproval') || norm === 'pending') return { label: 'Pendente', variant: 'warn' }
+  if (norm.includes('approved') || norm.includes('scheduled')) return { label: 'Aprovada', variant: 'ok' }
+  return { label: String(value), variant: 'warn' }
 }
 
 const selectStyle = {
@@ -105,14 +112,6 @@ function FinancialDashboardPage() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
-  // Notifications
-  const [notificationsOpen, setNotificationsOpen] = useState(false)
-  const [notificationsLoaded, setNotificationsLoaded] = useState(false)
-  const [notificationsLoading, setNotificationsLoading] = useState(false)
-  const [notifications, setNotifications] = useState([])
-  const [unreadCount, setUnreadCount] = useState(0)
-  const notificationBoxRef = useRef(null)
-
   const displayName = user?.fullName || user?.name || user?.email || 'Administrador'
   const sidebarHidden = isMobile || sidebarCollapsed
   const appShellCls = ['app-shell', sidebarHidden ? 'sidebar-hidden' : ''].filter(Boolean).join(' ')
@@ -123,21 +122,35 @@ function FinancialDashboardPage() {
     setLoading(true)
     setError('')
     try {
-      const params = { from, to, ...(studentNumber.trim() ? { studentNumber: studentNumber.trim() } : {}) }
+      const params = {
+        periodStart: from,
+        periodEnd: to,
+        ...(studentNumber.trim() ? { studentNumber: studentNumber.trim() } : {}),
+      }
       const [txRes, sumRes, revRes] = await Promise.allSettled([
         api.get('/admin/finance/transactions', { params }),
         api.get('/admin/finance/summary', { params }),
-        api.get('/admin/finance/revenue', { params: { from, to } }),
+        api.get('/admin/finance/revenue', { params: { periodStart: from, periodEnd: to } }),
       ])
 
       if (txRes.status === 'fulfilled') {
         const data = txRes.value.data
-        setTransactions(Array.isArray(data) ? data : Array.isArray(data?.transactions) ? data.transactions : [])
+        setTransactions(
+          Array.isArray(data) ? data
+            : Array.isArray(data?.items) ? data.items
+            : Array.isArray(data?.transactions) ? data.transactions
+            : []
+        )
       }
       if (sumRes.status === 'fulfilled') setSummary(sumRes.value.data)
       if (revRes.status === 'fulfilled') {
         const data = revRes.value.data
-        setRevenueChart(Array.isArray(data) ? data : Array.isArray(data?.revenue) ? data.revenue : [])
+        setRevenueChart(
+          Array.isArray(data) ? data
+            : Array.isArray(data?.months) ? data.months
+            : Array.isArray(data?.revenue) ? data.revenue
+            : []
+        )
       }
     } catch {
       setError('Não foi possível carregar os dados financeiros.')
@@ -146,8 +159,14 @@ function FinancialDashboardPage() {
     }
   }, [from, to, studentNumber])
 
-  // Auto-load on mount
-  useEffect(() => { void loadData() }, [loadData])
+  // Debounce data loads to avoid excessive API calls when filters change rapidly
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      void loadData()
+    }, 500) // wait 500ms after filter change before fetching
+
+    return () => clearTimeout(timeoutId)
+  }, [loadData])
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 1024px)')
@@ -166,30 +185,6 @@ function FinancialDashboardPage() {
     return () => document.body.classList.remove('studio-page')
   }, [])
 
-  useEffect(() => {
-    if (!notificationsOpen) return undefined
-    const handler = (e) => {
-      if (notificationBoxRef.current && !notificationBoxRef.current.contains(e.target))
-        setNotificationsOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [notificationsOpen])
-
-  const handleNotificationsClick = async () => {
-    const next = !notificationsOpen
-    setNotificationsOpen(next)
-    if (next && !notificationsLoaded) {
-      setNotificationsLoading(true)
-      try {
-        const preview = await notificationPreviewService.getPreview({ limit: 4, includeUnreadCount: true })
-        setNotifications(preview.items)
-        setUnreadCount(preview.unreadCount)
-        setNotificationsLoaded(true)
-      } finally { setNotificationsLoading(false) }
-    }
-  }
-
   const handleLogout = async (e) => {
     e.preventDefault()
     try { await logout() } finally { navigate('/login', { replace: true }) }
@@ -200,7 +195,7 @@ function FinancialDashboardPage() {
     setNotice('')
     setError('')
     try {
-      const res = await api.post('/admin/finance/export', { from, to, ...(studentNumber.trim() ? { studentNumber: studentNumber.trim() } : {}) }, { responseType: 'blob' })
+      const res = await api.post('/admin/finance/export', { periodStart: from, periodEnd: to, ...(studentNumber.trim() ? { studentNumber: studentNumber.trim() } : {}) }, { responseType: 'blob' })
       const url = URL.createObjectURL(new Blob([res.data], { type: 'text/csv' }))
       const a = document.createElement('a')
       a.href = url
@@ -215,9 +210,10 @@ function FinancialDashboardPage() {
     }
   }
 
-  const totalRevenue = summary?.totalRevenue ?? transactions.filter((t) => (t.entryType ?? t.EntryType) === 'CoachingFee').reduce((s, t) => s + (Number(t.amount ?? t.Amount) || 0), 0)
-  const totalPenalties = summary?.totalPenalties ?? transactions.filter((t) => ['NoShowPenalty', 'CancellationFee'].includes(t.entryType ?? t.EntryType)).reduce((s, t) => s + (Number(t.amount ?? t.Amount) || 0), 0)
+  const totalRevenue = summary?.totalRevenue ?? transactions.filter((t) => REVENUE_ENTRY_TYPES.includes(t.entryType ?? t.EntryType)).reduce((s, t) => s + (Number(t.amount ?? t.Amount) || 0), 0)
+  const totalPenalties = summary?.totalPenalties ?? transactions.filter((t) => PENALTY_ENTRY_TYPES.includes(t.entryType ?? t.EntryType)).reduce((s, t) => s + (Number(t.amount ?? t.Amount) || 0), 0)
   const totalExported = summary?.exportedCount ?? transactions.filter((t) => t.isExported ?? t.IsExported).length
+  const totalEntries = summary?.totalEntries ?? transactions.length
 
   return (
     <div className={appShellCls}>
@@ -252,24 +248,8 @@ function FinancialDashboardPage() {
             </div>
             <p>Resumo de entradas financeiras, penalizações e exportação para contabilidade</p>
           </div>
-          <div className="topbar-right" ref={notificationBoxRef}>
-            <button type="button" className="pill notifications-pill" onClick={handleNotificationsClick}>
-              Notificações{unreadCount > 0 ? ` (${unreadCount})` : ''}
-            </button>
-            {notificationsOpen ? (
-              <div className="notifications-popover">
-                <div className="notifications-popover-header"><strong>Notificações</strong></div>
-                {notificationsLoading ? <p className="notifications-state">A carregar...</p> : null}
-                {!notificationsLoading && notifications.length === 0 ? <p className="notifications-state">Sem notificações.</p> : null}
-                {notifications.map((n) => (
-                  <div key={n.id} className="notifications-item">
-                    <strong>{n.title}</strong>
-                    {n.message ? <p>{n.message}</p> : null}
-                  </div>
-                ))}
-                <Link to="/admin/notifications" className="notifications-more-link" onClick={() => setNotificationsOpen(false)}>Ver Mais</Link>
-              </div>
-            ) : null}
+          <div className="topbar-right">
+            <NotificationsBell pageLink="/admin/notifications" />
           </div>
         </header>
 
@@ -329,7 +309,7 @@ function FinancialDashboardPage() {
             />
             <KPICard
               label="Total de Entradas"
-              value={transactions.length}
+              value={totalEntries}
               gradient="linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)"
               icon="📋"
             />
@@ -342,7 +322,7 @@ function FinancialDashboardPage() {
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={revenueChart} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--studio-panel-border)" />
-                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                  <XAxis dataKey="label" tick={{ fontSize: 12 }} />
                   <YAxis tickFormatter={(v) => `${v}€`} tick={{ fontSize: 12 }} />
                   <Tooltip formatter={(v) => `${v} €`} />
                   <Legend />
@@ -386,7 +366,8 @@ function FinancialDashboardPage() {
                       const exported = t.isExported ?? t.IsExported
                       const amount = Number(t.amount ?? t.Amount ?? 0)
                       const entryType = t.entryType ?? t.EntryType ?? ''
-                      const status = t.status ?? t.Status ?? ''
+                      const rawStatus = t.sessionStatus ?? t.SessionStatus ?? t.status ?? t.Status ?? ''
+                      const statusMeta = resolveSessionStatusLabel(rawStatus)
                       return (
                         <tr key={id}>
                           <td style={{ fontFamily: 'monospace', opacity: 0.7 }}>#{id}</td>
@@ -396,8 +377,8 @@ function FinancialDashboardPage() {
                           <td>{ENTRY_TYPE_LABELS[entryType] ?? entryType}</td>
                           <td><strong>{amount.toFixed(2)} €</strong></td>
                           <td>
-                            {status ? (
-                              <span className={`badge ${status === 'Confirmed' ? 'ok' : 'warn'}`}>{status}</span>
+                            {statusMeta ? (
+                              <span className={`badge ${statusMeta.variant}`}>{statusMeta.label}</span>
                             ) : '—'}
                           </td>
                           <td>

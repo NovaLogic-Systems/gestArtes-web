@@ -6,6 +6,7 @@
  */
 
 import { resolveMarketplacePhotoUrl } from '../utils/marketplace-photo-url'
+import MarketplaceImage from './MarketplaceImage'
 
 function formatMoney(value) {
   const numeric = Number(value)
@@ -98,7 +99,7 @@ export default function ListingCard({
     <article className="market-listing-card">
       <button type="button" className="market-listing-image" onClick={() => onOpen?.(listing)}>
         {photoUrl ? (
-          <img src={photoUrl} alt={`Foto do anúncio ${listing?.title || ''}`} />
+          <MarketplaceImage src={photoUrl} alt={`Foto do anúncio ${listing?.title || ''}`} fallback={<span>Sem imagem</span>} />
         ) : (
           <span>Sem imagem</span>
         )}

@@ -5,38 +5,35 @@
  * @project GestArtes - Projeto 50+10 para Entartes
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import Modal from '../../components/ui/Modal'
 import Button from '../../components/ui/Button'
-import ConfirmExecutionModal from '../../components/ConfirmExecutionModal'
-import notificationPreviewService from '../../services/notificationPreviewService'
+import Toast from '../../components/ui/Toast'
+import NotificationsBell from '../../components/NotificationsBell'
+import UnavailabilityModal from '../../components/teacher/UnavailabilityModal'
+import JoinSessionButton from '../../components/JoinSessionButton'
+import { fetchAbsenceDetails } from '../../services/teacherAvailability'
+import api from '../../services/api'
 import {
-  cancelBooking,
   createBooking,
   getAvailableSlots,
   getCompatibleStudios,
-  getSessionHistory,
 } from '../../services/coaching'
 import './coaching.css'
-
-const NAV_ITEMS = [
-  { label: 'Painel', href: '/student/dashboard' },
-  { label: 'Coaching', href: '/student/coaching' },
-  { label: 'Mapa de Coaching', href: '/student/coaching/map' },
-  { label: 'Histórico', href: '/student/history' },
-  { label: 'Inventário da Escola', href: '/student/inventory' },
-  { label: 'As Minhas Rendas', href: '/student/inventory/rentals' },
-  { label: 'Marketplace', href: '/student/marketplace' },
-  { label: 'Os Meus Anúncios', href: '/student/marketplace/my-listings' },
-  { label: 'Perdidos e Achados', href: '/student/lostfound' },
-  { label: 'Notificações', href: '/student/notifications' },
-  { label: 'Minha Conta', href: '/student/account' },
-]
+import { STUDENT_NAV_ITEMS as NAV_ITEMS } from './studentNav'
 
 const DAYS_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 const DAYS_LONG = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
+const BOOKING_DURATIONS = [30, 45, 60, 90, 120]
+const MIN_BOOKING_MINUTES = BOOKING_DURATIONS[0]
+
+function getTodayISO() {
+  const now = new Date()
+  const tzOffset = now.getTimezoneOffset() * 60000
+  return new Date(now.getTime() - tzOffset).toISOString().slice(0, 10)
+}
 
 function getWeekMondayISO(offsetWeeks = 0) {
   const now = new Date()
@@ -54,46 +51,30 @@ function formatDatePT(isoDate) {
   return `${d}/${m}/${y}`
 }
 
-function formatDateTimePT(value) {
-  if (!value) return '—'
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return String(value)
-  return d.toLocaleString('pt-PT', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'UTC',
-  })
-}
-
-function formatMoney(value) {
-  const num = Number(value)
-  if (value === null || value === undefined || Number.isNaN(num)) return '—'
-  return new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(num)
-}
-
 function resolveStatusBadge(status) {
   const s = String(status || '').toLowerCase()
   if (s.includes('cancel')) return { label: 'Cancelada', cls: 'danger' }
+  if (s.includes('reject')) return { label: 'Rejeitada', cls: 'danger' }
+  if (s.includes('no_show') || s.includes('noshow') || s.includes('falta')) return { label: 'Falta s/ aviso', cls: 'danger' }
   if (s.includes('complet') || s.includes('final')) return { label: 'Finalizada', cls: 'ok' }
-  if (s.includes('approv') || s.includes('schedul') || s.includes('active') || s.includes('ativa')) {
-    return { label: 'Ativa', cls: 'ok' }
-  }
   if (s.includes('teacher') || s.includes('professor')) return { label: 'Aguarda professor', cls: 'warn' }
   if (s.includes('admin') || s.includes('direct') || s.includes('manag')) {
     return { label: 'Aguarda direção', cls: 'info' }
   }
-  if (s.includes('pend')) return { label: 'Pendente', cls: 'warn' }
+  if (s.includes('pend')) return { label: 'Aguarda aprovação', cls: 'warn' }
+  if (s.includes('valid')) return { label: 'A validar', cls: 'warn' }
+  if (s.includes('approv') || s.includes('schedul') || s.includes('agend')) {
+    return { label: 'Agendada', cls: 'ok' }
+  }
+  if (s.includes('active') || s.includes('ativa')) return { label: 'Ativa', cls: 'ok' }
   return { label: status || '—', cls: 'info' }
 }
 
 function resolveSlotClass(status) {
   const s = String(status || '').toLowerCase()
-  if (s.includes('cancel')) return 'busy'
-  if (s.includes('teacher') || s.includes('professor') || s.includes('pend')) return 'pending-teacher'
-  if (s.includes('admin') || s.includes('direct')) return 'pending-direction'
+  if (s.includes('cancel') || s.includes('reject')) return 'busy'
+  if (s.includes('teacher') || s.includes('professor')) return 'pending-teacher'
+  if (s.includes('admin') || s.includes('direct') || s.includes('manag') || s.includes('pend')) return 'pending-direction'
   return 'busy'
 }
 
@@ -117,6 +98,46 @@ function addMinutesToTime(timeStr, minutes) {
   return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
 }
 
+function normalizeText(text) {
+  return String(text || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
+function timeToMinutes(timeStr) {
+  if (!timeStr) return null
+  const [h, m] = String(timeStr).split(':').map(Number)
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return null
+  return h * 60 + m
+}
+
+function computeWindowItems(win) {
+  const items = []
+  const sortedBookings = [...(win.bookedSessions || [])]
+    .filter((bs) => {
+      const bsStart = new Date(bs.startTime).toISOString().slice(11, 16)
+      return bsStart >= win.windowStart && bsStart < win.windowEnd
+    })
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+
+  let cursor = win.windowStart
+
+  for (const bs of sortedBookings) {
+    const bsStart = new Date(bs.startTime).toISOString().slice(11, 16)
+    const bsEnd = new Date(bs.endTime).toISOString().slice(11, 16)
+    if (bsStart > cursor) {
+      items.push({ kind: 'free', start: cursor, end: bsStart })
+    }
+    items.push({ kind: 'booked', bs, start: bsStart, end: bsEnd })
+    if (bsEnd > cursor) cursor = bsEnd
+  }
+  if (cursor < win.windowEnd) {
+    items.push({ kind: 'free', start: cursor, end: win.windowEnd })
+  }
+  return items
+}
+
 // ── Booking modal body (extracted to keep CoachingPage readable) ────
 function BookingModalBody({
   bookingForm,
@@ -128,12 +149,23 @@ function BookingModalBody({
   bookingError,
   bookingFieldErrors,
   bookingFromGrid,
+  teacherWindows,
 }) {
   const selectedTeacher = teachers.find((t) => String(t.teacherId) === bookingForm.teacherId)
   const selectedModality = modalities.find((m) => String(m.modalityId) === bookingForm.modalityId)
   const selectedStudio = compatibleStudios.find((s) => String(s.studioId) === bookingForm.studioId)
   const endTime = bookingForm.startTime
     ? addMinutesToTime(bookingForm.startTime, Number(bookingForm.durationMin))
+    : null
+
+  const startMin = timeToMinutes(bookingForm.startTime)
+  const endMin = endTime ? timeToMinutes(endTime) : null
+  const fitsWindow = teacherWindows.length > 0 && startMin != null && endMin != null
+    ? teacherWindows.some((w) => {
+        const ws = timeToMinutes(w.windowStart)
+        const we = timeToMinutes(w.windowEnd)
+        return ws != null && we != null && startMin >= ws && endMin <= we
+      })
     : null
 
   const hasSummary =
@@ -149,6 +181,28 @@ function BookingModalBody({
         <div className="bk-prefill-chip">
           <span className="bk-prefill-dot" />
           Horário pré-selecionado do mapa — confirme os dados abaixo
+        </div>
+      ) : null}
+
+      {selectedTeacher && bookingForm.date && teacherWindows.length === 0 ? (
+        <div className="bk-warning" role="alert">
+          <strong>{selectedTeacher.name}</strong> não tem disponibilidade aprovada em {formatDatePT(bookingForm.date)}.
+          Escolha outro dia ou outro professor.
+        </div>
+      ) : null}
+
+      {selectedTeacher && bookingForm.date && teacherWindows.length > 0 ? (
+        <div className="bk-availability-hint">
+          <strong>Disponibilidade de {selectedTeacher.name} em {formatDatePT(bookingForm.date)}:</strong>{' '}
+          {teacherWindows.map((w, i) => (
+            <span key={i} className="bk-window-chip">{w.windowStart}–{w.windowEnd}</span>
+          ))}
+        </div>
+      ) : null}
+
+      {fitsWindow === false ? (
+        <div className="bk-warning" role="alert">
+          O intervalo escolhido ({bookingForm.startTime}–{endTime}) está fora da disponibilidade aprovada do professor.
         </div>
       ) : null}
 
@@ -279,6 +333,7 @@ function BookingModalBody({
               value={bookingForm.durationMin}
               onChange={(e) => setBookingForm((f) => ({ ...f, durationMin: e.target.value }))}
             >
+              <option value="30">30 minutos</option>
               <option value="45">45 minutos</option>
               <option value="60">60 minutos</option>
               <option value="90">90 minutos</option>
@@ -294,6 +349,56 @@ function BookingModalBody({
             <div />
           )}
         </div>
+      </div>
+
+      <div className="bk-divider" />
+
+      {/* Section: Formato */}
+      <div className="bk-section">
+        <p className="bk-section-title">Formato</p>
+        <div className="bk-format-row">
+          {[
+            { key: 'individual', label: 'Individual', sub: '1 aluno', cap: 1 },
+            { key: 'duo', label: 'Duo', sub: '2 alunos', cap: 2 },
+            { key: 'group', label: 'Grupo', sub: '3+ alunos', cap: 3 },
+          ].map((opt) => {
+            const isSelected = bookingForm.format === opt.key
+            return (
+              <button
+                key={opt.key}
+                type="button"
+                className={`bk-format-card${isSelected ? ' selected' : ''}`}
+                onClick={() => setBookingForm((f) => ({
+                  ...f,
+                  format: opt.key,
+                  maxParticipants: opt.key === 'group' ? String(Math.max(Number(f.maxParticipants) || 3, 3)) : String(opt.cap),
+                }))}
+              >
+                <strong>{opt.label}</strong>
+                <small>{opt.sub}</small>
+              </button>
+            )
+          })}
+        </div>
+        {bookingForm.format === 'group' ? (
+          <label className={err.maxParticipants ? 'err' : ''}>
+            <span>Número de alunos <span className="bk-req">*</span></span>
+            <input
+              type="number"
+              min={3}
+              max={selectedStudio?.capacity ?? 40}
+              value={bookingForm.maxParticipants}
+              onChange={(e) => setBookingForm((f) => ({ ...f, maxParticipants: e.target.value }))}
+            />
+            {selectedStudio ? (
+              <small className="bk-hint">Máx. {selectedStudio.capacity} (capacidade do estúdio)</small>
+            ) : null}
+            {err.maxParticipants ? <span className="err-msg">Indique um número entre 3 e a capacidade do estúdio</span> : null}
+          </label>
+        ) : null}
+        <p className="bk-hint" style={{ margin: 0 }}>
+          Formato Duo ou Grupo permite que outros alunos peçam adesão à mesma sessão.
+        </p>
       </div>
 
       <div className="bk-divider" />
@@ -336,9 +441,15 @@ function BookingModalBody({
                 {formatDatePT(bookingForm.date)} · {bookingForm.startTime}–{endTime}
                 {' '}({bookingForm.durationMin} min)
               </span>
+              <span className="bk-summary-item">
+                <strong>Formato</strong>
+                {bookingForm.format === 'individual' ? 'Individual (1 aluno)'
+                  : bookingForm.format === 'duo' ? 'Duo (2 alunos)'
+                  : `Grupo (${bookingForm.maxParticipants || '?'} alunos)`}
+              </span>
             </div>
             <p className="bk-summary-note">
-              O pedido será submetido para validação pelo professor e pela direção antes de ser confirmado.
+              O pedido será submetido para validação pela direção antes de ser confirmado.
             </p>
           </div>
         </>
@@ -386,45 +497,6 @@ export default function CoachingPage() {
     if (isMobile) setMobileOpen(false)
   }, [isMobile])
 
-  // Notifications popover
-  const [notificationsOpen, setNotificationsOpen] = useState(false)
-  const [notifications, setNotifications] = useState([])
-  const [notificationsLoaded, setNotificationsLoaded] = useState(false)
-  const [notificationsLoading, setNotificationsLoading] = useState(false)
-  const [notificationsError, setNotificationsError] = useState('')
-  const notificationBoxRef = useRef(null)
-
-  const loadNotifications = useCallback(async () => {
-    setNotificationsLoading(true)
-    setNotificationsError('')
-    try {
-      const preview = await notificationPreviewService.getPreview({ limit: 4, includeUnreadCount: true })
-      setNotifications(preview.items ?? [])
-      setNotificationsLoaded(true)
-    } catch {
-      setNotificationsError('Não foi possível carregar as notificações.')
-    } finally {
-      setNotificationsLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!notificationsOpen) return undefined
-    const handler = (e) => {
-      if (notificationBoxRef.current && !notificationBoxRef.current.contains(e.target)) {
-        setNotificationsOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [notificationsOpen])
-
-  const handleNotificationsClick = () => {
-    const next = !notificationsOpen
-    setNotificationsOpen(next)
-    if (next && !notificationsLoaded) void loadNotifications()
-  }
-
   // ── Week grid state ────────────────────────────────────────────────
   const [weekOffset, setWeekOffset] = useState(0)
   const weekStart = useMemo(() => getWeekMondayISO(weekOffset), [weekOffset])
@@ -433,19 +505,46 @@ export default function CoachingPage() {
   const [slotsData, setSlotsData] = useState(null)
   const [slotsLoading, setSlotsLoading] = useState(true)
   const [slotsError, setSlotsError] = useState('')
+  const [myJoinRequests, setMyJoinRequests] = useState([])
+  const [toast, setToast] = useState(null)
 
-  // Filters
+  useEffect(() => {
+    if (!toast) return
+    const timer = setTimeout(() => setToast(null), 5000)
+    return () => clearTimeout(timer)
+  }, [toast])
+
+  // Filters - now used for client-side filtering only (no re-fetch)
   const [filterTeacherId, setFilterTeacherId] = useState('')
   const [filterModalityId, setFilterModalityId] = useState('')
+  const searchTerm = ''
 
+  const loadMyJoinRequests = useCallback(async () => {
+    try {
+      const { data } = await api.get('/coaching/join-requests/my')
+      setMyJoinRequests(Array.isArray(data) ? data : [])
+    } catch {
+      setMyJoinRequests([])
+    }
+  }, [])
+
+  useEffect(() => { void loadMyJoinRequests() }, [loadMyJoinRequests])
+
+  const myJoinRequestBySession = useMemo(() => {
+    const map = new Map()
+    for (const r of myJoinRequests) {
+      if (r?.sessionId != null) map.set(Number(r.sessionId), r.status)
+    }
+    return map
+  }, [myJoinRequests])
+
+  // Load slots once per week (no re-fetch on filter change - filters are client-side now)
   const loadSlots = useCallback(async () => {
     setSlotsLoading(true)
     setSlotsError('')
     try {
       const data = await getAvailableSlots({
         weekStart,
-        teacherId: filterTeacherId || undefined,
-        modalityId: filterModalityId || undefined,
       })
       setSlotsData(data)
     } catch (err) {
@@ -453,42 +552,9 @@ export default function CoachingPage() {
     } finally {
       setSlotsLoading(false)
     }
-  }, [weekStart, filterTeacherId, filterModalityId])
+  }, [weekStart])
 
   useEffect(() => { void loadSlots() }, [loadSlots])
-
-  // ── Session history ────────────────────────────────────────────────
-  const [sessions, setSessions] = useState([])
-  const [sessionsLoading, setSessionsLoading] = useState(true)
-  const [sessionsError, setSessionsError] = useState('')
-
-  const loadHistory = useCallback(async () => {
-    setSessionsLoading(true)
-    setSessionsError('')
-    try {
-      const data = await getSessionHistory()
-      setSessions(data)
-    } catch (err) {
-      setSessionsError(err?.response?.data?.error || 'Não foi possível carregar o histórico.')
-    } finally {
-      setSessionsLoading(false)
-    }
-  }, [])
-
-  useEffect(() => { void loadHistory() }, [loadHistory])
-
-  const toConfirm = useMemo(
-    () => sessions.filter((s) => s.canConfirm),
-    [sessions]
-  )
-  const historyRows = useMemo(
-    () => sessions.filter((s) => s.isPast),
-    [sessions]
-  )
-  const upcomingRows = useMemo(
-    () => sessions.filter((s) => !s.isPast && s.canCancel),
-    [sessions]
-  )
 
   // ── Booking modal ──────────────────────────────────────────────────
   const [bookingOpen, setBookingOpen] = useState(false)
@@ -496,9 +562,11 @@ export default function CoachingPage() {
     teacherId: '',
     studioId: '',
     modalityId: '',
-    date: '',
+    date: getTodayISO(),
     startTime: '',
     durationMin: '60',
+    format: 'individual',
+    maxParticipants: '1',
     notes: '',
   })
   const [compatibleStudios, setCompatibleStudios] = useState([])
@@ -514,9 +582,11 @@ export default function CoachingPage() {
       teacherId: String(prefill.teacherId ?? ''),
       studioId: '',
       modalityId: String(prefill.modalityId ?? filterModalityId ?? ''),
-      date: prefill.date ?? '',
+      date: prefill.date ?? getTodayISO(),
       startTime: prefill.startTime ?? '',
-      durationMin: '60',
+      durationMin: prefill.durationMin ?? '60',
+      format: 'individual',
+      maxParticipants: '1',
       notes: '',
     })
     setBookingError('')
@@ -536,96 +606,109 @@ export default function CoachingPage() {
   }, [bookingForm.modalityId])
 
   const handleBookingSubmit = useCallback(async () => {
-    const { teacherId, studioId, modalityId, date, startTime, durationMin, notes } = bookingForm
+    const { teacherId, studioId, modalityId, date, startTime, durationMin, format, maxParticipants, notes } = bookingForm
     const fieldErrors = {}
     if (!teacherId) fieldErrors.teacherId = true
     if (!modalityId) fieldErrors.modalityId = true
     if (!studioId) fieldErrors.studioId = true
     if (!date) fieldErrors.date = true
     if (!startTime) fieldErrors.startTime = true
+    const parsedMax = Number(maxParticipants)
+    if (format === 'group' && (!Number.isInteger(parsedMax) || parsedMax < 3)) {
+      fieldErrors.maxParticipants = true
+    }
     if (Object.keys(fieldErrors).length > 0) {
       setBookingFieldErrors(fieldErrors)
       setBookingError('Preencha todos os campos obrigatórios.')
       return
     }
     setBookingFieldErrors({})
+
+    const startDate = new Date(`${date}T${startTime}:00`)
+    if (startDate.getTime() <= Date.now()) {
+      setBookingError('Não é possível marcar para uma hora que já passou.')
+      return
+    }
+
+    const teacherWindows = (slotsData?.availabilityWindows ?? []).filter(
+      (w) => w.date === date && Number(w.teacherId) === Number(teacherId)
+    )
+    const endStr = addMinutesToTime(startTime, Number(durationMin))
+    const [sh, sm] = startTime.split(':').map(Number)
+    const [eh, em] = endStr.split(':').map(Number)
+    const startMin = sh * 60 + sm
+    const endMin = eh * 60 + em
+    const fits = teacherWindows.some((w) => {
+      const [wsh, wsm] = w.windowStart.split(':').map(Number)
+      const [weh, wem] = w.windowEnd.split(':').map(Number)
+      return startMin >= wsh * 60 + wsm && endMin <= weh * 60 + wem
+    })
+    if (!fits) {
+      setBookingError(
+        teacherWindows.length === 0
+          ? 'O professor selecionado não tem disponibilidade aprovada neste dia.'
+          : 'O horário escolhido está fora da disponibilidade aprovada do professor.'
+      )
+      return
+    }
+
     const startISO = combineDateTime(date, startTime)
-    const endISO = combineDateTime(date, addMinutesToTime(startTime, Number(durationMin)))
+    const endISO = combineDateTime(date, endStr)
 
     setBookingSaving(true)
     setBookingError('')
     try {
+      const resolvedMax = format === 'individual' ? 1 : format === 'duo' ? 2 : parsedMax
       await createBooking({
         teacherId: Number(teacherId),
         studioId: Number(studioId),
         modalityId: Number(modalityId),
         startTime: startISO,
         endTime: endISO,
+        maxParticipants: resolvedMax,
         notes: notes || undefined,
       })
       setBookingOpen(false)
-      await Promise.all([loadSlots(), loadHistory()])
+      await loadSlots()
     } catch (err) {
       setBookingError(err?.response?.data?.error || 'Não foi possível submeter a marcação.')
     } finally {
       setBookingSaving(false)
     }
-  }, [bookingForm, loadSlots, loadHistory])
+  }, [bookingForm, loadSlots, slotsData])
 
-  // ── Cancel modal ───────────────────────────────────────────────────
-  const [cancelOpen, setCancelOpen] = useState(false)
-  const [cancelTarget, setCancelTarget] = useState(null)
-  const [cancelJustification, setCancelJustification] = useState('')
-  const [cancelError, setCancelError] = useState('')
-  const [cancelSaving, setCancelSaving] = useState(false)
-
-  const handleOpenCancel = useCallback((session) => {
-    setCancelTarget(session)
-    setCancelJustification('')
-    setCancelError('')
-    setCancelOpen(true)
-  }, [])
-
-  const handleCancelSubmit = useCallback(async () => {
-    if (!cancelJustification.trim()) {
-      setCancelError('A justificação é obrigatória (BR-17).')
-      return
-    }
-    setCancelSaving(true)
-    setCancelError('')
-    try {
-      await cancelBooking(cancelTarget.sessionId, cancelJustification)
-      setCancelOpen(false)
-      await Promise.all([loadSlots(), loadHistory()])
-    } catch (err) {
-      setCancelError(err?.response?.data?.error || 'Não foi possível cancelar a sessão.')
-    } finally {
-      setCancelSaving(false)
-    }
-  }, [cancelTarget, cancelJustification, loadSlots, loadHistory])
-
-  // ── Confirm completion ─────────────────────────────────────────────
-  const [confirmExecOpen, setConfirmExecOpen] = useState(false)
-  const [confirmExecSession, setConfirmExecSession] = useState(null)
-
-  const handleOpenConfirmExecution = useCallback((session) => {
-    setConfirmExecSession(session)
-    setConfirmExecOpen(true)
-  }, [])
-
-  const handleConfirmed = useCallback((sessionId) => {
-    setSessions((prev) =>
-      prev.map((s) =>
-        s.sessionId === sessionId
-          ? { ...s, status: 'AwaitingFinalValidation', canConfirm: false }
-          : s
-      )
-    )
-  }, [])
+  // ── Teacher unavailability modal (mounted under schedule map)
+  const [unavailOpen, setUnavailOpen] = useState(false)
+  const [unavailSlot, setUnavailSlot] = useState(null)
 
   // ── Grid rendering ─────────────────────────────────────────────────
-  const teachers = slotsData?.teachers ?? []
-  const modalities = slotsData?.modalities ?? []
+  const teachers = useMemo(() => slotsData?.teachers ?? [], [slotsData?.teachers])
+  const modalities = useMemo(() => slotsData?.modalities ?? [], [slotsData?.modalities])
+
+  // Client-side filtering: teacher + modality + search term
+  const filteredTeachers = useMemo(() => {
+    let result = teachers
+
+    // Filter by teacher ID
+    if (filterTeacherId) {
+      result = result.filter((t) => String(t.teacherId) === String(filterTeacherId))
+    }
+
+    // Filter by modality: show teachers who have this modality
+    if (filterModalityId) {
+      result = result.filter((t) =>
+        t.modalityIds?.includes(Number(filterModalityId))
+      )
+    }
+
+    // Filter by search term (name)
+    const term = normalizeText(searchTerm.trim())
+    if (term) {
+      result = result.filter((t) => normalizeText(t.name).includes(term))
+    }
+
+    return result
+  }, [teachers, filterTeacherId, filterModalityId, searchTerm])
 
   // Build a map: date → teacherId → windows
   const windowMap = useMemo(() => {
@@ -706,33 +789,10 @@ export default function CoachingPage() {
               </button>
               <div>
                 <h2>Coachings</h2>
-                <p>Marcar, acompanhar, cancelar e validar sessões particulares</p>
               </div>
             </div>
-            <div className="topbar-right" ref={notificationBoxRef}>
-              <button type="button" className="pill notifications-pill" onClick={handleNotificationsClick}>
-                Notificações
-              </button>
-              {notificationsOpen ? (
-                <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: 'min(360px, 90vw)', border: '1px solid #e2d9eb', borderRadius: '14px', background: '#fff', boxShadow: '0 18px 36px rgba(20,14,30,0.22)', zIndex: 50, overflow: 'hidden' }}>
-                  <div style={{ padding: '10px 12px', borderBottom: '1px solid #e2d9eb' }}><strong>Notificações</strong></div>
-                  {notificationsLoading ? <p style={{ margin: 0, padding: '12px', color: '#6d6480' }}>A carregar...</p> : null}
-                  {!notificationsLoading && notificationsError ? <p style={{ margin: 0, padding: '12px', color: '#8b2e39' }}>{notificationsError}</p> : null}
-                  {!notificationsLoading && !notificationsError && notifications.length === 0 ? (
-                    <p style={{ margin: 0, padding: '12px', color: '#6d6480' }}>Sem notificações.</p>
-                  ) : null}
-                  {notifications.map((n) => (
-                    <div key={n.id} style={{ padding: '10px 12px', borderBottom: '1px solid #f0ebf6' }}>
-                      <strong style={{ fontSize: '0.84rem' }}>{n.title}</strong>
-                      {n.message ? <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#6d6480' }}>{n.message}</p> : null}
-                    </div>
-                  ))}
-                  <Link to="/student/notifications" style={{ display: 'block', padding: '10px 12px', fontSize: '0.84rem', color: '#6f5ca5', textDecoration: 'none', textAlign: 'center' }}
-                    onClick={() => setNotificationsOpen(false)}>
-                    Ver Mais
-                  </Link>
-                </div>
-              ) : null}
+            <div className="topbar-right">
+              <NotificationsBell pageLink="/student/notifications" />
             </div>
           </header>
 
@@ -740,19 +800,8 @@ export default function CoachingPage() {
             {/* ── Schedule grid panel ── */}
             <article className="panel">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <h3 style={{ margin: 0 }}>Disponibilidade dos professores</h3>
-                <Link
-                  to="/student/coaching/map"
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '6px',
-                    background: 'linear-gradient(135deg, #7c3aed, #6366f1)',
-                    color: '#fff', borderRadius: '999px', padding: '6px 14px',
-                    textDecoration: 'none', fontSize: '0.82rem', fontWeight: 700,
-                    boxShadow: '0 2px 8px rgba(99,102,241,.35)',
-                  }}
-                >
-                  ⛶ Expandir mapa
-                </Link>
+                <h3 style={{ margin: 0 }}>Agendar sessão</h3>
+                
               </div>
 
               <div className="filters-bar">
@@ -818,7 +867,7 @@ export default function CoachingPage() {
                         {visibleDates.map((date) => {
                           const dow = new Date(date + 'T00:00:00Z').getUTCDay()
                           return (
-                            <th key={date}>
+                            <th key={date} style={{ minWidth: 160 }}>
                               {DAYS_SHORT[dow]}<br />
                               <span style={{ fontWeight: 400, fontSize: '0.76rem' }}>{formatDatePT(date)}</span>
                             </th>
@@ -827,71 +876,131 @@ export default function CoachingPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {teachers.length === 0 ? (
+                      {filteredTeachers.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="empty-state">Nenhum professor disponível com os filtros selecionados.</td>
+                          <td colSpan={6} className="empty-state">{searchTerm ? 'Nenhum professor encontrado.' : 'Nenhum professor disponível com os filtros selecionados.'}</td>
                         </tr>
                       ) : (
-                        teachers.map((teacher) => (
+                        filteredTeachers.map((teacher) => (
                           <tr key={teacher.teacherId}>
-                            <td style={{ fontWeight: 600, fontSize: '0.85rem', color: '#374151', padding: '8px 10px', borderRight: '1px solid #f0ebf6', verticalAlign: 'top', whiteSpace: 'nowrap' }}>{teacher.name}</td>
+                            <td style={{ fontWeight: 600, fontSize: '0.85rem', color: '#374151', padding: '12px 10px', borderRight: '1px solid #e2d9eb', verticalAlign: 'top', whiteSpace: 'nowrap', backgroundColor: '#fdf9ff' }}>{teacher.name}</td>
                             {visibleDates.map((date) => {
                               const key = `${date}__${teacher.teacherId}`
                               const windows = windowMap.get(key) ?? []
 
                               if (windows.length === 0) {
                                 return (
-                                  <td key={date}>
-                                    <span className="slot-empty">—</span>
+                                  <td key={date} style={{ backgroundColor: '#fcfafc' }}>
+                                    <span className="slot-empty" style={{ display: 'block', textAlign: 'center', opacity: 0.5 }}>—</span>
                                   </td>
                                 )
                               }
 
                               return (
                                 <td key={date} style={{ padding: '4px' }}>
-                                  {windows.map((win, wi) => (
+                                  {windows.map((win, wi) => {
+                                    const items = computeWindowItems(win)
+                                    return (
                                     <div key={wi} style={{ marginBottom: wi < windows.length - 1 ? 6 : 0 }}>
-                                      <div className="legend-dot free" style={{ display: 'inline-block', marginRight: 4 }} />
-                                      <small style={{ fontSize: '0.75rem', color: '#6d6480' }}>
-                                        {win.windowStart}–{win.windowEnd}
-                                      </small>
-                                      <div className="slot-actions" style={{ marginTop: 4 }}>
-                                        <button
-                                          type="button"
-                                          className="slot-btn primary"
-                                          onClick={() => handleOpenBooking({
-                                            teacherId: teacher.teacherId,
-                                            date,
-                                            startTime: win.windowStart,
-                                            modalityId: filterModalityId || (teacher.modalityIds?.[0] ?? ''),
-                                          })}
-                                        >
-                                          Marcar
-                                        </button>
-                                      </div>
-
-                                      {win.bookedSessions.map((bs) => {
+                                      {items.map((item, ii) => {
+                                        if (item.kind === 'free') {
+                                          const segEndDate = new Date(`${date}T${item.end}:00`)
+                                          const isPast = segEndDate.getTime() <= Date.now()
+                                          const segLen = (timeToMinutes(item.end) || 0) - (timeToMinutes(item.start) || 0)
+                                          const tooShort = segLen < MIN_BOOKING_MINUTES
+                                          const bookable = !isPast && !tooShort
+                                          const fittingDuration = BOOKING_DURATIONS.filter((d) => d <= segLen).slice(-1)[0]
+                                          return (
+                                            <div key={`free-${ii}`} className={`slot ${bookable ? 'free' : 'busy'}`} style={{ marginTop: ii > 0 ? 6 : 0, opacity: bookable ? 1 : 0.7 }}>
+                                              <strong>{item.start}–{item.end}</strong>
+                                              <small style={{ fontSize: '0.75rem' }}>
+                                                {isPast ? 'Expirado' : (tooShort ? 'Janela curta' : 'Livre para marcação')}
+                                              </small>
+                                              {bookable ? (
+                                                <div className="slot-actions" style={{ marginTop: 6 }}>
+                                                  <button
+                                                    type="button"
+                                                    className="slot-btn primary"
+                                                    style={{ width: '100%', padding: '6px' }}
+                                                    onClick={() => handleOpenBooking({
+                                                      teacherId: teacher.teacherId,
+                                                      date,
+                                                      startTime: item.start,
+                                                      modalityId: filterModalityId || (teacher.modalityIds?.[0] ?? ''),
+                                                      durationMin: String(fittingDuration),
+                                                    })}
+                                                  >
+                                                    Marcar horário
+                                                  </button>
+                                                </div>
+                                              ) : null}
+                                            </div>
+                                          )
+                                        }
+                                        const bs = item.bs
                                         const slotCls = resolveSlotClass(bs.status)
-                                        const startStr = new Date(bs.startTime).toISOString().slice(11, 16)
-                                        const endStr = new Date(bs.endTime).toISOString().slice(11, 16)
+                                        const statusBadge = resolveStatusBadge(bs.status)
+                                        const startStr = item.start
+                                        const endStr = item.end
                                         const hasSpots = bs.maxParticipants && bs.enrolledCount < bs.maxParticipants
                                         return (
-                                          <div key={bs.sessionId} className={`slot ${slotCls}`} style={{ marginTop: 6 }}>
-                                            <strong>#{bs.sessionId} · {startStr}–{endStr}</strong>
+                                          <div key={bs.sessionId} className={`slot ${slotCls}`} style={{ marginTop: ii > 0 ? 6 : 0 }}>
+                                            <strong>{startStr}–{endStr}</strong>
+                                            {bs.modalityName ? (
+                                              <small style={{ fontWeight: 600, color: '#4338ca' }}>{bs.modalityName}</small>
+                                            ) : null}
+                                            <small>{statusBadge.label}</small>
                                             <small>
-                                              {bs.status}
-                                              {bs.maxParticipants ? ` · ${bs.enrolledCount}/${bs.maxParticipants} inscritos` : ''}
+                                              {bs.maxParticipants ? ` ${bs.enrolledCount}/${bs.maxParticipants} inscritos` : ''}
                                             </small>
-                                            {hasSpots ? (
-                                              <div className="slot-actions">
-                                                <span className="badge ok">Com vagas</span>
+                                            {hasSpots && bs.maxParticipants > 1 ? (
+                                              <div style={{ marginTop: 6 }}>
+                                                <JoinSessionButton
+                                                  sessionId={bs.sessionId}
+                                                  sessionStatus={bs.status}
+                                                  sessionStartTime={bs.startTime}
+                                                  currentParticipants={bs.enrolledCount}
+                                                  maxParticipants={bs.maxParticipants}
+                                                  userIsEnrolled={bs.userIsEnrolled}
+                                                  initialRequestStatus={myJoinRequestBySession.get(Number(bs.sessionId)) ?? null}
+                                                  onSuccess={(result) => {
+                                                    void loadMyJoinRequests()
+                                                    void loadSlots()
+                                                    setToast(result?.alreadyExisted
+                                                      ? { variant: 'info', title: 'Pedido já existente', description: 'Já tens um pedido de adesão pendente para esta sessão.' }
+                                                      : { variant: 'success', title: 'Pedido de adesão enviado', description: 'O professor recebe o pedido e a direção valida a seguir.' })
+                                                  }}
+                                                  onError={(err) => {
+                                                    const status = err?.response?.status
+                                                    if (status !== 409) {
+                                                      setToast({ variant: 'danger', title: 'Erro', description: err?.response?.data?.error || 'Não foi possível enviar o pedido.' })
+                                                    }
+                                                  }}
+                                                />
+                                              </div>
+                                            ) : null}
+                                            {slotCls === 'pending-teacher' ? (
+                                              <div style={{ marginTop: 8 }}>
+                                                <button type="button" className="slot-btn" onClick={async () => {
+                                                  let details = null
+                                                  try {
+                                                    details = await fetchAbsenceDetails(teacher.teacherId, { start: bs.startTime })
+                                                  } catch {
+                                                    details = null
+                                                  }
+                                                  setUnavailSlot({ ...bs, teacherId: teacher.teacherId, details })
+                                                  setUnavailOpen(true)
+                                                }}>
+                                                  Ver indisponibilidade
+                                                </button>
                                               </div>
                                             ) : null}
                                           </div>
                                         )
                                       })}
                                     </div>
-                                  ))}
+                                    )
+                                  })}
                                 </td>
                               )
                             })}
@@ -901,134 +1010,6 @@ export default function CoachingPage() {
                     </tbody>
                   </table>
                 </div>
-              )}
-            </article>
-
-            {/* ── Pending confirmation panel (BR-14 step 1) ── */}
-            {toConfirm.length > 0 ? (
-              <article className="panel" id="confirmacao">
-                <h3>Sessões para confirmar conclusão</h3>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Sessão</th>
-                      <th>Professor</th>
-                      <th>Data</th>
-                      <th>Estúdio</th>
-                      <th>Ação</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-              {toConfirm.map((s) => (
-                  <tr key={s.sessionId}>
-                    <td>#{s.sessionId}</td>
-                    <td>{s.teachers.map((t) => t.name).join(', ') || '—'}</td>
-                    <td>{formatDateTimePT(s.startTime)}</td>
-                    <td>{s.studioName || '—'}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className="confirm-btn"
-                        onClick={() => handleOpenConfirmExecution(s)}
-                        data-testid={`confirm-exec-${s.sessionId}`}
-                      >
-                        Confirmar execução
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                  </tbody>
-                </table>
-              </article>
-            ) : null}
-
-            {/* ── Upcoming cancellable sessions ── */}
-            {upcomingRows.length > 0 ? (
-              <article className="panel">
-                <h3>Próximas sessões</h3>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Sessão</th>
-                      <th>Data</th>
-                      <th>Professor</th>
-                      <th>Estúdio</th>
-                      <th>Estado</th>
-                      <th>Ação</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {upcomingRows.map((s) => {
-                      const badge = resolveStatusBadge(s.status)
-                      return (
-                        <tr key={s.sessionId}>
-                          <td>#{s.sessionId}</td>
-                          <td>{formatDateTimePT(s.startTime)}</td>
-                          <td>{s.teachers.map((t) => t.name).join(', ') || '—'}</td>
-                          <td>{s.studioName || '—'}</td>
-                          <td><span className={`badge ${badge.cls}`}>{badge.label}</span></td>
-                          <td>
-                            <button
-                              type="button"
-                              className="slot-btn danger"
-                              onClick={() => handleOpenCancel(s)}
-                            >
-                              Cancelar
-                            </button>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </article>
-            ) : null}
-
-            {/* ── Session history ── */}
-            <article className="panel">
-              <h3>Meu histórico de participação</h3>
-
-              {sessionsError ? (
-                <div className="error-banner">
-                  {sessionsError}
-                  <button type="button" className="ghost-btn" onClick={loadHistory}>Tentar novamente</button>
-                </div>
-              ) : null}
-
-              {sessionsLoading ? (
-                <div>
-                  {[1, 2, 3].map((i) => <div key={i} className="skeleton-row" />)}
-                </div>
-              ) : historyRows.length === 0 ? (
-                <p className="empty-state">Sem histórico de sessões para mostrar.</p>
-              ) : (
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Data</th>
-                      <th>Sessão</th>
-                      <th>Professor</th>
-                      <th>Modalidade</th>
-                      <th>Estado</th>
-                      <th>Valor final</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {historyRows.map((s) => {
-                      const badge = resolveStatusBadge(s.status)
-                      return (
-                        <tr key={s.sessionId}>
-                          <td>{formatDateTimePT(s.startTime)}</td>
-                          <td>#{s.sessionId}</td>
-                          <td>{s.teachers.map((t) => t.name).join(', ') || '—'}</td>
-                          <td>{s.modalityName || '—'}</td>
-                          <td><span className={`badge ${badge.cls}`}>{badge.label}</span></td>
-                          <td>{formatMoney(s.finalPrice)}</td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
               )}
             </article>
           </div>
@@ -1061,55 +1042,33 @@ export default function CoachingPage() {
           bookingError={bookingError}
           bookingFieldErrors={bookingFieldErrors}
           bookingFromGrid={bookingFromGrid}
+          teacherWindows={bookingForm.teacherId && bookingForm.date
+            ? (windowMap.get(`${bookingForm.date}__${Number(bookingForm.teacherId)}`) ?? [])
+            : []}
         />
       </Modal>
 
-      {/* ── Cancel modal (BR-17: justification required) ── */}
-      <Modal
-        open={cancelOpen}
-        title="Cancelar sessão com justificação"
-        size="sm"
-        className="coaching-modal"
-        onClose={() => setCancelOpen(false)}
-        footer={
-          <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-            <Button variant="secondary" onClick={() => setCancelOpen(false)}>Voltar</Button>
-            <Button variant="danger" disabled={cancelSaving} onClick={handleCancelSubmit}>
-              {cancelSaving ? 'A cancelar…' : 'Confirmar cancelamento'}
-            </Button>
-          </div>
-        }
-      >
-        <div className="bk-form">
-          {cancelError ? <div className="bk-error">{cancelError}</div> : null}
-          {cancelTarget ? (
-            <div className="bk-info">
-              Sessão #{cancelTarget.sessionId} · {formatDateTimePT(cancelTarget.startTime)} · {cancelTarget.studioName || '—'}
-            </div>
-          ) : null}
-          <label>
-            <span>Justificação do cancelamento <span className="bk-req">*</span></span>
-            <textarea
-              rows={4}
-              value={cancelJustification}
-              placeholder="Descreva o motivo do cancelamento (obrigatório)"
-              onChange={(e) => setCancelJustification(e.target.value)}
-              autoFocus
-            />
-          </label>
-          <p style={{ fontSize: '0.8rem', color: '#6d6480', margin: 0 }}>
-            A justificação será registada e comunicada ao professor (BR-17).
-          </p>
-        </div>
-      </Modal>
-
-      {/* ── Confirm execution modal (BR-14) ── */}
-      <ConfirmExecutionModal
-        open={confirmExecOpen}
-        session={confirmExecSession}
-        onClose={() => setConfirmExecOpen(false)}
-        onConfirmed={handleConfirmed}
+      {/* ── Teacher unavailability modal (shared component) ── */}
+      <UnavailabilityModal
+        isOpen={unavailOpen}
+        onClose={() => setUnavailOpen(false)}
+        onSubmit={() => setUnavailOpen(false)}
+        slotData={unavailSlot}
+        viewOnly={true}
+        details={unavailSlot?.details}
       />
+
+      {toast ? (
+        <div style={{ position: 'fixed', right: '1.5rem', bottom: '1.5rem', zIndex: 1000 }}>
+          <Toast
+            open
+            variant={toast.variant}
+            title={toast.title}
+            description={toast.description}
+            onClose={() => setToast(null)}
+          />
+        </div>
+      ) : null}
     </div>
   )
 }

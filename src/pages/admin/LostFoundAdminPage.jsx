@@ -5,25 +5,13 @@
  * @project GestArtes - Projeto 50+10 para Entartes
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import api from '../../services/api'
-import notificationPreviewService from '../../services/notificationPreviewService'
+import NotificationsBell from '../../components/NotificationsBell'
 import '../admin-studios.css'
-
-const NAV_ITEMS = [
-  { href: '/admin/dashboard', label: 'Painel' },
-  { href: '/admin/validations', label: 'Validações' },
-  { href: '/admin/studios', label: 'Estúdios' },
-  { href: '/admin/studio-occupancy', label: 'Ocupação de Estúdios' },
-  { href: '/admin/users', label: 'Utilizadores' },
-  { href: '/admin/lostfound', label: 'Perdidos e Achados' },
-  { href: '/admin/inventory', label: 'Inventário' },
-  { href: '/admin/marketplace', label: 'Marketplace' },
-  { href: '/admin/finance', label: 'Finanças' },
-  { href: '/admin/audit', label: 'Auditoria' },
-]
+import { ADMIN_NAV_ITEMS as NAV_ITEMS } from './adminNav'
 
 const selectStyle = {
   border: '1px solid var(--studio-field-line)', borderRadius: '10px', padding: '8px 10px',
@@ -32,7 +20,7 @@ const selectStyle = {
 const inputStyle = { ...selectStyle, width: '100%', boxSizing: 'border-box' }
 const labelStyle = { display: 'grid', gap: '5px', fontSize: '0.9rem', fontWeight: 600, color: 'var(--studio-label)' }
 
-const EMPTY_FORM = { title: '', description: '', foundDate: '', claimedStatus: false, adminNotes: '' }
+const EMPTY_FORM = { title: '', description: '', location: '', foundDate: '', claimedStatus: false, adminNotes: '' }
 
 function formatDate(v) {
   if (!v) return '—'
@@ -53,7 +41,9 @@ function LostFoundAdminPage() {
   const [loading, setLoading] = useState(true)
   const [filterClaimed, setFilterClaimed] = useState('')
   const [filterArchived, setFilterArchived] = useState('active') // 'active' | 'archived' | 'all'
+  const [filterLocation, setFilterLocation] = useState('')
   const [sortDir, setSortDir] = useState('desc')
+  const [searchTerm, setSearchTerm] = useState('')
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
@@ -63,13 +53,6 @@ function LostFoundAdminPage() {
 
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
-
-  const [notificationsOpen, setNotificationsOpen] = useState(false)
-  const [notificationsLoaded, setNotificationsLoaded] = useState(false)
-  const [notificationsLoading, setNotificationsLoading] = useState(false)
-  const [notifications, setNotifications] = useState([])
-  const [unreadCount, setUnreadCount] = useState(0)
-  const notifRef = useRef(null)
 
   const displayName = user?.fullName || user?.name || user?.email || 'Administrador'
   const sidebarHidden = isMobile || sidebarCollapsed
@@ -106,24 +89,6 @@ function LostFoundAdminPage() {
     mq.addListener(update); return () => mq.removeListener(update)
   }, [])
 
-  useEffect(() => {
-    if (!notificationsOpen) return undefined
-    const h = (e) => { if (notifRef.current && !notifRef.current.contains(e.target)) setNotificationsOpen(false) }
-    document.addEventListener('mousedown', h)
-    return () => document.removeEventListener('mousedown', h)
-  }, [notificationsOpen])
-
-  const handleNotifClick = async () => {
-    const next = !notificationsOpen; setNotificationsOpen(next)
-    if (next && !notificationsLoaded) {
-      setNotificationsLoading(true)
-      try {
-        const p = await notificationPreviewService.getPreview({ limit: 4, includeUnreadCount: true })
-        setNotifications(p.items); setUnreadCount(p.unreadCount); setNotificationsLoaded(true)
-      } finally { setNotificationsLoading(false) }
-    }
-  }
-
   const handleLogout = async (e) => {
     e.preventDefault(); try { await logout() } finally { navigate('/login', { replace: true }) }
   }
@@ -136,6 +101,7 @@ function LostFoundAdminPage() {
     setForm({
       title: item.title ?? '',
       description: item.description ?? '',
+      location: item.location ?? '',
       foundDate: (item.foundDate ?? '').slice(0, 10),
       claimedStatus: item.claimedStatus ?? false,
       adminNotes: item.adminNotes ?? '',
@@ -186,14 +152,21 @@ function LostFoundAdminPage() {
     } catch { setError('Não foi possível eliminar.') }
   }
 
-  const filtered = items
-    .filter((i) => filterArchived === 'all' ? true : filterArchived === 'archived' ? i.isArchived : !i.isArchived)
-    .filter((i) => filterClaimed === '' ? true : filterClaimed === 'claimed' ? i.claimedStatus : !i.claimedStatus)
-    .sort((a, b) => {
-      const da = new Date(a.foundDate || 0).getTime()
-      const db = new Date(b.foundDate || 0).getTime()
-      return sortDir === 'desc' ? db - da : da - db
-    })
+  const filtered = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase()
+    const locationTerm = filterLocation.trim().toLowerCase()
+    return items
+      .filter((i) => filterArchived === 'all' ? true : filterArchived === 'archived' ? i.isArchived : !i.isArchived)
+      .filter((i) => filterClaimed === '' ? true : filterClaimed === 'claimed' ? i.claimedStatus : !i.claimedStatus)
+      .filter((i) => !locationTerm || (i.location && i.location.toLowerCase().includes(locationTerm)))
+      .filter((i) => !term || [i.title, i.description, i.location, i.adminNotes]
+        .filter(Boolean).join(' ').toLowerCase().includes(term))
+      .sort((a, b) => {
+        const da = new Date(a.foundDate || 0).getTime()
+        const db = new Date(b.foundDate || 0).getTime()
+        return sortDir === 'desc' ? db - da : da - db
+      })
+  }, [items, filterArchived, filterClaimed, filterLocation, searchTerm, sortDir])
 
   return (
     <div className={appShellCls}>
@@ -218,21 +191,17 @@ function LostFoundAdminPage() {
               <h2>Perdidos e Achados</h2>
             </div>
             <p>Registo e gestão de objetos encontrados</p>
+            <input
+              type="search"
+              className="topbar-search"
+              placeholder="Pesquisar itens..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-          <div className="topbar-right" ref={notifRef}>
+          <div className="topbar-right">
             <button type="button" className="cta" onClick={openCreate}>+ Adicionar</button>
-            <button type="button" className="pill notifications-pill" onClick={handleNotifClick}>
-              Notificações{unreadCount > 0 ? ` (${unreadCount})` : ''}
-            </button>
-            {notificationsOpen ? (
-              <div className="notifications-popover">
-                <div className="notifications-popover-header"><strong>Notificações</strong></div>
-                {notificationsLoading ? <p className="notifications-state">A carregar...</p> : null}
-                {!notificationsLoading && notifications.length === 0 ? <p className="notifications-state">Sem notificações.</p> : null}
-                {notifications.map((n) => <div key={n.id} className="notifications-item"><strong>{n.title}</strong>{n.message ? <p>{n.message}</p> : null}</div>)}
-                <Link to="/admin/notifications" className="notifications-more-link" onClick={() => setNotificationsOpen(false)}>Ver Mais</Link>
-              </div>
-            ) : null}
+            <NotificationsBell pageLink="/admin/notifications" />
           </div>
         </header>
 
@@ -254,6 +223,13 @@ function LostFoundAdminPage() {
                   <option value="unclaimed">Por reclamar</option>
                   <option value="claimed">Reclamados</option>
                 </select>
+                <input
+                  type="text"
+                  placeholder="Localização..."
+                  value={filterLocation}
+                  onChange={(e) => setFilterLocation(e.target.value)}
+                  style={{ ...selectStyle, minWidth: '140px' }}
+                />
                 <button type="button" className="ghost-btn" onClick={() => setSortDir((d) => d === 'desc' ? 'asc' : 'desc')}>
                   Data {sortDir === 'desc' ? '↓' : '↑'}
                 </button>
@@ -271,6 +247,7 @@ function LostFoundAdminPage() {
                     <tr>
                       <th>Título</th>
                       <th>Descrição</th>
+                      <th>Localização</th>
                       <th>Data encontrada</th>
                       <th>Estado</th>
                       <th>Notas Admin</th>
@@ -281,9 +258,10 @@ function LostFoundAdminPage() {
                     {filtered.map((item) => (
                       <tr key={item.id}>
                         <td><strong>{item.title}</strong></td>
-                        <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <td style={{ minWidth: '180px', maxWidth: '320px', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                           {item.description || <span style={{ opacity: 0.4 }}>—</span>}
                         </td>
+                        <td>{item.location || <span style={{ opacity: 0.4 }}>—</span>}</td>
                         <td>{formatDate(item.foundDate)}</td>
                         <td>
                           {item.isArchived
@@ -292,7 +270,7 @@ function LostFoundAdminPage() {
                               ? <span className="badge ok">Reclamado</span>
                               : <span className="badge warn">Por reclamar</span>}
                         </td>
-                        <td style={{ maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <td style={{ minWidth: '160px', maxWidth: '240px', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                           {item.adminNotes || <span style={{ opacity: 0.4 }}>—</span>}
                         </td>
                         <td>
@@ -318,14 +296,14 @@ function LostFoundAdminPage() {
       </main>
 
       {modalOpen ? (
-        <div className="modal-backdrop" style={{ display: 'flex' }} onClick={(e) => { if (e.target === e.currentTarget) setModalOpen(false) }}>
+        <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setModalOpen(false) }}>
           <div className="modal-card">
             <div className="modal-header">
               <h3>{editingItem ? 'Editar artigo' : 'Adicionar artigo'}</h3>
               <button type="button" className="icon-btn" onClick={() => setModalOpen(false)}>Fechar</button>
             </div>
             {modalError ? <div className="soft-box error" style={{ marginBottom: '12px' }}>{modalError}</div> : null}
-            <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+            <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
               <label style={labelStyle}>
                 Título *
                 <input type="text" value={form.title} onChange={set('title')} required style={inputStyle} placeholder="Ex.: Mochila preta" />
@@ -333,6 +311,10 @@ function LostFoundAdminPage() {
               <label style={labelStyle}>
                 Data encontrada *
                 <input type="date" value={form.foundDate} onChange={set('foundDate')} required style={inputStyle} />
+              </label>
+              <label style={labelStyle}>
+                Localização
+                <input type="text" value={form.location} onChange={set('location')} style={inputStyle} placeholder="Ex.: Biblioteca, Refeitório..." />
               </label>
               <label style={{ ...labelStyle, gridColumn: '1 / -1' }}>
                 Descrição

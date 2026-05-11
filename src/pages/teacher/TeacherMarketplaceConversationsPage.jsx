@@ -8,20 +8,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import NotificationsBell from '../../components/NotificationsBell'
 import { getMarketplaceListingById, listMarketplaceListings } from '../../services/marketplace'
 import { maskEmail, maskPhone } from '../../utils/masking'
-import '../student/DashboardPage.css'
+import '../admin-studios.css'
 import '../student/marketplace.css'
-
-const NAV_ITEMS = [
-  { label: 'Painel', href: '/teacher/dashboard' },
-  { label: 'Disponibilidade', href: '/teacher/availability' },
-  { label: 'Coaching', href: '/teacher/coaching' },
-  { label: 'Marketplace', href: '/teacher/marketplace' },
-  { label: 'Conversas', href: '/teacher/marketplace/conversas' },
-  { label: 'Minhas ofertas', href: '/teacher/marketplace/my-listings' },
-  { label: 'Minha Conta', href: '/teacher/account' },
-]
+import { TEACHER_NAV_ITEMS as NAV_ITEMS } from './teacherNav'
 
 function normalizePhone(phoneNumber) {
   return String(phoneNumber || '').replace(/\D/g, '')
@@ -91,6 +83,11 @@ export default function TeacherMarketplaceConversationsPage() {
   }, [loadConversations])
 
   useEffect(() => {
+    document.body.classList.add('studio-page')
+    return () => document.body.classList.remove('studio-page')
+  }, [])
+
+  useEffect(() => {
     const onResize = () => {
       const mobile = window.innerWidth <= 1024
       setIsMobile(mobile)
@@ -131,7 +128,7 @@ export default function TeacherMarketplaceConversationsPage() {
   }, [listings, search])
 
   return (
-    <div className="teacher-dashboard market-page">
+    <div className="market-page">
       <div className="app-shell">
         {isMobile && mobileOpen ? (
           <button
@@ -198,6 +195,7 @@ export default function TeacherMarketplaceConversationsPage() {
               <Link className="pill" to="/teacher/marketplace">
                 Voltar ao marketplace
               </Link>
+              <NotificationsBell pageLink="/teacher/notifications" />
             </div>
           </header>
 

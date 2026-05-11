@@ -25,7 +25,7 @@ const variantStyles = {
 		borderColor: 'transparent',
 	},
 	secondary: {
-		background: 'transparent',
+		background: '#fff',
 		color: 'var(--text-h)',
 		borderColor: 'var(--border)',
 	},
@@ -111,7 +111,7 @@ const Button = forwardRef(function Button(
 			disabled={isNativeButton ? isDisabled : undefined}
 			aria-disabled={!isNativeButton && isDisabled ? 'true' : undefined}
 			tabIndex={!isNativeButton && isDisabled ? -1 : props.tabIndex}
-			className={cn('ui-button', className)}
+			className={cn('ui-button', `ui-button--${variant}`, className)}
 			style={baseStyle}
 			onClick={(event) => {
 				if (!isNativeButton && isDisabled) {

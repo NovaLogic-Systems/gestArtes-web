@@ -6,6 +6,7 @@
  */
 
 import { resolveMarketplacePhotoUrl } from '../utils/marketplace-photo-url'
+import MarketplaceImage from './MarketplaceImage'
 import Modal from './ui/Modal'
 
 function normalizePhone(phoneNumber) {
@@ -31,7 +32,12 @@ export default function ListingDetailModal({ open, listing, onClose }) {
       <div className="market-detail-grid">
         <div>
           {photoUrl ? (
-            <img className="market-detail-image" src={photoUrl} alt={listing.title || 'Anúncio'} />
+            <MarketplaceImage
+              src={photoUrl}
+              alt={listing.title || 'Anúncio'}
+              className="market-detail-image"
+              fallback={<div className="market-detail-image market-detail-image-empty">Sem imagem</div>}
+            />
           ) : (
             <div className="market-detail-image market-detail-image-empty">Sem imagem</div>
           )}

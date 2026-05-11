@@ -24,7 +24,7 @@ export default function InventoryForm({ initialValues = {}, onSaved, onCancel })
         itemName: values.title,
         description: values.description,
         symbolicFee: values.price === '' ? null : Number(values.price),
-        categoryId: values.categoryId === '' ? null : Number(values.categoryId),
+        ...(values.categoryName ? { categoryName: values.categoryName } : { categoryId: values.categoryId === '' ? null : Number(values.categoryId) }),
         conditionId: values.conditionId === '' ? null : Number(values.conditionId),
         location: values.location,
         isSchoolOwned: true,
@@ -57,6 +57,7 @@ export default function InventoryForm({ initialValues = {}, onSaved, onCancel })
         }}
         categories={DEFAULT_CATEGORIES}
         conditions={DEFAULT_CONDITIONS}
+        allowNewCategory
         submitLabel={initialValues && initialValues.itemId ? 'Atualizar artigo' : 'Criar artigo'}
         busy={busy}
         onSubmit={handleSubmit}

@@ -12,20 +12,7 @@ import { useAuth } from '../../hooks/useAuth'
 import NotificationsBell from '../../components/NotificationsBell'
 import './DashboardPage.css'
 import './NotificationsPage.css'
-
-const NAV_ITEMS = [
-  { label: 'Painel', href: '/student/dashboard' },
-  { label: 'Coaching', href: '/student/coaching' },
-  { label: 'Mapa de Coaching', href: '/student/coaching/map' },
-  { label: 'Histórico', href: '/student/history' },
-  { label: 'Inventário da Escola', href: '/student/inventory' },
-  { label: 'As Minhas Rendas', href: '/student/inventory/rentals' },
-  { label: 'Marketplace', href: '/student/marketplace' },
-  { label: 'Os Meus Anúncios', href: '/student/marketplace/my-listings' },
-  { label: 'Perdidos e Achados', href: '/student/lostfound' },
-  { label: 'Notificações', href: '/student/notifications' },
-  { label: 'Minha Conta', href: '/student/account' },
-]
+import { STUDENT_NAV_ITEMS as NAV_ITEMS } from './studentNav'
 
 function formatDateLabel(value) {
   if (!value) {
@@ -85,6 +72,13 @@ function resolveBadgeClass(status) {
   return 'badge ok'
 }
 
+function normalizeText(text) {
+  return String(text || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
 
 export default function DashboardPage() {
   const { logout, user } = useAuth()
@@ -96,7 +90,7 @@ export default function DashboardPage() {
   const [dashboard, setDashboard] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [searchTerm, setSearchTerm] = useState('')
+  const searchTerm = ''
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false))
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -168,21 +162,17 @@ export default function DashboardPage() {
 
   const scheduleRows = useMemo(() => {
     const rows = dashboard?.schedule ?? []
-    const term = searchTerm.trim().toLowerCase()
+    const term = normalizeText(searchTerm.trim())
 
     if (!term) {
       return rows
     }
 
     return rows.filter((row) => {
-      const text = [row.teacher, row.studio, row.status, row.date, row.time].join(' ').toLowerCase()
+      const text = normalizeText([row.teacher, row.studio, row.status, row.date, row.time].join(' '))
       return text.includes(term)
     })
   }, [dashboard?.schedule, searchTerm])
-
-  const communicationRows = useMemo(() => {
-    return (dashboard?.notifications ?? []).slice(0, 3)
-  }, [dashboard?.notifications])
 
   const quickActions = [
     { label: 'Nova marcação', to: '/student/coaching' },
@@ -257,20 +247,10 @@ export default function DashboardPage() {
               </button>
               <div>
                 <h2 id="main-content">Painel Aluno</h2>
-                <p>Visão geral de marcações, validações e comunicações da escola</p>
               </div>
             </div>
             <div className="topbar-right">
               <label htmlFor="dashboard-search" className="sr-only">Pesquisar sessões</label>
-              <input
-                id="dashboard-search"
-                className="search"
-                type="search"
-                placeholder="Pesquisar professor, estúdio ou sessão"
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                aria-label="Pesquisar sessões"
-              />
               <Link className="pill" to="/student/account">
                 Minha Conta
               </Link>
@@ -289,22 +269,30 @@ export default function DashboardPage() {
             ) : null}
 
             <div className="kpi-grid">
-              <article className="kpi">
+              <button className="kpi" type="button" style={{textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', appearance: 'none', border: '1px solid var(--border)'}}>
+
                 <h3>Sessões agendadas</h3>
                 <strong>{dashboard?.upcomingSessions ?? 0}</strong>
-              </article>
-              <article className="kpi">
+              
+</button>
+              <button className="kpi" type="button" style={{textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', appearance: 'none', border: '1px solid var(--border)'}}>
+
                 <h3>Validações pendentes</h3>
                 <strong>{dashboard?.pendingValidations ?? 0}</strong>
-              </article>
-              <article className="kpi">
+              
+</button>
+              <button className="kpi" type="button" style={{textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', appearance: 'none', border: '1px solid var(--border)'}}>
+
                 <h3>Pedidos em análise</h3>
                 <strong>{dashboard?.reviewRequests ?? 0}</strong>
-              </article>
-              <article className="kpi">
+              
+</button>
+              <button className="kpi" type="button" style={{textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', appearance: 'none', border: '1px solid var(--border)'}}>
+
                 <h3>Pagamentos externos em curso</h3>
                 <strong>{dashboard?.externalPaymentsInProgress ?? 0}</strong>
-              </article>
+              
+</button>
             </div>
 
             <div className="split">
@@ -354,19 +342,6 @@ export default function DashboardPage() {
                     </Link>
                   ))}
                 </div>
-
-                <h3>Comunicações recentes</h3>
-                {communicationRows.length === 0 ? (
-                  <p className="empty">Sem comunicações recentes.</p>
-                ) : (
-                  <ul className="list">
-                    {communicationRows.map((notification) => (
-                      <li key={notification.id}>
-                        {notification.title}: {notification.message || 'Sem detalhe adicional.'}
-                      </li>
-                    ))}
-                  </ul>
-                )}
               </article>
             </div>
           </section>

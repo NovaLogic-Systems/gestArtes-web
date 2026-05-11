@@ -5,7 +5,7 @@
  * @project GestArtes - Projeto 50+10 para Entartes
  */
 
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import studioOccupancyService from '../../services/studioOccupancyService'
 import KPICard from '../ui/KPICard'
 import StudioOccupancyCard from './StudioOccupancyCard'
@@ -69,11 +69,25 @@ export default function StudioOccupancyPanel({ initialStudioId = '' }) {
   const [formNotice, setFormNotice] = useState('')
   const [formError, setFormError] = useState('')
 
-  useEffect(() => {
-    fetchData()
-    const interval = setInterval(fetchData, 60000)
-    return () => clearInterval(interval)
+  // Memoize fetchData to ensure interval cleanup works correctly
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true)
+      const res = await studioOccupancyService.getRealTime()
+      setData(res)
+      setError(null)
+    } catch {
+      setError('Erro ao carregar ocupação.')
+    } finally {
+      setLoading(false)
+    }
   }, [])
+
+  useEffect(() => {
+    void fetchData()
+    const interval = setInterval(() => { void fetchData() }, 60000)
+    return () => clearInterval(interval)
+  }, [fetchData])
 
   useEffect(() => {
     if (!Array.isArray(data?.studios) || data.studios.length === 0) {
@@ -94,19 +108,6 @@ export default function StudioOccupancyPanel({ initialStudioId = '' }) {
 
     setSelectedStudioId(String(data.studios[0].studioId))
   }, [data, initialStudioId, selectedStudioId])
-
-  const fetchData = async () => {
-    try {
-      setLoading(true)
-      const res = await studioOccupancyService.getRealTime()
-      setData(res)
-      setError(null)
-    } catch {
-      setError('Erro ao carregar ocupação.')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleCardBlock = (studio) => {
     setSelectedStudioId(String(studio.studioId))

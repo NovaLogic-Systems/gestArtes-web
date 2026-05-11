@@ -2,17 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import NotificationsBell from '../../components/NotificationsBell'
 import { useAuth } from '../../hooks/useAuth'
-import notificationService, { formatNotificationDate } from '../../services/notificationService'
+import notificationService, { formatNotificationDate, invalidateNotificationCache } from '../../services/notificationService'
 import { subscribeToNotifications } from '../../services/realtimeNotifications'
-import '../student/DashboardPage.css'
+import '../admin-studios.css'
 import './NotificationsPage.css'
-
-const NAV_ITEMS = [
-  { label: 'Painel', href: '/teacher/dashboard' },
-  { label: 'Pedidos de Admissão', href: '/teacher/admission-requests' },
-  { label: 'Confirmação de Sessões', href: '/teacher/sessions/confirmation' },
-  { label: 'Chat do Marketplace', href: '/teacher/marketplace/conversas' },
-]
+import { TEACHER_NAV_ITEMS as NAV_ITEMS } from './teacherNav'
 
 const FILTERS = [
   { label: 'Todas', value: 'all' },
@@ -53,6 +47,7 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     return subscribeToNotifications((notification) => {
+      invalidateNotificationCache()
       setNotifications((current) => [notification, ...current.filter((item) => item.id !== notification.id)])
     })
   }, [])
@@ -71,6 +66,11 @@ export default function NotificationsPage() {
     onResize()
 
     return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  useEffect(() => {
+    document.body.classList.add('studio-page')
+    return () => document.body.classList.remove('studio-page')
   }, [])
 
   const filteredNotifications = useMemo(() => {
@@ -113,7 +113,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="student-dashboard teacher-dashboard teacher-notifications-page">
+    <div className="teacher-dashboard teacher-notifications-page">
       <div className="app-shell">
         <aside className={`sidebar${mobileOpen ? ' open' : ''}`} id="sidebar">
           <div className="brand">
@@ -161,21 +161,22 @@ export default function NotificationsPage() {
           <header className="topbar">
             <div className="topbar-left">
               <button
-                className="menu-toggle"
                 type="button"
+                className="sidebar-toggle-btn"
                 aria-controls="sidebar"
                 aria-expanded={mobileOpen}
                 aria-label={mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'}
                 onClick={() => setMobileOpen((current) => !current)}
               >
-                ☰ Menu
+                {mobileOpen ? '✕' : '☰'}
               </button>
-              <h2>Notificações</h2>
-              <p>Alertas de coaching, sistema e marketplace</p>
+              <div>
+                <h2>Notificações</h2>
+              </div>
             </div>
 
             <div className="topbar-right">
-              <NotificationsBell />
+              <NotificationsBell pageLink="/teacher/notifications" />
             </div>
           </header>
 

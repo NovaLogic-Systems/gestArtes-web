@@ -29,6 +29,7 @@ function buildInventoryPayload(values) {
 	appendField(payload, 'description', values.description)
 	appendField(payload, 'symbolicFee', values.symbolicFee)
 	appendField(payload, 'categoryId', values.categoryId)
+	appendField(payload, 'categoryName', values.categoryName)
 	appendField(payload, 'totalQuantity', values.totalQuantity)
 	appendField(payload, 'photoUrl', values.photoUrl)
 	return payload
@@ -40,6 +41,7 @@ function buildInventoryMultipartPayload(values, file) {
 	appendFieldToFormData(formData, 'description', values.description)
 	appendFieldToFormData(formData, 'symbolicFee', values.symbolicFee)
 	appendFieldToFormData(formData, 'categoryId', values.categoryId)
+	appendFieldToFormData(formData, 'categoryName', values.categoryName)
 	appendFieldToFormData(formData, 'totalQuantity', values.totalQuantity)
 
 	if (file) {
@@ -74,6 +76,11 @@ export async function verifyInventoryReturn(rentalId, payload) {
 	return response.data ?? null
 }
 
+export async function rejectInventoryReturn(rentalId, payload) {
+  const response = await api.patch(`/admin/inventory/rentals/${rentalId}/reject-return`, payload)
+  return response.data ?? null
+}
+
 export async function listAdminInventoryItems(params = {}) {
 	const response = await api.get('/admin/inventory', { params })
 	return response.data?.items ?? []
@@ -82,6 +89,11 @@ export async function listAdminInventoryItems(params = {}) {
 export async function listAdminInventoryRentals() {
 	const response = await api.get('/admin/inventory/rentals')
 	return response.data?.rentals ?? []
+}
+
+export async function approveInventoryRental(rentalId, payload) {
+	const response = await api.patch(`/admin/inventory/rentals/${rentalId}/approve`, payload)
+	return response.data ?? null
 }
 
 export async function createInventoryItem(values, file) {

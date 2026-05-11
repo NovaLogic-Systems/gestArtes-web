@@ -9,7 +9,6 @@ import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import AdminShell from './AdminShell'
 import WithRole from '../../components/WithRole'
-import { useAuth } from '../../hooks/useAuth'
 import adminUsersService from '../../services/adminUsersService'
 import { maskEmail } from '../../utils/masking'
 import { ADMIN_ROLE_OPTIONS, toAppRole } from '../../utils/roles'
@@ -92,7 +91,6 @@ function UserActionsDropdown({ user, onEdit, onReset }) {
 
 export default function AdminUsersPage() {
   const location = useLocation()
-  const { user } = useAuth()
 
   const [users, setUsers] = useState([])
   const [filteredUsers, setFilteredUsers] = useState([])
@@ -128,6 +126,11 @@ export default function AdminUsersPage() {
     } finally {
       setLoading(false)
     }
+  }, [])
+
+  useEffect(() => {
+    document.body.classList.add('studio-page')
+    return () => document.body.classList.remove('studio-page')
   }, [])
 
   useEffect(() => {
@@ -180,18 +183,29 @@ export default function AdminUsersPage() {
     setError('')
     setNotice('')
 
+    const password = form.password;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+
+    if (password.length < 8 || !hasUpperCase || !hasLowerCase || !hasNumber) {
+      setError('A palavra-passe deve ter no mínimo 8 caracteres e conter pelo menos uma letra maiúscula, uma minúscula e um número.');
+      setSubmitting(false);
+      return;
+    }
+
     try {
       const primaryRole = Array.isArray(form.roles) ? form.roles[0] : 'student'
       const payload = {
         firstName: form.firstName.trim(),
-        lastName: form.lastName.trim(),
+        lastName: form.lastName.trim() || undefined,
         email: form.email.trim().toLowerCase(),
-        phoneNumber: form.phoneNumber.trim(),
+        phoneNumber: form.phoneNumber.trim() || undefined,
         password: form.password,
-        role: primaryRole, // Backend create-user uses role
+        role: primaryRole || 'student', 
         birthDate: form.birthDate || undefined,
-        guardianName: form.guardianName.trim(),
-        guardianPhone: form.guardianPhone.trim(),
+        guardianName: form.guardianName.trim() || undefined,
+        guardianPhone: form.guardianPhone.trim() || undefined,
         studentNumber: form.studentNumber.trim() || undefined,
       }
 
@@ -212,9 +226,14 @@ export default function AdminUsersPage() {
       await loadUsers()
     } catch (requestError) {
       const apiError = requestError?.response?.data
+      
       if (apiError?.errors && Array.isArray(apiError.errors)) {
         // Handle express-validator style errors
         const msg = apiError.errors.map(err => err.msg).join(', ')
+        setError(`Erro de validação: ${msg}`)
+      } else if (apiError?.details && Array.isArray(apiError.details)) {
+        // Handle custom validation details
+        const msg = apiError.details.map(err => err.msg).join(', ')
         setError(`Erro de validação: ${msg}`)
       } else {
         setError(apiError?.error || apiError?.message || 'Não foi possível criar o utilizador.')
@@ -277,6 +296,9 @@ export default function AdminUsersPage() {
       const apiError = requestError?.response?.data
       if (apiError?.errors && Array.isArray(apiError.errors)) {
         const msg = apiError.errors.map(err => err.msg).join(', ')
+        setError(`Erro de validação: ${msg}`)
+      } else if (apiError?.details && Array.isArray(apiError.details)) {
+        const msg = apiError.details.map(err => err.msg).join(', ')
         setError(`Erro de validação: ${msg}`)
       } else {
         setError(apiError?.error || apiError?.message || 'Não foi possível atualizar o utilizador.')
@@ -363,6 +385,15 @@ export default function AdminUsersPage() {
       subtitle="Criação e gestão de contas, atribuição de roles e status."
       activePath={location.pathname}
       topbarEnd={<span className="pill">Admin</span>}
+      topbarSearch={
+        <input
+          type="search"
+          className="topbar-search"
+          placeholder="Pesquisar..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      }
     >
       <section className="content-grid">
         {notice && <div className="soft-box" role="status" aria-live="polite">{notice}</div>}
@@ -422,25 +453,39 @@ export default function AdminUsersPage() {
               <Input label="Nome" required value={form.firstName} onChange={e => updateForm('firstName', e.target.value)} />
               <Input label="Apelido" value={form.lastName} onChange={e => updateForm('lastName', e.target.value)} />
               <Input label="Email" type="email" required value={form.email} onChange={e => updateForm('email', e.target.value)} />
-              <Input label="Telefone" value={form.phoneNumber} onChange={e => updateForm('phoneNumber', e.target.value)} />
-              <Input 
-                label="Palavra-passe" 
-                type={showNewPassword ? 'text' : 'password'} 
-                required 
-                minLength={8} 
-                value={form.password} 
-                onChange={e => updateForm('password', e.target.value)} 
-                trailing={
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPassword(!showNewPassword)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: 0, display: 'flex' }}
-                    title={showNewPassword ? 'Ocultar senha' : 'Ver senha'}
-                  >
-                    {showNewPassword ? <EyeOffIcon /> : <EyeIcon />}
-                  </button>
-                }
+              <Input
+                label="Telefone"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="912345678" 
+                value={form.phoneNumber}
+                onChange={e => updateForm('phoneNumber', e.target.value.replace(/[^\d+\s]/g, ''))}
+                maxLength={9}
               />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <Input 
+                  label="Palavra-passe" 
+                  type={showNewPassword ? 'text' : 'password'} 
+                  required 
+                  minLength={8} 
+                  value={form.password} 
+                  onChange={e => updateForm('password', e.target.value)} 
+                  trailing={
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: 0, display: 'flex' }}
+                      title={showNewPassword ? 'Ocultar senha' : 'Ver senha'}
+                    >
+                      {showNewPassword ? <EyeOffIcon /> : <EyeIcon />}
+                    </button>
+                  }
+                />
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #718096)', marginTop: '-0.25rem' }}>
+                  Mín. 8 caracteres, com maiúscula, minúscula e número.
+                </span>
+              </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Roles</span>
@@ -501,7 +546,15 @@ export default function AdminUsersPage() {
               <Input label="Nome" required value={editForm.firstName} onChange={e => setEditForm(prev => ({ ...prev, firstName: e.target.value }))} />
               <Input label="Apelido" value={editForm.lastName} onChange={e => setEditForm(prev => ({ ...prev, lastName: e.target.value }))} />
               <Input label="Email" type="email" required value={editForm.email} onChange={e => setEditForm(prev => ({ ...prev, email: e.target.value }))} />
-              <Input label="Telefone" value={editForm.phoneNumber} onChange={e => setEditForm(prev => ({ ...prev, phoneNumber: e.target.value }))} />
+              <Input
+                label="Telefone"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="912345678"
+                value={editForm.phoneNumber}
+                onChange={e => setEditForm(prev => ({ ...prev, phoneNumber: e.target.value.replace(/[^\d+\s]/g, '') }))}
+              />
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                 <span style={{ color: 'var(--text-h)', fontSize: '0.95rem', fontWeight: 600 }}>Estado</span>

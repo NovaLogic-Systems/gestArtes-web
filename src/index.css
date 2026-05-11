@@ -9,12 +9,13 @@
   --accent-border: rgba(170, 59, 255, 0.5);
   --social-bg: rgba(244, 243, 236, 0.5);
   --table-head-bg: #f8f1fc;
+  --teal: #0b9d8f;
   --shadow:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  --sans: 'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif;
+  --heading: var(--sans);
+  --mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
 
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
@@ -25,191 +26,255 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
 
-  @media (max-width: 1024px) {
+@media (max-width: 1024px) {
+  :root {
     font-size: 16px;
   }
+}
 
-  /* UI Button base styles */
-  .ui-button,
-  .cta,
-  .ghost-btn,
-  button.auth-button {
-    transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease, background-color 200ms ease, border-color 200ms ease, color 200ms ease;
+/* UI Button base styles */
+.ui-button,
+.cta,
+.ghost-btn,
+button.auth-button {
+  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease, background-color 200ms ease, border-color 200ms ease, color 200ms ease;
+}
+
+.ui-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+  font-weight: 600;
+}
+
+.ui-button:focus-visible {
+  outline: 3px solid rgba(170, 59, 255, 0.18);
+  outline-offset: 3px;
+}
+
+.ui-button:hover {
+  transform: translateY(-2px);
+}
+
+.ui-button:active {
+  transform: translateY(0);
+}
+
+/* Pill style used across the app */
+.pill {
+  background: #fff3ee;
+  color: #8c402a;
+  border: 1px solid #f2c2af;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+a.pill,
+a.pill:hover,
+a.pill:visited {
+  text-decoration: none;
+}
+
+.ui-button--cta:hover:not([aria-disabled='true']):not(:disabled),
+.ui-button--cta:focus-visible:not([aria-disabled='true']):not(:disabled) {
+  box-shadow: 0 0 0 3px rgba(11, 157, 143, 0.22), 0 4px 16px rgba(11, 157, 143, 0.35);
+  transform: translateY(-2px);
+}
+
+.ui-button--ctaSecondary:hover:not([aria-disabled='true']):not(:disabled),
+.ui-button--ctaSecondary:focus-visible:not([aria-disabled='true']):not(:disabled) {
+  box-shadow: 0 0 0 3px rgba(85, 67, 109, 0.22), 0 4px 16px rgba(85, 67, 109, 0.35);
+  transform: translateY(-2px);
+}
+
+.ghost-btn {
+  background: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  color: var(--text-h);
+  padding: 0.5rem 0.8rem;
+  border-radius: 0.6rem;
+}
+
+.topbar-search, .filter-input {
+  background-color: var(--bg);
+}
+
+/* Notifications pill in topbar */
+.notifications-pill {
+  background: linear-gradient(180deg, #fff3ee, #fff6f0);
+  border: 1px solid #f2c2af;
+  color: #8c402a;
+  border-radius: 999px;
+  padding: 8px 12px 8px 14px;
+  font-weight: 600;
+  align-items: center;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 8px;
+  height: 48px;
+}
+
+.notifications-bell-icon {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #f2c2af;
+  border-radius: 50%;
+  color: #8c402a;
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  position: relative;
+  width: 28px;
+}
+
+.notifications-bell-icon svg {
+  fill: currentColor;
+  height: 15px;
+  width: 15px;
+}
+
+.notifications-count-badge {
+  align-items: center;
+  background: #c7374f;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 0.68rem;
+  font-weight: 700;
+  justify-content: center;
+  line-height: 1;
+  min-width: 18px;
+  padding: 2px 5px;
+  position: absolute;
+  right: -8px;
+  top: -7px;
+}
+
+/* Notifications page specific tweaks */
+.filter-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.notifications-list .notification-item {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  margin-bottom: 0.75rem;
+  background: #fff;
+}
+
+.notifications-list .notification-item .actions {
+  margin-top: 0.6rem;
+}
+
+.notifications-item-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: start;
+}
+
+.notifications-item-row > button:first-child {
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+}
+
+.notifications-dismiss-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notifications-dismiss-btn:hover {
+  background: #f8f1fc;
+  color: var(--text-h);
+}
+
+/* Title styling for notifications page */
+.notifications-title {
+  font-size: 2.4rem;
+  line-height: 1.05;
+  margin: 0 0 0.25rem 0;
+  color: var(--text-h);
+  font-weight: 800;
+}
+
+.notifications-title::after {
+  content: '';
+  display: block;
+  width: 72px;
+  height: 6px;
+  background: linear-gradient(90deg, var(--accent), #6a54ff);
+  border-radius: 6px;
+  margin-top: 10px;
+}
+
+.page-subtitle {
+  color: var(--text);
+  margin: 0 0 1rem 0;
+  font-size: 0.98rem;
+}
+
+/* Animations & Micro-interactions */
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
   }
-
-  .ui-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    border-radius: 0.75rem;
-    border: 1px solid transparent;
-    font-weight: 600;
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
+}
 
-  .ui-button:focus-visible {
-    outline: 3px solid rgba(170, 59, 255, 0.18);
-    outline-offset: 3px;
+@keyframes backdrop-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
-
-  .ui-button:hover {
-    transform: translateY(-2px);
-  }
-
-  .ui-button:active {
+  to {
+    opacity: 1;
     transform: translateY(0);
   }
+}
 
-  /* Pill style used across the app */
-  .pill {
-    background: #fff3ee;
-    color: #8c402a;
-    border: 1px solid #f2c2af;
-    padding: 0.5rem 0.9rem;
-    border-radius: 999px;
-    font-weight: 600;
-  }
+.page-transition {
+  animation: page-fade-in 300ms ease-out forwards;
+}
 
-  .ghost-btn {
-    background: transparent;
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    color: var(--text-h);
-    padding: 0.5rem 0.8rem;
-    border-radius: 0.6rem;
-  }
-
-  /* Notifications pill in topbar */
-  .notifications-pill {
-    background: linear-gradient(180deg, #fff3ee, #fff6f0);
-    border: 1px solid #f2c2af;
-    color: #8c402a;
-    border-radius: 999px;
-    padding: 8px 12px 8px 14px;
-    font-weight: 600;
-    align-items: center;
-    cursor: pointer;
-    display: inline-flex;
-    gap: 8px;
-    height: 48px;
-  }
-
-  .notifications-bell-icon {
-    align-items: center;
-    background: #fff;
-    border: 1px solid #f2c2af;
-    border-radius: 50%;
-    color: #8c402a;
-    display: inline-flex;
-    height: 28px;
-    justify-content: center;
-    position: relative;
-    width: 28px;
-  }
-
-  .notifications-bell-icon svg {
-    fill: currentColor;
-    height: 15px;
-    width: 15px;
-  }
-
-  .notifications-count-badge {
-    align-items: center;
-    background: #c7374f;
-    border: 2px solid #fff;
-    border-radius: 999px;
-    color: #fff;
-    display: inline-flex;
-    font-size: 0.68rem;
-    font-weight: 700;
-    justify-content: center;
-    line-height: 1;
-    min-width: 18px;
-    padding: 2px 5px;
-    position: absolute;
-    right: -8px;
-    top: -7px;
-  }
-
-  /* Notifications page specific tweaks */
-  .filter-tabs {
-    display: flex;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-  }
-
-  .notifications-list .notification-item {
-    padding: 1rem;
-    border: 1px solid var(--border);
-    border-radius: 0.5rem;
-    margin-bottom: 0.75rem;
-    background: #fff;
-  }
-
-  .notifications-list .notification-item .actions {
-    margin-top: 0.6rem;
-  }
-
-  /* Title styling for notifications page */
-  .notifications-title {
-    font-size: 2.4rem;
-    line-height: 1.05;
-    margin: 0 0 0.25rem 0;
-    color: var(--text-h);
-    font-weight: 800;
-  }
-
-  .notifications-title::after {
-    content: '';
-    display: block;
-    width: 72px;
-    height: 6px;
-    background: linear-gradient(90deg, var(--accent), #6a54ff);
-    border-radius: 6px;
-    margin-top: 10px;
-  }
-
-  .page-subtitle {
-    color: var(--text);
-    margin: 0 0 1rem 0;
-    font-size: 0.98rem;
-  }
-
-  /* Animations & Micro-interactions */
-  @keyframes modal-fade-in {
-    from {
-      opacity: 0;
-      transform: scale(0.95);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-
-  @keyframes backdrop-fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  @keyframes page-fade-in {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .page-transition {
-    animation: page-fade-in 300ms ease-out forwards;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 body {
@@ -356,4 +421,55 @@ img {
 
 * {
   -webkit-tap-highlight-color: transparent;
+}
+
+/* --- Unified CTA Button Styles --- */
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 10px;
+  padding: 9px 18px;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  background: linear-gradient(135deg, #0b9d8f, #10b2a3);
+  color: #fff;
+  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+}
+
+.cta:hover:not(:disabled), .cta:focus-visible:not(:disabled) {
+  box-shadow: 0 0 0 3px rgba(11, 157, 143, 0.22), 0 4px 16px rgba(11, 157, 143, 0.35);
+  transform: translateY(-2px);
+}
+
+.cta:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.cta.secondary {
+  background: linear-gradient(135deg, #55436d, #6a5490);
+}
+
+.cta.secondary:hover:not(:disabled), .cta.secondary:focus-visible:not(:disabled) {
+  box-shadow: 0 0 0 3px rgba(85, 67, 109, 0.22), 0 4px 16px rgba(85, 67, 109, 0.35);
+}
+
+.cta:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cta.danger-outline {
+  background: transparent;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+}
+
+.cta.danger-outline:hover:not(:disabled) {
+  background: #fee2e2;
+  box-shadow: none;
 }

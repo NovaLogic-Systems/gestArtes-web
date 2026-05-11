@@ -8,7 +8,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import { useDebounce } from '../../hooks/useDebounce'
+import NotificationsBell from '../../components/NotificationsBell'
 import ListingCard from '../../components/ListingCard'
 import ListingDetailModal from '../../components/ListingDetailModal'
 import {
@@ -21,24 +21,11 @@ import ListingForm from '../../components/ListingForm'
 import Modal from '../../components/ui/Modal'
 import './DashboardPage.css'
 import './marketplace.css'
+import { STUDENT_NAV_ITEMS as NAV_ITEMS } from './studentNav'
 
 const SEARCH_HISTORY_KEY = 'marketplace.search.history'
 const SEARCH_HISTORY_LIMIT = 8
 const DEBOUNCE_DELAY = 300 // 300ms as per UX best practice
-
-const NAV_ITEMS = [
-  { label: 'Painel', href: '/student/dashboard' },
-  { label: 'Coaching', href: '/student/coaching' },
-  { label: 'Mapa de Coaching', href: '/student/coaching/map' },
-  { label: 'Inventário da Escola', href: '/student/inventory' },
-  { label: 'As Minhas Rendas', href: '/student/inventory/rentals' },
-  { label: 'Marketplace', href: '/student/marketplace' },
-  { label: 'Os Meus Anúncios', href: '/student/marketplace/my-listings' },
-  { label: 'Conversas', href: '/student/marketplace/conversas' },
-  { label: 'Perdidos e Achados', href: '/student/lostfound' },
-  { label: 'Notificações', href: '/student/notifications' },
-  { label: 'Minha Conta', href: '/student/account' },
-]
 
 function loadSearchHistory() {
   if (typeof window === 'undefined') {
@@ -121,6 +108,7 @@ export default function MarketplacePage() {
   })
 
   const studentName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Aluno'
+  const currentUserId = user?.id ?? null
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false))
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -181,6 +169,14 @@ export default function MarketplacePage() {
     loadData()
   }, [loadData])
 
+  const visibleListings = useMemo(() => {
+    if (!currentUserId) {
+      return listings
+    }
+
+    return listings.filter((listing) => String(listing?.sellerId || listing?.seller?.userId || '') !== String(currentUserId))
+  }, [currentUserId, listings])
+
   // Debounce effect: sync filters to URL after 300ms of inactivity
   // This prevents excessive URL updates and potential API calls during rapid filter changes
   useEffect(() => {
@@ -203,7 +199,7 @@ export default function MarketplacePage() {
     const minPrice = filters.minPrice === '' ? null : Number(filters.minPrice)
     const maxPrice = filters.maxPrice === '' ? null : Number(filters.maxPrice)
 
-    return listings.filter((listing) => {
+    return visibleListings.filter((listing) => {
       const listingSearchable = [
         listing.title,
         listing.description,
@@ -236,7 +232,7 @@ export default function MarketplacePage() {
 
       return true
     })
-  }, [filters, listings])
+  }, [filters, visibleListings])
 
   function updateFilter(field, value) {
     setFilters((current) => ({
@@ -330,7 +326,6 @@ export default function MarketplacePage() {
               <button type="button" className="sidebar-toggle-btn" aria-label={toggleLabel} aria-controls="sidebar" aria-expanded={mobileOpen} onClick={handleToggle}>{toggleSymbol}</button>
               <div>
                 <h2>Marketplace da Comunidade</h2>
-                <p>Explora artigos, encontra serviços e publica os teus anúncios.</p>
               </div>
             </div>
 
@@ -338,12 +333,10 @@ export default function MarketplacePage() {
               <button type="button" className="cta" onClick={() => setIsCreateOpen(true)}>
                 Criar anúncio
               </button>
-                <Link className="pill" to="/student/marketplace/conversas">
-                  Conversas
-                </Link>
               <Link className="pill" to="/student/marketplace/my-listings">
                 Meus anúncios
               </Link>
+              <NotificationsBell pageLink="/student/notifications" />
             </div>
           </header>
 
@@ -441,9 +434,9 @@ export default function MarketplacePage() {
             <article className="panel">
               <div className="market-feed-header">
                 <h3>Feed de anúncios</h3>
-                {!loading && listings.length > 0 ? (
+                {!loading && visibleListings.length > 0 ? (
                   <p className="market-count-info">
-                    {filteredListings.length} de {listings.length} anúncio{listings.length !== 1 ? 's' : ''}
+                    {filteredListings.length} de {visibleListings.length} anúncio{visibleListings.length !== 1 ? 's' : ''}
                   </p>
                 ) : null}
               </div>
