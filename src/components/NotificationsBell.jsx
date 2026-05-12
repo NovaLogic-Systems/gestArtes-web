@@ -38,6 +38,24 @@ function getActionUrl(notification, pageLink) {
   }
 }
 
+function shouldReplaceNotification(current, incoming) {
+  if (!incoming) {
+    return false
+  }
+
+  if (!incoming.id) {
+    return true
+  }
+
+  const existingIndex = current.findIndex((item) => item.id === incoming.id)
+  if (existingIndex === -1) {
+    return true
+  }
+
+  const existing = current[existingIndex]
+  return existing.isRead !== incoming.isRead || existing.title !== incoming.title || existing.message !== incoming.message || existing.createdAt !== incoming.createdAt || existingIndex !== 0
+}
+
 export default function NotificationsBell({
   pageLink = '/student/notifications',
   onClick,
@@ -88,10 +106,19 @@ export default function NotificationsBell({
 
     return subscribeToNotifications((notification) => {
       invalidateNotificationCache()
-      setNotifications((current) => [notification, ...current.filter((item) => item.id !== notification.id)])
-      setUnreadCount((current) => current + (notification.isRead ? 0 : 1))
+      setNotifications((current) => {
+        if (!shouldReplaceNotification(current, notification)) {
+          return current
+        }
+
+        if (!notification.isRead) {
+          setUnreadCount((count) => count + 1)
+        }
+
+        setToastNotif(notification)
+        return [notification, ...current.filter((item) => item.id !== notification.id)]
+      })
       setLoaded(true)
-      setToastNotif(notification)
     })
   }, [controlledByParent])
 

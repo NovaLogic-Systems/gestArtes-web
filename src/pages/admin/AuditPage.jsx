@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { Badge } from '../../components/ui/Badge'
 import { KPICard } from '../../components/ui/KPICard'
 import { Table } from '../../components/ui/Table'
+import Pagination from '../../components/ui/Pagination'
 import api from '../../services/api'
 import AdminShell from './AdminShell'
 
@@ -78,6 +79,8 @@ export default function AuditPage() {
   const [summary, setSummary] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 25
 
   useEffect(() => {
     let cancelled = false
@@ -86,31 +89,18 @@ export default function AuditPage() {
       setLoading(true)
       setError('')
       const params = {}
-      const PAGE_SIZE = 100
       if (appliedFilters.periodStart) params.periodStart = appliedFilters.periodStart
       if (appliedFilters.periodEnd) params.periodEnd = appliedFilters.periodEnd
       if (appliedFilters.module) params.module = appliedFilters.module
 
-      async function fetchAllEvents() {
-         let offset = 0
-         let total = 0
-         const allItems = []
-         do {
-           const response = await api.get('/admin/audit', {
-             params: { ...params, limit: PAGE_SIZE, offset },
-           })
-           const items = Array.isArray(response.data?.items) ? response.data.items : []
-           total = response.data?.total ?? 0
-           allItems.push(...items)
-           offset += items.length
-           if (items.length === 0) break
-         } while (offset < total)
-         return { items: allItems, total }
-       }
-
       try {
         const [{ items, total }, sumRes] = await Promise.all([
-          fetchAllEvents(),
+          api.get('/admin/audit', {
+            params: { ...params, limit: pageSize, offset: (currentPage - 1) * pageSize },
+          }).then((response) => ({
+            items: Array.isArray(response.data?.items) ? response.data.items : [],
+            total: response.data?.total ?? 0,
+          })),
           api.get('/admin/audit/summary', { params }),
         ])
         if (cancelled) return
@@ -137,7 +127,18 @@ export default function AuditPage() {
     return () => {
       cancelled = true
     }
-  }, [appliedFilters])
+  }, [appliedFilters, currentPage])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [appliedFilters.periodStart, appliedFilters.periodEnd, appliedFilters.module])
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(eventTotal / pageSize))
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages)
+    }
+  }, [currentPage, eventTotal])
 
   function handleFilterChange(field, value) {
     setFilters((prev) => ({ ...prev, [field]: value }))
@@ -145,8 +146,13 @@ export default function AuditPage() {
 
   function handleFilterSubmit(e) {
     e.preventDefault()
+    setCurrentPage(1)
     setAppliedFilters(filters)
   }
+
+  const totalPages = Math.max(1, Math.ceil(eventTotal / pageSize))
+  const firstItem = eventTotal === 0 ? 0 : ((currentPage - 1) * pageSize) + 1
+  const lastItem = Math.min(eventTotal, currentPage * pageSize)
 
   return (
     <AdminShell
@@ -268,6 +274,18 @@ export default function AuditPage() {
           emptyState={loading ? 'A carregar…' : 'Sem eventos de auditoria para o período selecionado.'}
           headBackground="#f4f4f8"
         />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginTop: '1rem' }}>
+          <p style={{ margin: 0, color: 'var(--text-muted, #718096)', fontSize: '0.9rem' }}>
+            {eventTotal === 0 ? 'Sem eventos para mostrar.' : `A mostrar ${firstItem}-${lastItem} de ${eventTotal}`}
+          </p>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            ariaLabel="Paginação da auditoria"
+            style={{ marginTop: 0 }}
+          />
+        </div>
       </section>
     </AdminShell>
   )

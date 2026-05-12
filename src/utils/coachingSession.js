@@ -8,15 +8,30 @@ function normalizeSessionStatus(status) {
 
 export function isSessionJoinable(sessionStatus) {
   const status = normalizeSessionStatus(sessionStatus)
+
+  if (!status) {
+    return false
+  }
+
+  const blockedMarkers = ['finaliz', 'validat', 'conclu', 'complete', 'finish', 'closed', 'cancel', 'reject', 'archiv', 'end']
+  if (blockedMarkers.some((marker) => status.includes(marker))) {
+    return false
+  }
+
   return status === 'approved' || status.includes('pending') || status.includes('aprov') || status.includes('schedul') || status.includes('agend')
 }
 
-export function canJoinSession({ sessionStatus, sessionStartTime, userIsEnrolled = false, hasSpots = false }) {
+export function canJoinSession({ sessionStatus, sessionStartTime, sessionEndTime, userIsEnrolled = false, hasSpots = false }) {
   if (!hasSpots || userIsEnrolled) {
     return false
   }
 
   if (!isSessionJoinable(sessionStatus)) {
+    return false
+  }
+
+  const endTime = sessionEndTime ? new Date(sessionEndTime).getTime() : null
+  if (Number.isFinite(endTime) && endTime <= Date.now()) {
     return false
   }
 

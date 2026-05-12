@@ -330,15 +330,18 @@ export default function ScheduleSubmissionPage() {
                 <p style={{ margin: 0, fontSize: '0.9rem', color: '#6b7280' }}>
                   Clique num horário branco para selecionar ou num <strong>amarelo para retirar o pedido</strong>.
                 </p>
-                <div className="calendar-legend" style={{ display: 'flex', gap: '12px', fontSize: '0.8rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span style={{ width: '10px', height: '10px', background: '#6366f1', borderRadius: '2px' }}></span> Selecionado
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span style={{ width: '10px', height: '10px', background: '#fef9c3', border: '1px solid #fde047', borderRadius: '2px' }}></span> Pendente
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span style={{ width: '10px', height: '10px', background: '#dcfce7', border: '1px solid #86efac', borderRadius: '2px' }}></span> Aprovado
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  <span className="pill" id="availabilitySummary">{proposed.size} slots selecionados</span>
+                  <div className="calendar-legend" style={{ display: 'flex', gap: '12px', fontSize: '0.8rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ width: '10px', height: '10px', background: '#6366f1', borderRadius: '2px' }}></span> Selecionado
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ width: '10px', height: '10px', background: '#fef9c3', border: '1px solid #fde047', borderRadius: '2px' }}></span> Pendente
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ width: '10px', height: '10px', background: '#dcfce7', border: '1px solid #86efac', borderRadius: '2px' }}></span> Aprovado
+                    </div>
                   </div>
                 </div>
               </div>
@@ -348,7 +351,6 @@ export default function ScheduleSubmissionPage() {
               </div>
 
               <div className="quick-actions" style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                <span className="pill" id="availabilitySummary">{proposed.size} slots selecionados</span>
                 <button
                   className="cta"
                   type="button"

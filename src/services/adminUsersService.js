@@ -27,15 +27,20 @@ function mapUser(entry) {
 }
 
 const adminUsersService = {
-  async listUsers() {
-    const response = await api.get('/admin/users')
+  async listUsers(params = {}) {
+    const response = await api.get('/admin/users', { params })
     const users = Array.isArray(response.data)
       ? response.data
       : Array.isArray(response.data?.users)
         ? response.data.users
         : []
 
-    return users.map(mapUser)
+    return {
+      users: users.map(mapUser),
+      total: Number(response.data?.total ?? users.length),
+      limit: Number(response.data?.limit ?? params.limit ?? users.length),
+      offset: Number(response.data?.offset ?? params.offset ?? 0),
+    }
   },
 
   async createUser(payload) {

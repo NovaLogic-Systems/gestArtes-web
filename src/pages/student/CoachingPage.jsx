@@ -959,6 +959,7 @@ export default function CoachingPage() {
                                                   sessionId={bs.sessionId}
                                                   sessionStatus={bs.status}
                                                   sessionStartTime={bs.startTime}
+                                                  sessionEndTime={bs.endTime}
                                                   currentParticipants={bs.enrolledCount}
                                                   maxParticipants={bs.maxParticipants}
                                                   userIsEnrolled={bs.userIsEnrolled}

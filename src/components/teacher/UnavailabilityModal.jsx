@@ -43,6 +43,22 @@ export default function UnavailabilityModal({ isOpen, onClose, onSubmit, onCance
 
   const pendingReason = slotData?.reason ? `"${slotData.reason}"` : 'Sem motivo especificado.';
 
+  const formatDateTime = (value) => {
+    if (!value) {
+      return '—';
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return '—';
+    }
+
+    return parsed.toLocaleString('pt-PT', {
+      dateStyle: 'short',
+      timeStyle: 'short',
+    });
+  };
+
   const resetForm = () => {
     setReason('');
     setManualDate('');
@@ -96,11 +112,11 @@ export default function UnavailabilityModal({ isOpen, onClose, onSubmit, onCance
               <div className="detail-grid">
                 <div>
                   <label>Início</label>
-                  <p>{details?.startDate ? new Date(details.startDate).toLocaleString() : '—'}</p>
+                  <p>{formatDateTime(details?.startDate)}</p>
                 </div>
                 <div>
                   <label>Fim</label>
-                  <p>{details?.endDate ? new Date(details.endDate).toLocaleString() : '—'}</p>
+                  <p>{formatDateTime(details?.endDate)}</p>
                 </div>
               </div>
               <div className="detail-item">

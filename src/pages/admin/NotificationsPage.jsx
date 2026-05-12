@@ -4,6 +4,24 @@ import notificationService, { formatNotificationDate, invalidateNotificationCach
 import { subscribeToNotifications } from '../../services/realtimeNotifications'
 import './NotificationsPage.css'
 
+function shouldReplaceNotification(current, incoming) {
+  if (!incoming) {
+    return false
+  }
+
+  if (!incoming.id) {
+    return true
+  }
+
+  const existingIndex = current.findIndex((item) => item.id === incoming.id)
+  if (existingIndex === -1) {
+    return true
+  }
+
+  const existing = current[existingIndex]
+  return existing.isRead !== incoming.isRead || existing.title !== incoming.title || existing.message !== incoming.message || existing.createdAt !== incoming.createdAt || existingIndex !== 0
+}
+
 const FILTERS = [
   { label: 'Todas', value: 'all' },
   { label: 'Coaching', value: 'coaching' },
@@ -37,7 +55,13 @@ export default function AdminNotificationsPage() {
   useEffect(() => {
     return subscribeToNotifications((notification) => {
       invalidateNotificationCache()
-      setNotifications((current) => [notification, ...current.filter((item) => item.id !== notification.id)])
+      setNotifications((current) => {
+        if (!shouldReplaceNotification(current, notification)) {
+          return current
+        }
+
+        return [notification, ...current.filter((item) => item.id !== notification.id)]
+      })
     })
   }, [])
 

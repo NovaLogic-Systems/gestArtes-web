@@ -244,10 +244,8 @@
   .teacher-admission-requests .decision-toggle button {
     flex: 1 1 0;
   }
-}* @author NovaLogic System
- * @institution IPCA
- * @project GestArtes - Projeto 50+10 para Entartes
- */
+}
+
 
 .teacher-admission-requests {
   --modal-bg: #ffffff;

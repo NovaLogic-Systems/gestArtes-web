@@ -49,6 +49,15 @@ const statusMap = {
 
 function isSessionJoinable(status) {
   const s = String(status || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '')
+  if (!s) {
+    return false
+  }
+
+  const blockedMarkers = ['finaliz', 'validat', 'conclu', 'complete', 'finish', 'closed', 'cancel', 'reject', 'archiv', 'end']
+  if (blockedMarkers.some((marker) => s.includes(marker))) {
+    return false
+  }
+
   return s === 'approved' || s.includes('pending') || s.includes('aprov') || s.includes('schedul') || s.includes('agend')
 }
 
@@ -56,6 +65,7 @@ export default function JoinSessionButton({
   sessionId,
   sessionStatus,
   sessionStartTime,
+  sessionEndTime,
   availableSpots,
   currentParticipants,
   maxParticipants,
@@ -87,6 +97,7 @@ export default function JoinSessionButton({
   const joinable = canJoinSession({
     sessionStatus,
     sessionStartTime,
+    sessionEndTime,
     userIsEnrolled,
     hasSpots,
   })

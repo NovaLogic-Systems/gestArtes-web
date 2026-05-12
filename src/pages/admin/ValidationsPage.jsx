@@ -14,6 +14,7 @@ import { ADMIN_NAV_ITEMS as navigationItems } from './adminNav'
 import '../admin-studios.css'
 import Modal from '../../components/ui/Modal'
 import Button from '../../components/ui/Button'
+import UnavailabilityModal from '../../components/teacher/UnavailabilityModal'
 
 
 
@@ -131,6 +132,10 @@ function ValidationsPage() {
   const [loadingAvailability, setLoadingAvailability] = useState(true)
   const [availabilityModalOpen, setAvailabilityModalOpen] = useState(false)
   const [availabilityModalData, setAvailabilityModalData] = useState(null)
+  const [absenceRequests, setAbsenceRequests] = useState([])
+  const [loadingAbsences, setLoadingAbsences] = useState(true)
+  const [absenceModalOpen, setAbsenceModalOpen] = useState(false)
+  const [absenceModalData, setAbsenceModalData] = useState(null)
   const [joinRequests, setJoinRequests] = useState([])
   const [loadingJoinRequests, setLoadingJoinRequests] = useState(true)
 
@@ -167,8 +172,17 @@ function ValidationsPage() {
       setAvailabilityRequests(list)
     } catch {
       setAvailabilityRequests([])
+    }
+
+    try {
+      const { data } = await api.get('/admin/validations/absences')
+      const list = Array.isArray(data) ? data : (Array.isArray(data?.absences) ? data.absences : [])
+      setAbsenceRequests(list)
+    } catch {
+      setAbsenceRequests([])
     } finally {
       setLoadingAvailability(false)
+      setLoadingAbsences(false)
     }
     setLoadingBookings(false)
   }, [])
@@ -621,6 +635,60 @@ function ValidationsPage() {
                   </div>
                 )}
               </article>
+
+              <article className="panel">
+                <div className="panel-header">
+                  <h3>Pedidos de ausência pendentes</h3>
+                </div>
+
+                {loadingAbsences ? (
+                  <div className="soft-box">A carregar ausências...</div>
+                ) : absenceRequests.length === 0 ? (
+                  <div className="soft-box">Não há pedidos de ausência pendentes.</div>
+                ) : (
+                  <div className="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Professor</th>
+                          <th>Período</th>
+                          <th>Motivo</th>
+                          <th>Data do Pedido</th>
+                          <th style={{ textAlign: 'right' }}>Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {absenceRequests.map((absence) => {
+                          const teacherName = absence.teacher ? `${absence.teacher.firstName || ''} ${absence.teacher.lastName || ''}`.trim() : '—'
+
+                          return (
+                            <tr key={absence.absenceId || absence.id}>
+                              <td style={{ fontWeight: 500 }}>{teacherName}</td>
+                              <td style={{ fontSize: '0.85rem' }}>
+                                {formatDate(absence.startDate)} → {formatDate(absence.endDate)}
+                              </td>
+                              <td style={{ maxWidth: 300, fontSize: '0.85rem', color: 'var(--studio-muted)' }}>{absence.reason || '—'}</td>
+                              <td style={{ fontSize: '0.85rem' }}>{formatDate(absence.requestedAt)}</td>
+                              <td>
+                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                  <button
+                                    type="button"
+                                    className="moderation-action-btn neutral"
+                                    onClick={() => { setAbsenceModalData(absence); setAbsenceModalOpen(true) }}
+                                    style={{ fontSize: '0.8rem' }}
+                                  >
+                                    Detalhes
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </article>
             </>
           ) : null}
 
@@ -824,6 +892,15 @@ function ValidationsPage() {
               </div>
             </div>
           </Modal>
+        ) : null}
+
+        {absenceModalOpen && absenceModalData ? (
+          <UnavailabilityModal
+            isOpen={absenceModalOpen}
+            viewOnly
+            details={absenceModalData}
+            onClose={() => { setAbsenceModalOpen(false); setAbsenceModalData(null) }}
+          />
         ) : null}
       </main>
     </div>

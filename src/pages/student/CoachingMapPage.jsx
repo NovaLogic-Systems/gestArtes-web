@@ -485,6 +485,7 @@ function CoachingMapPage() {
                                                 ) : canJoinSession({
                                                   sessionStatus: sess.status,
                                                   sessionStartTime: sess.startTime,
+                                                  sessionEndTime: sess.endTime,
                                                   hasSpots: spotsLeft > 0,
                                                   userIsEnrolled: sess.userIsEnrolled,
                                                 }) ? (

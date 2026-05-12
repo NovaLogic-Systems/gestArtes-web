@@ -17,6 +17,7 @@ import Badge from '../../components/ui/Badge'
 import Modal from '../../components/ui/Modal'
 import Input from '../../components/ui/Input'
 import Button from '../../components/ui/Button'
+import Pagination from '../../components/ui/Pagination'
 import ResetPasswordModal from '../../components/admin/ResetPasswordModal'
 import '../admin-studios.css'
 
@@ -93,13 +94,15 @@ export default function AdminUsersPage() {
   const location = useLocation()
 
   const [users, setUsers] = useState([])
-  const [filteredUsers, setFilteredUsers] = useState([])
+  const [totalUsers, setTotalUsers] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [showNewPassword, setShowNewPassword] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 20
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('')
@@ -119,14 +122,21 @@ export default function AdminUsersPage() {
     setLoading(true)
     setError('')
     try {
-      const entries = await adminUsersService.listUsers()
-      setUsers(Array.isArray(entries) ? entries : [])
+      const response = await adminUsersService.listUsers({
+        limit: pageSize,
+        offset: (currentPage - 1) * pageSize,
+        search: searchTerm.trim() || undefined,
+        role: roleFilter !== 'all' ? roleFilter : undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+      })
+      setUsers(Array.isArray(response.users) ? response.users : [])
+      setTotalUsers(Number(response.total ?? 0))
     } catch (requestError) {
       setError(requestError?.response?.data?.error || 'Não foi possível carregar os utilizadores.')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [currentPage, pageSize, roleFilter, searchTerm, statusFilter])
 
   useEffect(() => {
     document.body.classList.add('studio-page')
@@ -138,28 +148,11 @@ export default function AdminUsersPage() {
   }, [loadUsers])
 
   useEffect(() => {
-    let result = [...users]
-
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase()
-      result = result.filter(u =>
-        (u.firstName + ' ' + (u.lastName || '')).toLowerCase().includes(term) ||
-        u.email.toLowerCase().includes(term) ||
-        (u.studentNumber && u.studentNumber.toLowerCase().includes(term))
-      )
+    const totalPages = Math.max(1, Math.ceil(totalUsers / pageSize))
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages)
     }
-
-    if (roleFilter !== 'all') {
-      result = result.filter(u => (u.roles && u.roles.includes(roleFilter)) || u.role === roleFilter)
-    }
-
-    if (statusFilter !== 'all') {
-      const isStatusActive = statusFilter === 'active'
-      result = result.filter(u => u.isActive === isStatusActive)
-    }
-
-    setFilteredUsers(result)
-  }, [users, searchTerm, roleFilter, statusFilter])
+  }, [currentPage, pageSize, totalUsers])
 
   function updateForm(field, value) {
     setForm((current) => ({ ...current, [field]: value }))
@@ -379,6 +372,10 @@ export default function AdminUsersPage() {
     }
   ]
 
+  const totalPages = Math.max(1, Math.ceil(totalUsers / pageSize))
+  const firstItem = totalUsers === 0 ? 0 : ((currentPage - 1) * pageSize) + 1
+  const lastItem = Math.min(totalUsers, currentPage * pageSize)
+
   return (
     <AdminShell
       title="Gestão de Utilizadores"
@@ -401,18 +398,18 @@ export default function AdminUsersPage() {
 
         <article className="panel">
           <div className="panel-header" style={{ flexWrap: 'wrap', gap: '1rem' }}>
-            <h3>Utilizadores registados ({filteredUsers.length})</h3>
+            <h3>Utilizadores registados ({totalUsers})</h3>
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               <input
                 type="text"
                 placeholder="Pesquisar..."
                 value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
+                onChange={e => { setCurrentPage(1); setSearchTerm(e.target.value) }}
                 style={{ padding: '0.35rem 0.7rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }}
               />
               <select
                 value={roleFilter}
-                onChange={e => setRoleFilter(e.target.value)}
+                onChange={e => { setCurrentPage(1); setRoleFilter(e.target.value) }}
                 style={{ padding: '0.35rem 0.7rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }}
               >
                 <option value="all">Todas as Roles</option>
@@ -422,7 +419,7 @@ export default function AdminUsersPage() {
               </select>
               <select
                 value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
+                onChange={e => { setCurrentPage(1); setStatusFilter(e.target.value) }}
                 style={{ padding: '0.35rem 0.7rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }}
               >
                 <option value="all">Todos os Estados</option>
@@ -435,11 +432,23 @@ export default function AdminUsersPage() {
 
           <Table
             columns={columns}
-            rows={filteredUsers}
+            rows={users}
             getRowKey={(u) => u.userId}
             emptyState={loading ? 'A carregar utilizadores...' : 'Sem utilizadores encontrados.'}
             headBackground="#f8f9fa"
           />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginTop: '1rem' }}>
+            <p style={{ margin: 0, color: 'var(--text-muted, #718096)', fontSize: '0.9rem' }}>
+              {totalUsers === 0 ? 'Sem utilizadores para mostrar.' : `A mostrar ${firstItem}-${lastItem} de ${totalUsers}`}
+            </p>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              ariaLabel="Paginação de utilizadores"
+              style={{ marginTop: 0 }}
+            />
+          </div>
         </article>
 
         <WithRole roles={['admin']}>
