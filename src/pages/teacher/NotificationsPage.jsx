@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import NotificationsBell from '../../components/NotificationsBell'
 import { useAuth } from '../../hooks/useAuth'
-import notificationService, { formatNotificationDate, invalidateNotificationCache } from '../../services/notificationService'
+import notificationService, { formatNotificationDate, invalidateNotificationCache, resolveNotificationLink } from '../../services/notificationService'
 import { subscribeToNotifications } from '../../services/realtimeNotifications'
 import '../admin-studios.css'
 import './NotificationsPage.css'
@@ -11,8 +11,12 @@ import { TEACHER_NAV_ITEMS as NAV_ITEMS } from './teacherNav'
 const FILTERS = [
   { label: 'Todas', value: 'all' },
   { label: 'Coaching', value: 'coaching' },
-  { label: 'Sistema', value: 'system' },
+  { label: 'Adesões', value: 'join_request' },
+  { label: 'Agenda', value: 'schedule' },
+  { label: 'Inventário', value: 'inventory' },
   { label: 'Marketplace', value: 'marketplace' },
+  { label: 'Conta', value: 'account' },
+  { label: 'Sistema', value: 'system' },
 ]
 
 export default function NotificationsPage() {
@@ -109,6 +113,14 @@ export default function NotificationsPage() {
     } catch {
       setNotifications(previous)
       setError('Nao foi possivel apagar a notificacao.')
+    }
+  }
+
+  const handleNotificationClick = (notification) => {
+    void handleMarkAsRead(notification)
+    const target = resolveNotificationLink(notification, '/teacher/notifications')
+    if (target && target !== '/teacher/notifications') {
+      navigate(target)
     }
   }
 
@@ -221,7 +233,12 @@ export default function NotificationsPage() {
                 <ul className="notification-page-list">
                   {filteredNotifications.map((notification) => (
                     <li key={notification.id} className={notification.isRead ? '' : 'unread'}>
-                      <button type="button" className="notification-main" onClick={() => handleMarkAsRead(notification)}>
+                      <button
+                        type="button"
+                        className="notification-main"
+                        onClick={() => handleNotificationClick(notification)}
+                        title="Abrir página relacionada"
+                      >
                         <span className="notification-type">{notification.typeLabel}</span>
                         <strong>{notification.title}</strong>
                         {notification.message ? <p>{notification.message}</p> : null}

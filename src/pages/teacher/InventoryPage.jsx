@@ -12,6 +12,7 @@ import '../admin-studios.css'
 import '../student/inventory.css'
 import './InventoryPage.css'
 import { TEACHER_NAV_ITEMS as NAV_ITEMS } from './teacherNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 const RENTAL_STATUS_BADGE = {
   pending: { variant: 'warning', label: 'A aguardar direção' },
@@ -84,7 +85,7 @@ export default function TeacherInventoryPage() {
       setRentals(data)
     } catch (err) {
       setRentals([])
-      setError((prev) => prev || err?.response?.data?.error || 'Não foi possível carregar as reservas.')
+      setError((prev) => prev || localizeApiError(err, 'Não foi possível carregar as reservas.'))
     } finally {
       setLoadingRentals(false)
     }

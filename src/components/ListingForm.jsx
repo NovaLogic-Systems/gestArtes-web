@@ -63,7 +63,11 @@ function resolveStatusLabel(statusName) {
     return 'Ativo'
   }
 
-  return normalized
+  if (/remov|hidden|inactive|inativ/i.test(normalized)) {
+    return 'Inativo'
+  }
+
+  return 'Estado desconhecido'
 }
 
 export default function ListingForm({

@@ -19,6 +19,7 @@ import NotificationsBell from '../../components/NotificationsBell'
 import '../student/DashboardPage.css'
 import '../student/account.css'
 import { TEACHER_NAV_ITEMS as NAV_ITEMS } from './teacherNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 function getInitials(profile) {
 	const parts = [profile?.firstName, profile?.lastName].filter(Boolean)
@@ -112,7 +113,7 @@ export default function TeacherAccountPage() {
 		} catch (requestError) {
 			setAccount(null)
 			setPhoneNumber('')
-			setError(requestError?.response?.data?.error || 'Não foi possível carregar a conta do professor.')
+			setError(localizeApiError(requestError, 'Não foi possível carregar a conta do professor.'))
 		} finally {
 			setLoading(false)
 		}
@@ -154,7 +155,7 @@ export default function TeacherAccountPage() {
 			}
 			toast.success('Número de telemóvel atualizado com sucesso.')
 		} catch (requestError) {
-			setPhoneError(requestError?.response?.data?.error || 'Não foi possível atualizar o número de telemóvel.')
+			setPhoneError(localizeApiError(requestError, 'Não foi possível atualizar o número de telemóvel.'))
 		} finally {
 			setPhoneSaving(false)
 		}
@@ -188,7 +189,7 @@ export default function TeacherAccountPage() {
 			closePasswordModal()
 			toast.success('Password atualizada com sucesso.')
 		} catch (requestError) {
-			setPasswordError(requestError?.response?.data?.error || 'Não foi possível alterar a password.')
+			setPasswordError(localizeApiError(requestError, 'Não foi possível alterar a password.'))
 		} finally {
 			setPasswordSaving(false)
 		}

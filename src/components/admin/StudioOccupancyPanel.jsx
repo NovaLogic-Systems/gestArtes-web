@@ -9,6 +9,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import studioOccupancyService from '../../services/studioOccupancyService'
 import KPICard from '../ui/KPICard'
 import StudioOccupancyCard from './StudioOccupancyCard'
+import { localizeApiError } from '../../utils/apiErrors'
 
 const MANUAL_STATUSES = ['available', 'occupied', 'blocked', 'maintenance', 'unavailable']
 const BLOCK_TYPE_OPTIONS = ['maintenance', 'unavailable', 'blocked']
@@ -179,8 +180,7 @@ export default function StudioOccupancyPanel({ initialStudioId = '' }) {
 
       await fetchData()
     } catch (requestError) {
-      const responseMessage = requestError?.response?.data?.error
-      setFormError(responseMessage || 'Não foi possível guardar a atualização.')
+      setFormError(localizeApiError(requestError, 'Não foi possível guardar a atualização.'))
     } finally {
       setSaving(false)
     }

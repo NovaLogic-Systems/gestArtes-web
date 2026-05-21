@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
+import api from '../../services/api'
 import AdminShell from './AdminShell'
 import WithRole from '../../components/WithRole'
 import adminUsersService from '../../services/adminUsersService'
@@ -20,6 +21,7 @@ import Button from '../../components/ui/Button'
 import Pagination from '../../components/ui/Pagination'
 import ResetPasswordModal from '../../components/admin/ResetPasswordModal'
 import '../admin-studios.css'
+import { localizeApiError } from '../../utils/apiErrors'
 
 const emptyForm = {
   firstName: '',
@@ -116,7 +118,18 @@ export default function AdminUsersPage() {
   // Reset Password Modal
   const [resetPasswordUser, setResetPasswordUser] = useState(null)
 
+  const [availableModalities, setAvailableModalities] = useState([])
+
   const isFormStudent = useMemo(() => Array.isArray(form.roles) && form.roles.includes('student'), [form.roles])
+
+  const loadModalities = useCallback(async () => {
+    try {
+      const resp = await api.get('/admin/studios/options')
+      setAvailableModalities(resp.data?.modalities || [])
+    } catch(err) {
+      console.error(err)
+    }
+  }, [])
 
   const loadUsers = useCallback(async () => {
     setLoading(true)
@@ -132,7 +145,7 @@ export default function AdminUsersPage() {
       setUsers(Array.isArray(response.users) ? response.users : [])
       setTotalUsers(Number(response.total ?? 0))
     } catch (requestError) {
-      setError(requestError?.response?.data?.error || 'Não foi possível carregar os utilizadores.')
+      setError(localizeApiError(requestError, 'Não foi possível carregar os utilizadores.'))
     } finally {
       setLoading(false)
     }
@@ -144,8 +157,9 @@ export default function AdminUsersPage() {
   }, [])
 
   useEffect(() => {
+    void loadModalities()
     void loadUsers()
-  }, [loadUsers])
+  }, [loadUsers, loadModalities])
 
   useEffect(() => {
     const totalPages = Math.max(1, Math.ceil(totalUsers / pageSize))
@@ -249,6 +263,8 @@ export default function AdminUsersPage() {
       birthDate: safeISODate(u.birthDate),
       guardianName: u.guardianName || '',
       guardianPhone: u.guardianPhone || '',
+      isModalityLocked: u.isModalityLocked || false,
+      allowedModalities: Array.isArray(u.allowedModalities) ? u.allowedModalities : [],
     })
   }
 
@@ -272,6 +288,8 @@ export default function AdminUsersPage() {
         birthDate: isStudent && editForm.birthDate ? editForm.birthDate : undefined,
         guardianName: isStudent ? editForm.guardianName.trim() : undefined,
         guardianPhone: isStudent ? editForm.guardianPhone.trim() : undefined,
+        isModalityLocked: isStudent ? editForm.isModalityLocked : undefined,
+        allowedModalities: isStudent && editForm.isModalityLocked ? editForm.allowedModalities : undefined,
       })
 
       await adminUsersService.updateUserRoles(editUser.userId, {
@@ -608,6 +626,44 @@ export default function AdminUsersPage() {
                   <Input label="Data de nascimento" type="date" required value={editForm.birthDate} onChange={e => setEditForm(prev => ({ ...prev, birthDate: e.target.value }))} />
                   <Input label="Nome do encarregado" value={editForm.guardianName} onChange={e => setEditForm(prev => ({ ...prev, guardianName: e.target.value }))} />
                   <Input label="Telefone do encarregado" value={editForm.guardianPhone} onChange={e => setEditForm(prev => ({ ...prev, guardianPhone: e.target.value }))} />
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', gridColumn: '1 / -1', marginTop: '0.5rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
+                      <input 
+                        type="checkbox" 
+                        checked={editForm.isModalityLocked || false}
+                        onChange={e => setEditForm(prev => ({ ...prev, isModalityLocked: e.target.checked }))}
+                      />
+                      Bloquear aluno a modalidades específicas
+                    </label>
+                  </div>
+
+                  {editForm.isModalityLocked && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', gridColumn: '1 / -1' }}>
+                      <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Modalidades Permitidas</span>
+                      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', background: 'var(--bg)', padding: '1rem', borderRadius: '0.875rem', border: '1px solid var(--border)' }}>
+                        {availableModalities.map(mod => (
+                          <label key={mod.modalityId} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 'normal' }}>
+                            <input
+                              type="checkbox"
+                              checked={Array.isArray(editForm.allowedModalities) && editForm.allowedModalities.includes(mod.modalityId)}
+                              onChange={() => {
+                                setEditForm(prev => {
+                                  const c = Array.isArray(prev.allowedModalities) ? prev.allowedModalities : []
+                                  return { 
+                                    ...prev, 
+                                    allowedModalities: c.includes(mod.modalityId) ? c.filter(id => id !== mod.modalityId) : [...c, mod.modalityId]
+                                  }
+                                })
+                              }}
+                            />
+                            {mod.modalityName}
+                          </label>
+                        ))}
+                        {availableModalities.length === 0 && <span style={{ fontSize: '0.85rem', color: 'var(--text-h)' }}>Nenhuma modalidade encontrada.</span>}
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
 

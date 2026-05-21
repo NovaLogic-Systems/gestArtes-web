@@ -17,6 +17,7 @@ import { getSessionHistory } from '../../services/coaching'
 import './coaching.css'
 import './history.css'
 import { STUDENT_NAV_ITEMS as NAV_ITEMS } from './studentNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 const PAGE_SIZE = 10
 
@@ -86,7 +87,7 @@ function resolveStatusBadge(status) {
   }
   if (s.includes('pendingapproval') || s.includes('pend')) return { key: 'pending', label: 'Pendente', variant: 'warning' }
   if (s.includes('await') || s.includes('aguarda')) return { key: 'awaitingConfirmation', label: 'Aguarda confirmação', variant: 'warning' }
-  return { key: 'other', label: status || '—', variant: 'neutral' }
+  return { key: 'other', label: 'Estado desconhecido', variant: 'neutral' }
 }
 
 function matchesStatusFilter(session, filterValue) {
@@ -264,7 +265,7 @@ export default function MyHistoryPage() {
       const data = await getSessionHistory()
       setSessions(data)
     } catch (err) {
-      setError(err?.response?.data?.error || 'Não foi possível carregar o histórico.')
+      setError(localizeApiError(err, 'Não foi possível carregar o histórico.'))
     } finally {
       setLoading(false)
     }

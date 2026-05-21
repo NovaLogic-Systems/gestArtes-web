@@ -15,6 +15,7 @@ import Modal from '../../components/ui/Modal'
 import '../admin-studios.css'
 import '../student/marketplace.css'
 import { TEACHER_NAV_ITEMS as NAV_ITEMS } from './teacherNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 const SEARCH_HISTORY_KEY = 'marketplace.search.history'
 const SEARCH_HISTORY_LIMIT = 8
@@ -102,7 +103,7 @@ export default function TeacherMarketplacePage() {
         setListings(listingsResult.value)
       } else {
         setListings([])
-        setError(listingsResult.reason?.response?.data?.error || 'Nao foi possivel carregar o marketplace.')
+        setError(listingsResult.localizeApiError(reason, 'Nao foi possivel carregar o marketplace.'))
       }
 
       if (optionsResult.status === 'fulfilled') {
@@ -113,7 +114,7 @@ export default function TeacherMarketplacePage() {
         setConditions([])
       }
     } catch (requestError) {
-      setError(requestError?.response?.data?.error || 'Nao foi possivel carregar o marketplace.')
+      setError(localizeApiError(requestError, 'Nao foi possivel carregar o marketplace.'))
     } finally {
       setLoading(false)
     }

@@ -22,6 +22,7 @@ import Modal from '../../components/ui/Modal'
 import './DashboardPage.css'
 import './marketplace.css'
 import { STUDENT_NAV_ITEMS as NAV_ITEMS } from './studentNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 const SEARCH_HISTORY_KEY = 'marketplace.search.history'
 const SEARCH_HISTORY_LIMIT = 8
@@ -148,7 +149,7 @@ export default function MarketplacePage() {
         setListings(listingsResult.value)
       } else {
         setListings([])
-        setError(listingsResult.reason?.response?.data?.error || 'Não foi possível carregar o marketplace.')
+        setError(listingsResult.localizeApiError(reason, 'Não foi possível carregar o marketplace.'))
       }
 
       if (optionsResult.status === 'fulfilled') {
@@ -159,7 +160,7 @@ export default function MarketplacePage() {
         setConditions([])
       }
     } catch (requestError) {
-      setError(requestError?.response?.data?.error || 'Não foi possível carregar o marketplace.')
+      setError(localizeApiError(requestError, 'Não foi possível carregar o marketplace.'))
     } finally {
       setLoading(false)
     }

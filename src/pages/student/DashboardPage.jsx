@@ -13,6 +13,7 @@ import NotificationsBell from '../../components/NotificationsBell'
 import './DashboardPage.css'
 import './NotificationsPage.css'
 import { STUDENT_NAV_ITEMS as NAV_ITEMS } from './studentNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 function formatDateLabel(value) {
   if (!value) {
@@ -53,7 +54,15 @@ function resolveBadgeLabel(status) {
     return 'Cancelada'
   }
 
-  return status
+  if (normalized.includes('reject') || normalized.includes('rejeit')) {
+    return 'Rejeitada'
+  }
+
+  if (normalized.includes('final') || normalized.includes('complet')) {
+    return 'Finalizada'
+  }
+
+  return 'Estado desconhecido'
 }
 
 function resolveBadgeClass(status) {
@@ -150,7 +159,7 @@ export default function DashboardPage() {
       const response = await api.get('/student/dashboard')
       setDashboard(response.data ?? null)
     } catch (requestError) {
-      setError(requestError?.response?.data?.error || 'Não foi possível carregar o painel do aluno.')
+      setError(localizeApiError(requestError, 'Não foi possível carregar o painel do aluno.'))
     } finally {
       setLoading(false)
     }

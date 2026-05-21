@@ -106,7 +106,30 @@ a.pill:visited {
 }
 
 .topbar-search, .filter-input {
-  background-color: var(--bg);
+  background-color: #f6f3fa;
+  border: 1px solid #d7ccdf;
+  border-radius: 10px;
+  color: var(--text-h);
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 8px 12px;
+  min-width: 200px;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.topbar-search::placeholder, .filter-input::placeholder {
+  color: rgba(107, 99, 117, 0.7);
+}
+
+.topbar-search:hover, .filter-input:hover {
+  border-color: #b8a8c8;
+}
+
+.topbar-search:focus, .filter-input:focus {
+  outline: none;
+  background-color: #ffffff;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
 }
 
 /* Notifications pill in topbar */
@@ -472,4 +495,29 @@ img {
 .cta.danger-outline:hover:not(:disabled) {
   background: #fee2e2;
   box-shadow: none;
+}
+
+/* Skeleton Pulse/Shimmer Animation */
+@keyframes ui-skeleton-pulse {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Hide legacy inline error and success banners */
+.error-banner,
+.inventory-error-banner,
+.soft-box.error,
+.auth-status-error,
+.submission-error,
+.bk-error,
+.account-success-banner,
+.inventory-success-banner,
+.modal-error,
+.account-error-message,
+.account-success-message {
+  display: none !important;
 }

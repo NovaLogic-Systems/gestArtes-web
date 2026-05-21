@@ -17,6 +17,7 @@ import NotificationsBell from '../../components/NotificationsBell'
 import './DashboardPage.css'
 import './inventory.css'
 import { STUDENT_NAV_ITEMS as NAV_ITEMS } from './studentNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 function formatMoney(value) {
 	const numeric = Number(value)
@@ -169,7 +170,7 @@ export default function RentalRequestsPage() {
 			} catch (requestError) {
 				if (active) {
 					setRentals([])
-					setError(requestError?.response?.data?.error || 'Não foi possível carregar os pedidos de aluguer.')
+					setError(localizeApiError(requestError, 'Não foi possível carregar os pedidos de aluguer.'))
 				}
 			} finally {
 				if (active) {

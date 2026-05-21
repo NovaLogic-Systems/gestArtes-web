@@ -57,7 +57,7 @@ function resolveSessionStatusMeta(statusName) {
   if (key.includes('pend'))                              return { label: 'Aguarda aprovação',  variant: 'warning' }
   if (key.includes('valid'))                             return { label: 'A validar',          variant: 'warning' }
   if (key.includes('schedul') || key.includes('agend'))  return { label: 'Agendada',           variant: 'info'    }
-  return { label: statusName || '—', variant: 'neutral' }
+  return { label: 'Estado desconhecido', variant: 'neutral' }
 }
 
 function normalizeSummary(data) {

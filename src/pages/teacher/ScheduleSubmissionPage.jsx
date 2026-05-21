@@ -11,6 +11,7 @@ import '../admin-studios.css'
 import './AdmissionRequestsPage.css'
 import './ScheduleSubmissionPage.css'
 import { TEACHER_NAV_ITEMS as NAV_ITEMS } from './teacherNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 export default function ScheduleSubmissionPage() {
   const { logout, user } = useAuth()
@@ -158,7 +159,7 @@ export default function ScheduleSubmissionPage() {
       setModalOpen(false)
       await load()
     } catch (err) {
-      const message = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Erro ao reportar ausência.'
+      const message = localizeApiError(err, 'Erro ao reportar ausência.')
       setError(message)
       setToast({ variant: 'danger', title: 'Erro', description: message })
     } finally {
@@ -238,7 +239,7 @@ export default function ScheduleSubmissionPage() {
       setToast({
         variant: 'danger',
         title: 'Erro ao cancelar',
-        description: err?.response?.data?.error || err.message
+        description: localizeApiError(err, 'Erro ao cancelar a ausência.')
       })
     }
   }

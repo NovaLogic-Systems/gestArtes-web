@@ -29,8 +29,8 @@ function LoadingSkeleton({
 						key={index}
 						aria-hidden="true"
 						style={{
-							animation: 'ui-skeleton-pulse 1.2s ease-in-out infinite',
-							background: 'linear-gradient(90deg, var(--social-bg), var(--border), var(--social-bg))',
+							animation: 'ui-skeleton-pulse 1.6s linear infinite',
+							background: 'linear-gradient(90deg, #f5f2f9 25%, #e8e2f0 50%, #f5f2f9 75%)',
 							backgroundSize: '200% 100%',
 							borderRadius:
 								radius ?? (variant === 'circle' ? '999px' : variant === 'text' ? '0.5rem' : '0.9rem'),

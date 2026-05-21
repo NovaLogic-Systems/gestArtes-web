@@ -14,6 +14,7 @@ import { maskEmail, maskPhone } from '../../utils/masking'
 import '../admin-studios.css'
 import '../student/marketplace.css'
 import { ADMIN_NAV_ITEMS as NAV_ITEMS } from './adminNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 function normalizePhone(phoneNumber) {
   return String(phoneNumber || '').replace(/\D/g, '')
@@ -71,7 +72,7 @@ export default function AdminMarketplaceConversationsPage() {
 
       setListings(withContact)
     } catch (requestError) {
-      setError(requestError?.response?.data?.error || 'Não foi possível carregar as conversas do marketplace.')
+      setError(localizeApiError(requestError, 'Não foi possível carregar as conversas do marketplace.'))
       setListings([])
     } finally {
       setLoading(false)

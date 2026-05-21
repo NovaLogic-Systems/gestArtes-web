@@ -15,6 +15,7 @@ import NotificationsBell from '../../components/NotificationsBell'
 import './DashboardPage.css'
 import './lostfound.css'
 import { STUDENT_NAV_ITEMS as NAV_ITEMS } from './studentNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 function formatDateLabel(value) {
 	if (!value) {
@@ -110,7 +111,7 @@ export default function LostFoundPage() {
 			setItems(response.map(normalizeLostFoundItem))
 		} catch (requestError) {
 			setItems([])
-			setError(requestError?.response?.data?.error || 'Não foi possível carregar os itens perdidos e achados.')
+			setError(localizeApiError(requestError, 'Não foi possível carregar os itens perdidos e achados.'))
 		} finally {
 			setLoading(false)
 		}

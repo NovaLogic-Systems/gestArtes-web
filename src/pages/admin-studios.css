@@ -380,16 +380,16 @@ body.studio-page #root {
   color: var(--studio-muted);
 }
 
-.app-shell input,
-.app-shell select,
-.app-shell textarea,
-.app-shell button {
+.studio-page .app-shell input,
+.studio-page .app-shell select,
+.studio-page .app-shell textarea,
+.studio-page .app-shell button {
   font: inherit;
 }
 
-.app-shell input,
-.app-shell select,
-.app-shell textarea {
+.studio-page .app-shell input:not(.topbar-search),
+.studio-page .app-shell select,
+.studio-page .app-shell textarea {
   border: 1px solid var(--studio-field-line);
   border-radius: 10px;
   padding: 10px 11px;
@@ -1134,19 +1134,10 @@ body.studio-page #root {
   }
 }
 
+/* Estilos base de .topbar-search vêm de index.css. Mantemos apenas o
+   ajuste de largura típico do shell admin/teacher. */
 .topbar-search {
-  background: var(--studio-field-bg, #f5f5f5);
-  border: 1px solid var(--studio-field-line, #e0e0e0);
-  border-radius: 10px;
-  color: var(--studio-ink, #1a1a1a);
-  font: inherit;
-  font-size: 0.85rem;
-  padding: 6px 12px;
   width: 220px;
-}
-.topbar-search:focus {
-  outline: 2px solid var(--studio-cta-start, #22c55e);
-  outline-offset: 1px;
 }
 
 @media (max-width: 1024px) {

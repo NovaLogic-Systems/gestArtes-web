@@ -19,6 +19,7 @@ import { resolveMarketplacePhotoUrl } from '../../utils/marketplace-photo-url'
 import '../admin-studios.css'
 import './marketplace-moderation.css'
 import { ADMIN_NAV_ITEMS as navigationItems } from './adminNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 const statusOptions = [
   { value: 'all', label: 'Todos' },
@@ -311,7 +312,7 @@ export default function MarketplaceModerationPage() {
       const payload = await adminMarketplaceService.listListings()
       setListings(Array.isArray(payload) ? payload : [])
     } catch (requestError) {
-      setLoadingError(requestError?.response?.data?.error || 'Não foi possível carregar os anúncios do marketplace.')
+      setLoadingError(localizeApiError(requestError, 'Não foi possível carregar os anúncios do marketplace.'))
       setListings([])
     } finally {
       setLoading(false)
@@ -480,7 +481,7 @@ export default function MarketplaceModerationPage() {
       closeModal()
       await loadListings()
     } catch (requestError) {
-      setError(requestError?.response?.data?.error || 'Não foi possível concluir a ação de moderação.')
+      setError(localizeApiError(requestError, 'Não foi possível concluir a ação de moderação.'))
     } finally {
       setSubmittingAction('')
     }

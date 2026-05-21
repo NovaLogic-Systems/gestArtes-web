@@ -23,6 +23,7 @@ import NotificationsBell from '../../components/NotificationsBell'
 import './DashboardPage.css'
 import './marketplace.css'
 import { STUDENT_NAV_ITEMS as NAV_ITEMS } from './studentNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 function isVisibleListing(listing) {
   const statusName = String(listing?.status?.statusName || listing?.status || '').trim().toLowerCase()
@@ -91,7 +92,7 @@ export default function MyListingsPage() {
       setCategories(options.categories ?? [])
       setConditions(options.conditions ?? [])
     } catch (requestError) {
-      setError(requestError?.response?.data?.error || 'Não foi possível carregar os teus anúncios.')
+      setError(localizeApiError(requestError, 'Não foi possível carregar os teus anúncios.'))
     } finally {
       setLoading(false)
     }
@@ -142,7 +143,7 @@ export default function MyListingsPage() {
       await deleteMarketplaceListing(listing.listingId)
       await loadData()
     } catch (requestError) {
-      setError(requestError?.response?.data?.error || 'Não foi possível apagar o anúncio.')
+      setError(localizeApiError(requestError, 'Não foi possível apagar o anúncio.'))
     }
   }
 

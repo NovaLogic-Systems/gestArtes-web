@@ -11,6 +11,7 @@ import Button from './ui/Button'
 import Badge from './ui/Badge'
 import Modal from './ui/Modal'
 import { canJoinSession } from '../utils/coachingSession'
+import { localizeApiError } from '../utils/apiErrors'
 
 function toNumber(value) {
   const parsed = Number(value)
@@ -37,14 +38,23 @@ const statusMap = {
   pending_teacher: { label: 'Aguarda professor', variant: 'warning' },
   pendingteacher: { label: 'Aguarda professor', variant: 'warning' },
   awaiting_approval: { label: 'Aguarda professor', variant: 'warning' },
+  awaitingapproval: { label: 'Aguarda professor', variant: 'warning' },
+  pending_approval: { label: 'Aguarda professor', variant: 'warning' },
+  pendingapproval: { label: 'Aguarda professor', variant: 'warning' },
   pending_admin: { label: 'Aguarda direção', variant: 'warning' },
   pendingadmin: { label: 'Aguarda direção', variant: 'warning' },
   teacher_approved: { label: 'Aguarda direção', variant: 'warning' },
   teacherapproved: { label: 'Aguarda direção', variant: 'warning' },
   approved: { label: 'Aprovado', variant: 'success' },
+  admin_approved: { label: 'Aprovado', variant: 'success' },
+  adminapproved: { label: 'Aprovado', variant: 'success' },
   rejected: { label: 'Rejeitado', variant: 'danger' },
   not_approved: { label: 'Não aprovado', variant: 'danger' },
   notapproved: { label: 'Não aprovado', variant: 'danger' },
+  teacher_rejected: { label: 'Rejeitado pelo professor', variant: 'danger' },
+  teacherrejected: { label: 'Rejeitado pelo professor', variant: 'danger' },
+  admin_rejected: { label: 'Rejeitado pela direção', variant: 'danger' },
+  adminrejected: { label: 'Rejeitado pela direção', variant: 'danger' },
 }
 
 function isSessionJoinable(status) {
@@ -53,7 +63,7 @@ function isSessionJoinable(status) {
     return false
   }
 
-  const blockedMarkers = ['finaliz', 'validat', 'conclu', 'complete', 'finish', 'closed', 'cancel', 'reject', 'archiv', 'end']
+  const blockedMarkers = ['finaliz', 'validat', 'conclu', 'complete', 'finish', 'closed', 'cancel', 'reject', 'archiv', 'ended']
   if (blockedMarkers.some((marker) => s.includes(marker))) {
     return false
   }
@@ -104,7 +114,7 @@ export default function JoinSessionButton({
   const badgeInfo = userIsEnrolled
     ? { label: 'Já inscrito', variant: 'success' }
     : requestStatus
-      ? (statusMap[String(requestStatus || '').toLowerCase().trim().replace(/ /g, '_')] || { label: requestStatus, variant: 'neutral' })
+      ? (statusMap[String(requestStatus || '').toLowerCase().trim().replace(/ /g, '_')] || { label: 'Estado desconhecido', variant: 'neutral' })
       : null
 
   if (!sessionId || (!joinable && !badgeInfo)) {
@@ -124,13 +134,12 @@ export default function JoinSessionButton({
       onSuccess?.({ ...data, status: newStatus, alreadyExisted: false })
     } catch (err) {
       const status = err?.response?.status
-      const apiMsg = err?.response?.data?.error || err?.response?.data?.message
       if (status === 409) {
         setRequestStatus('pending_teacher')
         setIsModalOpen(false)
         onSuccess?.({ status: 'pending_teacher', alreadyExisted: true })
       } else {
-        setErrorMessage(apiMsg || 'Não foi possível enviar o pedido. Tenta novamente.')
+        setErrorMessage(localizeApiError(err, 'Não foi possível enviar o pedido. Tenta novamente.'))
       }
       onError?.(err)
     } finally {

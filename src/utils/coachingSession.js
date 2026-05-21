@@ -13,7 +13,9 @@ export function isSessionJoinable(sessionStatus) {
     return false
   }
 
-  const blockedMarkers = ['finaliz', 'validat', 'conclu', 'complete', 'finish', 'closed', 'cancel', 'reject', 'archiv', 'end']
+  // 'ended' em vez de 'end' — 'end' é substring de 'pending', e isso fazia
+  // com que sessões em 'Pending_Approval' fossem incorrectamente bloqueadas.
+  const blockedMarkers = ['finaliz', 'validat', 'conclu', 'complete', 'finish', 'closed', 'cancel', 'reject', 'archiv', 'ended']
   if (blockedMarkers.some((marker) => status.includes(marker))) {
     return false
   }

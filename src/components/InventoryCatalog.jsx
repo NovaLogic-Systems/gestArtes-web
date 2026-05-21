@@ -5,6 +5,7 @@ import LoadingSkeleton from './ui/LoadingSkeleton'
 import Modal from './ui/Modal'
 import InventoryItemCard from './InventoryItemCard'
 import { createInventoryRental, listInventoryItems } from '../services/inventory'
+import { localizeApiError } from '../utils/apiErrors'
 
 const PAYMENT_METHOD_OPTIONS = [
   { id: 1, label: 'MB Way' },
@@ -50,7 +51,7 @@ export default function InventoryCatalog({ onRentalCreated, modalClassName = "in
       setItems(data.map(normalizeItem))
     } catch (err) {
       setItems([])
-      setError(err?.response?.data?.error || 'Não foi possível carregar o inventário.')
+      setError(localizeApiError(err, 'Não foi possível carregar o inventário.'))
     } finally {
       setLoading(false)
     }
@@ -117,7 +118,7 @@ export default function InventoryCatalog({ onRentalCreated, modalClassName = "in
       await loadItems()
       if (onRentalCreated) onRentalCreated()
     } catch (err) {
-      setRentalError(err?.response?.data?.error || err?.response?.data?.message || 'Não foi possível criar a reserva.')
+      setRentalError(localizeApiError(err, 'Não foi possível criar a reserva.'))
     } finally {
       setSubmittingRental(false)
     }

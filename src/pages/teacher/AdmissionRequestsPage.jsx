@@ -18,6 +18,7 @@ import NotificationsBell from '../../components/NotificationsBell'
 import '../admin-studios.css'
 import './AdmissionRequestsPage.css'
 import { TEACHER_NAV_ITEMS as NAV_ITEMS } from './teacherNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 function toInteger(value, fallback = 0) {
   const parsed = Number(value)
@@ -105,7 +106,7 @@ function resolveStatusLabel(statusName) {
   }
 
   if (normalized.includes('approve') && normalized.includes('teacher')) {
-    return 'Aguardando gestão'
+    return 'Aguarda gestão'
   }
 
   if (normalized.includes('approve')) {
@@ -116,7 +117,7 @@ function resolveStatusLabel(statusName) {
     return 'Pendente'
   }
 
-  return statusName
+  return 'Estado desconhecido'
 }
 
 function getCapacityState(request) {
@@ -316,7 +317,7 @@ export default function AdmissionRequestsPage() {
       setRequests(normalizeRequestsPayload(response.data))
     } catch (requestsError) {
       setRequests([])
-      setError(requestsError?.response?.data?.error || 'Não foi possível carregar os pedidos de admissão.')
+      setError(localizeApiError(requestsError, 'Não foi possível carregar os pedidos de admissão.'))
     } finally {
       setLoading(false)
     }
@@ -405,7 +406,7 @@ export default function AdmissionRequestsPage() {
         variant: 'success',
       })
     } catch (requestError) {
-      setReviewError(requestError?.response?.data?.error || 'Não foi possível guardar a decisão.')
+      setReviewError(localizeApiError(requestError, 'Não foi possível guardar a decisão.'))
     } finally {
       setSaving(false)
     }

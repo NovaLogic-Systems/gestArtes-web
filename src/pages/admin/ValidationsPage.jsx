@@ -771,8 +771,7 @@ function ValidationsPage() {
           {activeTab === 'joins' ? (
             <article className="panel">
               <div className="panel-header">
-                <h3>Pedidos de adesão (Duo/Grupo)</h3>
-                <p className="panel-subtle">Estes pedidos já foram aprovados pelo professor e aguardam a validação final da gestão.</p>
+                <h3>Pedidos de adesão</h3>
               </div>
 
               {loadingJoinRequests ? (

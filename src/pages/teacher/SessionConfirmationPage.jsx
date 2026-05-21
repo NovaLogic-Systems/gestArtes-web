@@ -11,6 +11,7 @@ import '../admin-studios.css'
 import NotificationsBell from '../../components/NotificationsBell'
 import './SessionConfirmationPage.css'
 import { TEACHER_NAV_ITEMS as NAV_ITEMS } from './teacherNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 const NO_SHOW_STATUSES = new Set(['no_show', 'noshow', 'no-show'])
 const ATTENDANCE_CONFIRMED_STATUSES = new Set(['present', 'presente', 'confirmed', 'confirmado', 'attended'])
@@ -169,7 +170,7 @@ export default function SessionConfirmationPage() {
       setToast({ variant: 'success', title: 'Sessão confirmada', description: 'Conclusão da sessão confirmada. A gestão será notificada.' })
       setSessions((prev) => prev.filter((s) => s.sessionId !== sessionId))
     } catch (err) {
-      const msg = err?.response?.data?.error || 'Não foi possível confirmar a sessão.'
+      const msg = localizeApiError(err, 'Não foi possível confirmar a sessão.')
       setToast({ variant: 'danger', title: 'Erro', description: msg })
     } finally {
       setConfirmingSession(null)
@@ -222,7 +223,7 @@ export default function SessionConfirmationPage() {
       )
       setNoShowModal(null)
     } catch (err) {
-      const msg = err?.response?.data?.error || 'Não foi possível registar a falta. Tenta novamente.'
+      const msg = localizeApiError(err, 'Não foi possível registar a falta. Tenta novamente.')
       setNoShowRemarksError(msg)
     } finally {
       setNoShowSubmitting(false)

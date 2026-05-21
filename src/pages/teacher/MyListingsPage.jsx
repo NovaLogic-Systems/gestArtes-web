@@ -16,6 +16,7 @@ import {
 import '../admin-studios.css'
 import '../student/marketplace.css'
 import { TEACHER_NAV_ITEMS as NAV_ITEMS } from './teacherNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 function isVisibleListing(listing) {
   const statusName = String(listing?.status?.statusName || listing?.status || '').trim().toLowerCase()
@@ -85,7 +86,7 @@ export default function TeacherMarketplaceListingsPage() {
       setCategories(options.categories ?? [])
       setConditions(options.conditions ?? [])
     } catch (requestError) {
-      setError(requestError?.response?.data?.error || 'Nao foi possivel carregar os teus anuncios.')
+      setError(localizeApiError(requestError, 'Nao foi possivel carregar os teus anuncios.'))
     } finally {
       setLoading(false)
     }
@@ -139,7 +140,7 @@ export default function TeacherMarketplaceListingsPage() {
       await deleteMarketplaceListing(listing.listingId)
       await loadData()
     } catch (requestError) {
-      setError(requestError?.response?.data?.error || 'Nao foi possivel apagar o anuncio.')
+      setError(localizeApiError(requestError, 'Nao foi possivel apagar o anuncio.'))
     }
   }
 

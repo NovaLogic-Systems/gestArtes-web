@@ -17,6 +17,7 @@ import NotificationsBell from '../../components/NotificationsBell'
 import '../admin-studios.css'
 import './TeacherCoachingPage.css'
 import { TEACHER_NAV_ITEMS as NAV_ITEMS } from './teacherNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 function toInteger(value, fallback = 0) {
   const parsed = Number(value)
@@ -52,10 +53,10 @@ function resolveStatusLabel(statusName) {
   const n = String(statusName || '').trim().toLowerCase()
   if (!n) return 'Pendente'
   if (n.includes('reject') || n.includes('rejeit')) return 'Rejeitado'
-  if (n.includes('approve') && n.includes('teacher')) return 'Aguardando gestão'
+  if (n.includes('approve') && n.includes('teacher')) return 'Aguarda gestão'
   if (n.includes('approve')) return 'Aprovado'
   if (n.includes('pend')) return 'Pendente'
-  return statusName
+  return 'Estado desconhecido'
 }
 
 function getCapacityState(request) {
@@ -221,7 +222,7 @@ export default function TeacherCoachingPage() {
         variant: 'success',
       })
     } catch (err) {
-      setReviewError(err?.response?.data?.error || 'Não foi possível guardar a decisão.')
+      setReviewError(localizeApiError(err, 'Não foi possível guardar a decisão.'))
     } finally {
       setSaving(false)
     }

@@ -22,6 +22,7 @@ import '../admin-studios.css'
 import './marketplace-moderation.css'
 import './admin-inventory.css'
 import { ADMIN_NAV_ITEMS as navigationItems } from './adminNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 const itemStatusOptions = [
   { value: 'all', label: 'Todos' },
@@ -164,7 +165,7 @@ function getRentalStatusLabel(status) {
   }
 
   if (normalized.includes('awaiting')) {
-    return 'Aguardando aprovação'
+    return 'A aguardar aprovação'
   }
 
   if (normalized.includes('pending')) {
@@ -270,7 +271,7 @@ export default function AdminInventoryPage() {
       setRentals(Array.isArray(nextRentals) ? nextRentals : [])
       setItems(Array.isArray(nextItems) ? nextItems : [])
     } catch (requestError) {
-      setLoadingError(requestError?.response?.data?.error || 'Não foi possível carregar os dados do inventário.')
+      setLoadingError(localizeApiError(requestError, 'Não foi possível carregar os dados do inventário.'))
       setRentals([])
       setItems([])
     } finally {
@@ -576,7 +577,7 @@ export default function AdminInventoryPage() {
       closeItemModal()
       await loadInventory()
     } catch (requestError) {
-      setError(requestError?.response?.data?.error || 'Não foi possível guardar o artigo do inventário.')
+      setError(localizeApiError(requestError, 'Não foi possível guardar o artigo do inventário.'))
     } finally {
       setSubmittingAction('')
     }
@@ -603,7 +604,7 @@ export default function AdminInventoryPage() {
       closeItemModal()
       await loadInventory()
     } catch (requestError) {
-      setError(requestError?.response?.data?.error || 'Não foi possível remover o artigo.')
+      setError(localizeApiError(requestError, 'Não foi possível remover o artigo.'))
     } finally {
       setSubmittingAction('')
     }
@@ -629,7 +630,7 @@ export default function AdminInventoryPage() {
       closeRentalModal()
       await loadInventory()
     } catch (requestError) {
-      setError(requestError?.response?.data?.error || 'Não foi possível validar a devolução.')
+      setError(localizeApiError(requestError, 'Não foi possível validar a devolução.'))
     } finally {
       setSubmittingAction('')
     }
@@ -662,7 +663,7 @@ export default function AdminInventoryPage() {
       closeRentalModal()
       await loadInventory()
     } catch (requestError) {
-      setError(requestError?.response?.data?.error || 'Não foi possível rejeitar a devolução.')
+      setError(localizeApiError(requestError, 'Não foi possível rejeitar a devolução.'))
     } finally {
       setSubmittingAction('')
     }
@@ -683,7 +684,7 @@ export default function AdminInventoryPage() {
       setNotice(`Pedido ${rental.reference} aprovado.`)
       await loadInventory()
     } catch (requestError) {
-      setError(requestError?.response?.data?.error || 'Não foi possível aprovar o pedido.')
+      setError(localizeApiError(requestError, 'Não foi possível aprovar o pedido.'))
     } finally {
       setSubmittingAction('')
     }
@@ -704,7 +705,7 @@ export default function AdminInventoryPage() {
       setNotice(`Pedido ${rental.reference} rejeitado.`)
       await loadInventory()
     } catch (requestError) {
-      setError(requestError?.response?.data?.error || 'Não foi possível rejeitar o pedido.')
+      setError(localizeApiError(requestError, 'Não foi possível rejeitar o pedido.'))
     } finally {
       setSubmittingAction('')
     }

@@ -15,6 +15,7 @@ import NotificationsBell from '../../components/NotificationsBell'
 import UnavailabilityModal from '../../components/teacher/UnavailabilityModal'
 import JoinSessionButton from '../../components/JoinSessionButton'
 import { fetchAbsenceDetails } from '../../services/teacherAvailability'
+import { localizeApiError } from '../../utils/apiErrors'
 import api from '../../services/api'
 import {
   createBooking,
@@ -67,7 +68,7 @@ function resolveStatusBadge(status) {
     return { label: 'Agendada', cls: 'ok' }
   }
   if (s.includes('active') || s.includes('ativa')) return { label: 'Ativa', cls: 'ok' }
-  return { label: status || '—', cls: 'info' }
+  return { label: 'Estado desconhecido', cls: 'info' }
 }
 
 function resolveSlotClass(status) {
@@ -506,7 +507,15 @@ export default function CoachingPage() {
   const [slotsLoading, setSlotsLoading] = useState(true)
   const [slotsError, setSlotsError] = useState('')
   const [myJoinRequests, setMyJoinRequests] = useState([])
+  const [upcomingSchedule, setUpcomingSchedule] = useState([])
+  const [upcomingLoading, setUpcomingLoading] = useState(true)
   const [toast, setToast] = useState(null)
+  
+  const [studentProfile, setStudentProfile] = useState(null)
+
+  useEffect(() => {
+    api.get('/student/profile').then(res => setStudentProfile(res.data.profile)).catch(console.error)
+  }, [])
 
   useEffect(() => {
     if (!toast) return
@@ -522,7 +531,15 @@ export default function CoachingPage() {
   const loadMyJoinRequests = useCallback(async () => {
     try {
       const { data } = await api.get('/coaching/join-requests/my')
-      setMyJoinRequests(Array.isArray(data) ? data : [])
+      // O backend devolve { requests: [...] }, mas durante algum tempo o cliente
+      // assumia que `data` já era um array — ficava sempre vazio e o badge de
+      // estado do pedido (Aprovado/Aguarda...) nunca aparecia.
+      const items = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.requests)
+          ? data.requests
+          : []
+      setMyJoinRequests(items)
     } catch {
       setMyJoinRequests([])
     }
@@ -530,9 +547,33 @@ export default function CoachingPage() {
 
   useEffect(() => { void loadMyJoinRequests() }, [loadMyJoinRequests])
 
+  const loadUpcomingSchedule = useCallback(async () => {
+    setUpcomingLoading(true)
+    try {
+      const { data } = await api.get('/student/schedule/upcoming')
+      const items = Array.isArray(data?.schedule)
+        ? data.schedule
+        : Array.isArray(data)
+          ? data
+          : []
+      setUpcomingSchedule(items)
+    } catch {
+      setUpcomingSchedule([])
+    } finally {
+      setUpcomingLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { void loadUpcomingSchedule() }, [loadUpcomingSchedule])
+
   const myJoinRequestBySession = useMemo(() => {
     const map = new Map()
-    for (const r of myJoinRequests) {
+    // O backend devolve os pedidos por RequestedAt desc (o mais recente primeiro).
+    // Como `Map.set` sobrescreve, percorremos de trás para a frente para que
+    // o estado mais recente fique no mapa quando o aluno teve vários pedidos
+    // para a mesma sessão (e.g., rejeitado seguido de novo pedido aprovado).
+    for (let i = myJoinRequests.length - 1; i >= 0; i--) {
+      const r = myJoinRequests[i]
       if (r?.sessionId != null) map.set(Number(r.sessionId), r.status)
     }
     return map
@@ -548,7 +589,7 @@ export default function CoachingPage() {
       })
       setSlotsData(data)
     } catch (err) {
-      setSlotsError(err?.response?.data?.error || 'Não foi possível carregar os horários.')
+      setSlotsError(localizeApiError(err, 'Não foi possível carregar os horários.'))
     } finally {
       setSlotsLoading(false)
     }
@@ -671,7 +712,7 @@ export default function CoachingPage() {
       setBookingOpen(false)
       await loadSlots()
     } catch (err) {
-      setBookingError(err?.response?.data?.error || 'Não foi possível submeter a marcação.')
+      setBookingError(localizeApiError(err, 'Não foi possível submeter a marcação.'))
     } finally {
       setBookingSaving(false)
     }
@@ -943,6 +984,7 @@ export default function CoachingPage() {
                                         const startStr = item.start
                                         const endStr = item.end
                                         const hasSpots = bs.maxParticipants && bs.enrolledCount < bs.maxParticipants
+                                        const isLockedOut = studentProfile?.isModalityLocked && !studentProfile?.allowedModalities?.includes(bs.modalityId)
                                         return (
                                           <div key={bs.sessionId} className={`slot ${slotCls}`} style={{ marginTop: ii > 0 ? 6 : 0 }}>
                                             <strong>{startStr}–{endStr}</strong>
@@ -955,16 +997,21 @@ export default function CoachingPage() {
                                             </small>
                                             {hasSpots && bs.maxParticipants > 1 ? (
                                               <div style={{ marginTop: 6 }}>
-                                                <JoinSessionButton
-                                                  sessionId={bs.sessionId}
-                                                  sessionStatus={bs.status}
-                                                  sessionStartTime={bs.startTime}
-                                                  sessionEndTime={bs.endTime}
-                                                  currentParticipants={bs.enrolledCount}
-                                                  maxParticipants={bs.maxParticipants}
-                                                  userIsEnrolled={bs.userIsEnrolled}
-                                                  initialRequestStatus={myJoinRequestBySession.get(Number(bs.sessionId)) ?? null}
-                                                  onSuccess={(result) => {
+                                                {isLockedOut ? (
+                                                  <div style={{ fontSize: '0.8rem', color: 'var(--text-danger)', marginTop: '0.25rem' }}>
+                                                    Sessão bloqueada à sua conta
+                                                  </div>
+                                                ) : (
+                                                  <JoinSessionButton
+                                                    sessionId={bs.sessionId}
+                                                    sessionStatus={bs.status}
+                                                    sessionStartTime={bs.startTime}
+                                                    sessionEndTime={bs.endTime}
+                                                    currentParticipants={bs.enrolledCount}
+                                                    maxParticipants={bs.maxParticipants}
+                                                    userIsEnrolled={bs.userIsEnrolled}
+                                                    initialRequestStatus={myJoinRequestBySession.get(Number(bs.sessionId)) ?? null}
+                                                    onSuccess={(result) => {
                                                     void loadMyJoinRequests()
                                                     void loadSlots()
                                                     setToast(result?.alreadyExisted
@@ -974,10 +1021,11 @@ export default function CoachingPage() {
                                                   onError={(err) => {
                                                     const status = err?.response?.status
                                                     if (status !== 409) {
-                                                      setToast({ variant: 'danger', title: 'Erro', description: err?.response?.data?.error || 'Não foi possível enviar o pedido.' })
+                                                      setToast({ variant: 'danger', title: 'Erro', description: localizeApiError(err, 'Não foi possível enviar o pedido.') })
                                                     }
                                                   }}
                                                 />
+                                                )}
                                               </div>
                                             ) : null}
                                             {slotCls === 'pending-teacher' ? (
@@ -1008,6 +1056,48 @@ export default function CoachingPage() {
                           </tr>
                         ))
                       )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </article>
+
+            {/* ── Próximas aulas (sessões em que o aluno está inscrito) ── */}
+            <article className="panel">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <h3 style={{ margin: 0 }}>Próximas aulas</h3>
+                <small style={{ color: 'var(--text)' }}>Sessões em que estás inscrito</small>
+              </div>
+
+              {upcomingLoading ? (
+                <p className="panel-subtle">A carregar sessões...</p>
+              ) : upcomingSchedule.length === 0 ? (
+                <p className="empty">Ainda não estás inscrito em nenhuma sessão futura.</p>
+              ) : (
+                <div className="table-scroll" role="region" aria-label="Próximas aulas">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th scope="col">Data</th>
+                        <th scope="col">Hora</th>
+                        <th scope="col">Professor</th>
+                        <th scope="col">Estúdio</th>
+                        <th scope="col">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {upcomingSchedule.slice(0, 8).map((row) => {
+                        const badge = resolveStatusBadge(row.status)
+                        return (
+                          <tr key={`${row.sessionId}-${row.date}-${row.time}`}>
+                            <td>{formatDatePT(row.date) || '—'}</td>
+                            <td>{row.time || '—'}</td>
+                            <td>{row.teacher || 'Por atribuir'}</td>
+                            <td>{row.studio || '—'}</td>
+                            <td><span className={`badge ${badge.cls}`}>{badge.label}</span></td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>

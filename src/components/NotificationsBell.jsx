@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import notificationService, { formatNotificationDate, invalidateNotificationCache } from '../services/notificationService'
+import notificationService, { formatNotificationDate, invalidateNotificationCache, resolveNotificationLink } from '../services/notificationService'
 import { subscribeToNotifications } from '../services/realtimeNotifications'
 import Toast from './ui/Toast'
 import RoleSwitcher from './RoleSwitcher'
@@ -16,27 +16,7 @@ function BellGlyph({ unreadCount }) {
   )
 }
 
-function getActionUrl(notification, pageLink) {
-  const base = pageLink.startsWith('/teacher/') ? '/teacher'
-    : pageLink.startsWith('/admin/') ? '/admin'
-    : '/student'
-
-  switch (notification.type) {
-    case 'join_request':
-      if (base === '/teacher') return '/teacher/admission-requests'
-      if (base === '/admin') return '/admin/validations'
-      return '/student/coaching'
-    case 'coaching':
-      if (base === '/admin') return '/admin/validations'
-      return `${base}/coaching`
-    case 'schedule':
-      if (base === '/admin') return '/admin/validations'
-      if (base === '/teacher') return '/teacher/schedule'
-      return '/student/coaching'
-    case 'marketplace': return `${base}/marketplace`
-    default: return pageLink
-  }
-}
+const getActionUrl = resolveNotificationLink
 
 function shouldReplaceNotification(current, incoming) {
   if (!incoming) {
@@ -230,7 +210,9 @@ export default function NotificationsBell({
                          notification.type === 'marketplace' ? '🛒' :
                          notification.type === 'schedule' ? '📅' :
                          notification.type === 'join_request' ? '📋' :
-                         notification.type === 'penalty' ? '⚠️' : '🔔'}
+                         notification.type === 'penalty' ? '⚠️' :
+                         notification.type === 'inventory' ? '📦' :
+                         notification.type === 'account' ? '👤' : '🔔'}
                       </span>
                       <div className="notifications-item-text">
                         <strong>{notification.title}</strong>

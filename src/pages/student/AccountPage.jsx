@@ -19,6 +19,7 @@ import NotificationsBell from '../../components/NotificationsBell'
 import './DashboardPage.css'
 import './account.css'
 import { STUDENT_NAV_ITEMS as NAV_ITEMS } from './studentNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 function formatDateLabel(value) {
 	if (!value) {
@@ -142,7 +143,7 @@ export default function AccountPage() {
 		} catch (requestError) {
 			setAccount(null)
 			setPhoneNumber('')
-			setError(requestError?.response?.data?.error || 'Não foi possível carregar a conta do aluno.')
+			setError(localizeApiError(requestError, 'Não foi possível carregar a conta do aluno.'))
 		} finally {
 			setLoading(false)
 		}
@@ -195,7 +196,7 @@ export default function AccountPage() {
 
 			toast.success('Número de telemóvel atualizado com sucesso.')
 		} catch (requestError) {
-			setPhoneError(requestError?.response?.data?.error || 'Não foi possível atualizar o número de telemóvel.')
+			setPhoneError(localizeApiError(requestError, 'Não foi possível atualizar o número de telemóvel.'))
 		} finally {
 			setPhoneSaving(false)
 		}
@@ -236,7 +237,7 @@ export default function AccountPage() {
 			closePasswordModal()
 			toast.success('Password atualizada com sucesso.')
 		} catch (requestError) {
-			setPasswordError(requestError?.response?.data?.error || 'Não foi possível alterar a password.')
+			setPasswordError(localizeApiError(requestError, 'Não foi possível alterar a password.'))
 		} finally {
 			setPasswordSaving(false)
 		}

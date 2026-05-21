@@ -7,6 +7,8 @@ const TYPE_LABELS = {
   schedule: 'Agenda',
   penalty: 'Penalização',
   join_request: 'Pedidos de adesão',
+  inventory: 'Inventário',
+  account: 'Conta',
 }
 
 const TYPE_ALIASES = {
@@ -14,7 +16,14 @@ const TYPE_ALIASES = {
   session_validation_requested: 'coaching',
   join_request_reviewed: 'join_request',
   marketplace_sale: 'marketplace',
-  inventory_due_return: 'penalty',
+  inventory_due_return: 'inventory',
+  inventory_rental_created: 'inventory',
+  inventory_rental_approved: 'inventory',
+  inventory_rental_rejected: 'inventory',
+  inventory_rental_returned: 'inventory',
+  rental: 'inventory',
+  password_reset: 'account',
+  account_updated: 'account',
 }
 
 const NOTIFICATION_CACHE_TTL_MS = 15000
@@ -58,7 +67,19 @@ function inferType(item) {
     return 'join_request'
   }
 
-  const text = `${item?.title || ''} ${item?.message || ''}`.toLowerCase()
+  const text = `${item?.title || ''} ${item?.message || ''}`
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+
+  if (text.includes('adesao') || text.includes('inscricao') || text.includes('join request')) {
+    return 'join_request'
+  }
+
+  if (text.includes('inventario') || text.includes('aluguer') || text.includes('rental') || text.includes('devolucao') || text.includes('reserva de artigo')) {
+    return 'inventory'
+  }
+
   if (text.includes('coaching') || text.includes('sessao') || text.includes('aula')) {
     return 'coaching'
   }
@@ -67,7 +88,7 @@ function inferType(item) {
     return 'marketplace'
   }
 
-  if (text.includes('agenda') || text.includes('horario') || text.includes('schedule')) {
+  if (text.includes('agenda') || text.includes('horario') || text.includes('schedule') || text.includes('disponibilidade') || text.includes('ausencia')) {
     return 'schedule'
   }
 
@@ -75,11 +96,55 @@ function inferType(item) {
     return 'penalty'
   }
 
-  if (text.includes('adesao') || text.includes('inscricao') || text.includes('join request')) {
-    return 'join_request'
+  if (text.includes('password') || text.includes('palavra-passe') || text.includes('conta')) {
+    return 'account'
   }
 
   return 'system'
+}
+
+/**
+ * Resolve a URL adequada para uma notificação, em função do tipo e da
+ * página onde estamos (que determina o "espaço" — student/teacher/admin).
+ *
+ * @param {object} notification
+ * @param {string} pageLink fallback (e.g. '/student/notifications')
+ * @returns {string} caminho destino
+ */
+export function resolveNotificationLink(notification, pageLink = '/student/notifications') {
+  const base = pageLink.startsWith('/teacher/') ? '/teacher'
+    : pageLink.startsWith('/admin/') ? '/admin'
+    : '/student'
+
+  switch (notification?.type) {
+    case 'join_request':
+      if (base === '/teacher') return '/teacher/admission-requests'
+      if (base === '/admin') return '/admin/validations'
+      return '/student/coaching'
+    case 'coaching':
+      if (base === '/admin') return '/admin/validations'
+      return `${base}/coaching`
+    case 'schedule':
+      if (base === '/admin') return '/admin/validations'
+      if (base === '/teacher') return '/teacher/schedule'
+      return '/student/coaching'
+    case 'marketplace':
+      return `${base}/marketplace`
+    case 'inventory':
+      if (base === '/admin') return '/admin/inventory'
+      if (base === '/teacher') return '/teacher/inventory'
+      // Aluno: notificações de inventário são, na prática, sobre os seus
+      // pedidos de aluguer (criar/aprovar/rejeitar/devolver).
+      return '/student/rentals'
+    case 'penalty':
+      if (base === '/admin') return '/admin/inventory'
+      if (base === '/teacher') return '/teacher/inventory'
+      return '/student/rentals'
+    case 'account':
+      return `${base}/account`
+    default:
+      return pageLink
+  }
 }
 
 export function formatNotificationDate(value) {

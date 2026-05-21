@@ -46,6 +46,7 @@ function Toast({
 				gap: '0.75rem',
 				maxWidth: '24rem',
 				padding: '1rem',
+				pointerEvents: 'auto',
 				...style,
 			}}
 		>
@@ -104,7 +105,26 @@ function Toast({
 		return content
 	}
 
-	return createPortal(content, document.body)
+	let container = document.getElementById('ui-toast-container')
+	if (!container) {
+		container = document.createElement('div')
+		container.id = 'ui-toast-container'
+		Object.assign(container.style, {
+			position: 'fixed',
+			bottom: '1.5rem',
+			right: '1.5rem',
+			zIndex: '9999',
+			display: 'flex',
+			flexDirection: 'column',
+			gap: '0.75rem',
+			pointerEvents: 'none',
+			maxWidth: '24rem',
+			width: 'calc(100vw - 3rem)',
+		})
+		document.body.appendChild(container)
+	}
+
+	return createPortal(content, container)
 }
 
 export default Toast

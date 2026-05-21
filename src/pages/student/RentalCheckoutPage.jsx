@@ -16,6 +16,7 @@ import { createInventoryRental, getInventoryItemById } from '../../services/inve
 import './DashboardPage.css'
 import './inventory.css'
 import { STUDENT_NAV_ITEMS as NAV_ITEMS } from './studentNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 const DEFAULT_PAYMENT_METHOD_ID = 1
 
@@ -130,7 +131,7 @@ export default function RentalCheckoutPage() {
 			} catch (requestError) {
 				if (active) {
 					setItem(null)
-					setError(requestError?.response?.data?.error || 'Não foi possível carregar o artigo selecionado.')
+					setError(localizeApiError(requestError, 'Não foi possível carregar o artigo selecionado.'))
 				}
 			} finally {
 				if (active) {
@@ -182,7 +183,7 @@ export default function RentalCheckoutPage() {
 				},
 			})
 		} catch (requestError) {
-			setError(requestError?.response?.data?.error || 'Não foi possível submeter o pedido de aluguer.')
+			setError(localizeApiError(requestError, 'Não foi possível submeter o pedido de aluguer.'))
 		} finally {
 			setSaving(false)
 		}

@@ -21,6 +21,7 @@ import { fetchAbsenceDetails } from '../../services/teacherAvailability'
 import './coaching.css'
 import { STUDENT_NAV_ITEMS as NAV_ITEMS } from './studentNav'
 import { canJoinSession } from '../../utils/coachingSession'
+import { localizeApiError } from '../../utils/apiErrors'
 
 const STORAGE_KEY = 'coaching_map_filters'
 
@@ -150,7 +151,7 @@ function CoachingMapPage() {
       })
       setSlotsData(data)
     } catch (err) {
-      setError(err?.response?.data?.error || 'Sem sessões disponíveis para esta semana.')
+      setError(localizeApiError(err, 'Sem sessões disponíveis para esta semana.'))
       setSlotsData(null)
     } finally {
       setLoading(false)
@@ -279,7 +280,7 @@ function CoachingMapPage() {
       setJoinSuccess('Pedido de marcação enviado para validação.')
       await loadMap()
     } catch (err) {
-      setBookingError(err?.response?.data?.error || 'Não foi possível submeter a marcação.')
+      setBookingError(localizeApiError(err, 'Não foi possível submeter a marcação.'))
     } finally {
       setBookingSaving(false)
     }
@@ -495,7 +496,7 @@ function CoachingMapPage() {
                                                     className="slot-btn primary"
                                                     onClick={() => { setJoiningSession({ ...sess, teacherName: teacherName(win.teacherId), modalityName: modName }); setJoinError(''); setJoinSuccess('') }}
                                                   >
-                                                    Juntar
+                                                    Aderir
                                                   </button>
                                                 </div>
                                               ) : null}
@@ -588,7 +589,7 @@ function CoachingMapPage() {
                   if (status === 409) {
                     setJoinError('Já estás inscrito nesta sessão.');
                   } else {
-                    setJoinError(err?.response?.data?.error || err?.response?.data?.message || 'Erro ao enviar pedido.')
+                    setJoinError(localizeApiError(err, 'Erro ao enviar pedido.'))
                   }
                 }
                 finally { setJoinLoading(false) }

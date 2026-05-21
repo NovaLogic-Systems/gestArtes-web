@@ -80,7 +80,11 @@ function resolveStatusLabel(status) {
     return 'Ativo'
   }
 
-  return statusName
+  if (/remov|hidden|inactive|inativ/i.test(statusName)) {
+    return 'Inativo'
+  }
+
+  return 'Estado desconhecido'
 }
 
 export default function ListingCard({

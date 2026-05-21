@@ -5,7 +5,9 @@
  * @project GestArtes - Projeto 50+10 para Entartes
  */
 
+import { useState, useEffect } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import Toast from './components/ui/Toast'
 import ProtectedRoute from './components/ProtectedRoute'
 import ValidationsPage from './pages/admin/ValidationsPage'
 import { useAuth } from './hooks/useAuth'
@@ -198,7 +200,107 @@ const CoachingPage = () => <CoachingStudentPage />
 const AdminDashboard = () => <AdminDashboardPage />
 
 function App() {
+  const [globalToasts, setGlobalToasts] = useState([])
+  const location = useLocation()
+
+  useEffect(() => {
+    const addToast = (text, type = 'danger') => {
+      if (!text || !text.trim()) return
+      const cleanText = text.trim()
+
+      const id = Date.now() + Math.random()
+
+      setGlobalToasts((prev) => {
+        const isDuplicate = prev.some((t) => t.description === cleanText && Date.now() - t.id < 2000)
+        if (isDuplicate) return prev
+
+        setTimeout(() => {
+          setGlobalToasts((current) => current.filter((t) => t.id !== id))
+        }, 5000)
+
+        return [
+          ...prev,
+          {
+            id,
+            variant: type,
+            title: type === 'success' ? 'Sucesso' : 'Erro',
+            description: cleanText,
+          },
+        ]
+      })
+    }
+
+    const selectors = [
+      '.error-banner',
+      '.inventory-error-banner',
+      '.soft-box.error',
+      '.auth-status-error',
+      '.submission-error',
+      '.bk-error',
+      '.account-success-banner',
+      '.inventory-success-banner',
+      '.modal-error',
+      '.account-error-message',
+      '.account-success-message',
+    ]
+
+    const checkElement = (el) => {
+      if (!el || !el.matches) return
+
+      const matchedSelector = selectors.find((sel) => el.matches(sel))
+      if (matchedSelector) {
+        const text = el.textContent || ''
+        const isSuccess = matchedSelector.includes('success') || matchedSelector.includes('message')
+        addToast(text, isSuccess ? 'success' : 'danger')
+      }
+    }
+
+    // Scan existing elements
+    document.querySelectorAll(selectors.join(',')).forEach(checkElement)
+
+    // Observe changes in body
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            checkElement(node)
+            selectors.forEach((sel) => {
+              node.querySelectorAll(sel).forEach(checkElement)
+            })
+          }
+        })
+
+        if (mutation.type === 'characterData' || mutation.type === 'childList') {
+          const parent = mutation.target.parentElement
+          if (parent) {
+            selectors.forEach((sel) => {
+              const closest = parent.closest(sel)
+              if (closest) {
+                checkElement(closest)
+              }
+            })
+          }
+        }
+      })
+    })
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    })
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [location.pathname])
+
+  const handleCloseToast = (id) => {
+    setGlobalToasts((current) => current.filter((t) => t.id !== id))
+  }
+
   return (
+    <>
     <Routes>
       <Route path="/" element={<Navigate to="/login" replace />} />
 
@@ -258,6 +360,16 @@ function App() {
 
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
+    {globalToasts.map((t) => (
+      <Toast
+        key={t.id}
+        variant={t.variant}
+        title={t.title}
+        description={t.description}
+        onClose={() => handleCloseToast(t.id)}
+      />
+    ))}
+    </>
   )
 }
 

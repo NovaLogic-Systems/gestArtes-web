@@ -27,10 +27,10 @@ function resolveStatusLabel(status) {
   const normalized = String(status || '').trim().toLowerCase()
   if (!normalized) return 'Pendente'
   if (normalized.includes('reject') || normalized.includes('rejeit')) return 'Rejeitado'
-  if (normalized.includes('approve') && normalized.includes('teacher')) return 'Aguardando gestão'
+  if (normalized.includes('approve') && normalized.includes('teacher')) return 'Aguarda gestão'
   if (normalized.includes('approve') || normalized.includes('admin')) return 'Aprovado'
   if (normalized.includes('pend')) return 'Pendente'
-  return status
+  return 'Estado desconhecido'
 }
 
 export default function JoinRequestsTeacherView() {
@@ -104,7 +104,7 @@ export default function JoinRequestsTeacherView() {
           return {
             ...req,
             status: decision === 'approve' ? 'PendingAdmin' : 'Rejected',
-            statusName: decision === 'approve' ? 'Aguardando gestão' : 'Rejeitado'
+            statusName: decision === 'approve' ? 'Aguarda gestão' : 'Rejeitado'
           }
         }
         return req
