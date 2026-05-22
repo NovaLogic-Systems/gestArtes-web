@@ -221,30 +221,31 @@ export default function NotificationsBell({
                       </div>
                     </div>
                     <div className="notifications-item-actions">
-                      {!notification.isRead && (
-                        <button
-                          type="button"
-                          className="notifications-mark-read-btn"
-                          aria-label="Marcar como lida"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleMarkAsRead(notification)
-                          }}
-                          title="Marcar como lida"
-                        >
-                          ✓
-                        </button>
-                      )}
                       <button
                         type="button"
                         className="notifications-dismiss-btn"
                         aria-label="Dispensar notificação"
+                        title="Dispensar"
                         onClick={(e) => {
                           e.stopPropagation()
                           handleDismiss(notification.id)
                         }}
                       >
-                        ×
+                        <svg
+                          viewBox="0 0 16 16"
+                          width="10"
+                          height="10"
+                          aria-hidden="true"
+                          focusable="false"
+                        >
+                          <path
+                            d="M3 3 L13 13 M13 3 L3 13"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            fill="none"
+                          />
+                        </svg>
                       </button>
                     </div>
                   </div>

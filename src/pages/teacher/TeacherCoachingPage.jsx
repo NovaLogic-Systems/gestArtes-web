@@ -319,7 +319,10 @@ export default function TeacherCoachingPage() {
                   Estudantes que pediram para ingressar nas tuas sessões de coaching. Clica num pedido para rever e decidir.
                 </p>
               </div>
-              <Badge variant="info" size="sm">{filteredRequests.length} visíveis</Badge>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Badge variant="info" size="sm">{filteredRequests.length} visíveis</Badge>
+                <Button variant="secondary" size="sm" onClick={loadData}>Recarregar</Button>
+              </div>
             </div>
             {loading ? (
               <div className="soft-box">A carregar pedidos...</div>
@@ -385,20 +388,6 @@ export default function TeacherCoachingPage() {
             )}
           </article>
 
-          <article className="panel">
-            <h3>Fluxo de aprovação</h3>
-            <p className="panel-subtle">
-              Como professor(a), és o primeiro a validar os pedidos de adesão. Se aprovedores, o pedido segue para validação final da Direção.
-            </p>
-            <ul className="list helper-list">
-              <li>Verifica a lotação da sessão e a compatibilidade pedagógica.</li>
-              <li>Escreve observações claras para o estudante (obrigatórias ao rejeitar).</li>
-              <li>A notificação é enviada ao estudante assim que guardas a decisão.</li>
-            </ul>
-            <div className="quick-actions" style={{ marginTop: '0.75rem' }}>
-              <Button variant="cta" onClick={loadData}>Recarregar pedidos</Button>
-            </div>
-          </article>
         </div>
       </main>
 
