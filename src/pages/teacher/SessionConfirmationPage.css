@@ -52,7 +52,7 @@
 	flex: 1;
 	display: grid;
 	gap: 1rem;
-	grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+	grid-template-columns: 1fr;
 	grid-auto-rows: max-content;
 	align-content: start;
 	align-items: start;
@@ -283,11 +283,7 @@
 	}
 }
 
-@media (max-width: 900px) {
-	.teacher-session-confirmation .sessions-grid {
-		grid-template-columns: 1fr;
-	}
-}
+/* Removido o breakpoint de 900px pois a grelha já é 1fr por defeito */
 
 @media (max-width: 720px) {
 	.teacher-session-confirmation .error-banner {

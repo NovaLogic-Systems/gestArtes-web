@@ -620,7 +620,7 @@ export default function MarketplaceModerationPage() {
               </button>
             </div>
 
-            <div className="form-grid two">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
               <Input
                 label="Pesquisar"
                 value={filters.search}
