@@ -54,8 +54,12 @@ function resolveStatusVariant(statusName) {
     return 'warning'
   }
 
-  if (normalized.includes('active') || normalized.includes('approved') || normalized.includes('published')) {
+  if (normalized.includes('active') || normalized.includes('approved') || normalized.includes('published') || normalized.includes('sold') || normalized.includes('vendid')) {
     return 'success'
+  }
+
+  if (normalized.includes('reserv')) {
+    return 'warning'
   }
 
   return 'neutral'
@@ -82,6 +86,14 @@ function resolveStatusLabel(status) {
 
   if (/remov|hidden|inactive|inativ/i.test(statusName)) {
     return 'Inativo'
+  }
+
+  if (/sold|vendid/i.test(statusName)) {
+    return 'Vendido'
+  }
+
+  if (/reserv/i.test(statusName)) {
+    return 'Reservado'
   }
 
   return 'Estado desconhecido'

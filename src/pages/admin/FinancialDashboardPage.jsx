@@ -68,23 +68,16 @@ function fmt(v) {
 function KPICard({ label, value, sub, gradient, icon }) {
   return (
     <div style={{
-      background: gradient,
-      borderRadius: '18px',
-      padding: '22px 24px',
-      display: 'grid',
-      gap: '8px',
-      boxShadow: '0 4px 20px rgba(0,0,0,.12)',
-      position: 'relative',
-      overflow: 'hidden',
-      color: '#fff',
+      background: '#ffffff',
+      boxShadow: '0 4px 14px rgba(0,0,0,0.05)',
+      border: '1px solid #e2d9eb',
+      borderRadius: '12px',
+      padding: '12px',
+      textAlign: 'left'
     }}>
-      <div style={{
-        position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)',
-        fontSize: '2.6rem', opacity: 0.18, userSelect: 'none',
-      }}>{icon}</div>
-      <small style={{ fontWeight: 700, textTransform: 'uppercase', fontSize: '0.68rem', letterSpacing: '0.1em', opacity: 0.85 }}>{label}</small>
-      <strong style={{ fontSize: '2.1rem', fontWeight: 800, lineHeight: 1, color: '#fff' }}>{value}</strong>
-      {sub ? <small style={{ opacity: 0.75, fontSize: '0.8rem' }}>{sub}</small> : null}
+      <h3 style={{ margin: 0, fontSize: '0.88rem', color: '#4c4666', fontWeight: 600 }}>{label}</h3>
+      <strong style={{ display: 'block', marginTop: '8px', fontSize: '1.7rem', color: '#08786d', fontWeight: 700 }}>{value}</strong>
+      {sub ? <small style={{ display: 'block', marginTop: '4px', opacity: 0.75, fontSize: '0.8rem', color: '#6d6480' }}>{sub}</small> : null}
     </div>
   )
 }

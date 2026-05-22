@@ -39,7 +39,8 @@
 }
 
 .kpi {
-  background: linear-gradient(145deg, #fff8f5, #f1fbf8);
+  background: #ffffff;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.05);
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 12px;

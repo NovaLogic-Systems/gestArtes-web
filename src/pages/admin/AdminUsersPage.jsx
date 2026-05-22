@@ -108,8 +108,17 @@ export default function AdminUsersPage() {
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm)
+      setCurrentPage(1) // Reset to page 1 on new search
+    }, 500)
+    return () => clearTimeout(handler)
+  }, [searchTerm])
 
   // Edit Modal
   const [editUser, setEditUser] = useState(null)
@@ -118,6 +127,7 @@ export default function AdminUsersPage() {
   // Reset Password Modal
   const [resetPasswordUser, setResetPasswordUser] = useState(null)
 
+  const [createModalOpen, setCreateModalOpen] = useState(false)
   const [availableModalities, setAvailableModalities] = useState([])
 
   const isFormStudent = useMemo(() => Array.isArray(form.roles) && form.roles.includes('student'), [form.roles])
@@ -138,7 +148,7 @@ export default function AdminUsersPage() {
       const response = await adminUsersService.listUsers({
         limit: pageSize,
         offset: (currentPage - 1) * pageSize,
-        search: searchTerm.trim() || undefined,
+        search: debouncedSearchTerm.trim() || undefined,
         role: roleFilter !== 'all' ? roleFilter : undefined,
         status: statusFilter !== 'all' ? statusFilter : undefined,
       })
@@ -149,7 +159,7 @@ export default function AdminUsersPage() {
     } finally {
       setLoading(false)
     }
-  }, [currentPage, pageSize, roleFilter, searchTerm, statusFilter])
+  }, [currentPage, pageSize, roleFilter, debouncedSearchTerm, statusFilter])
 
   useEffect(() => {
     document.body.classList.add('studio-page')
@@ -157,9 +167,14 @@ export default function AdminUsersPage() {
   }, [])
 
   useEffect(() => {
-    void loadModalities()
+    if (editForm?.isModalityLocked && availableModalities.length === 0) {
+      void loadModalities()
+    }
+  }, [editForm?.isModalityLocked, availableModalities.length, loadModalities])
+
+  useEffect(() => {
     void loadUsers()
-  }, [loadUsers, loadModalities])
+  }, [loadUsers])
 
   useEffect(() => {
     const totalPages = Math.max(1, Math.ceil(totalUsers / pageSize))
@@ -230,6 +245,7 @@ export default function AdminUsersPage() {
 
       setNotice(`Utilizador criado com sucesso.`)
       setForm(emptyForm)
+      setCreateModalOpen(false)
       await loadUsers()
     } catch (requestError) {
       const apiError = requestError?.response?.data
@@ -348,7 +364,7 @@ export default function AdminUsersPage() {
     },
     {
       key: 'roles',
-      header: 'Roles',
+      header: 'Perfil',
       render: (u) => (
         <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
           {(Array.isArray(u.roles) && u.roles.length ? u.roles : [u.role]).map(r => {
@@ -397,18 +413,8 @@ export default function AdminUsersPage() {
   return (
     <AdminShell
       title="Gestão de Utilizadores"
-      subtitle="Criação e gestão de contas, atribuição de roles e status."
+      subtitle="Criação e gestão de contas, atribuição de perfis e status."
       activePath={location.pathname}
-      topbarEnd={<span className="pill">Admin</span>}
-      topbarSearch={
-        <input
-          type="search"
-          className="topbar-search"
-          placeholder="Pesquisar..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      }
     >
       <section className="content-grid">
         {notice && <div className="soft-box" role="status" aria-live="polite">{notice}</div>}
@@ -417,6 +423,7 @@ export default function AdminUsersPage() {
         <article className="panel">
           <div className="panel-header" style={{ flexWrap: 'wrap', gap: '1rem' }}>
             <h3>Utilizadores registados ({totalUsers})</h3>
+            <br />
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               <input
                 type="text"
@@ -430,7 +437,7 @@ export default function AdminUsersPage() {
                 onChange={e => { setCurrentPage(1); setRoleFilter(e.target.value) }}
                 style={{ padding: '0.35rem 0.7rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }}
               >
-                <option value="all">Todas as Roles</option>
+                <option value="all">Todos os Perfis</option>
                 {ADMIN_ROLE_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
@@ -445,6 +452,9 @@ export default function AdminUsersPage() {
                 <option value="suspended">Suspenso</option>
               </select>
               <button type="button" className="ghost-btn" onClick={loadUsers}>Atualizar</button>
+              <WithRole roles={['admin']}>
+                <Button variant="cta" onClick={() => { setForm(emptyForm); setError(''); setNotice(''); setCreateModalOpen(true); }}>Criar utilizador</Button>
+              </WithRole>
             </div>
           </div>
 
@@ -470,85 +480,110 @@ export default function AdminUsersPage() {
         </article>
 
         <WithRole roles={['admin']}>
-          <article className="panel">
-            <div className="panel-header">
-              <h3>Novo utilizador</h3>
-            </div>
-            <p>A opção <strong>Direção</strong> é guardada internamente como role de sistema <strong>admin</strong>.</p>
-
-            <form className="form-grid two" onSubmit={handleSubmit}>
-              <Input label="Nome" required value={form.firstName} onChange={e => updateForm('firstName', e.target.value)} />
-              <Input label="Apelido" value={form.lastName} onChange={e => updateForm('lastName', e.target.value)} />
-              <Input label="Email" type="email" required value={form.email} onChange={e => updateForm('email', e.target.value)} />
-              <Input
-                label="Telefone"
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                placeholder="912345678" 
-                value={form.phoneNumber}
-                onChange={e => updateForm('phoneNumber', e.target.value.replace(/[^\d+\s]/g, ''))}
-                maxLength={9}
-              />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                <Input 
-                  label="Palavra-passe" 
-                  type={showNewPassword ? 'text' : 'password'} 
-                  required 
-                  minLength={8} 
-                  value={form.password} 
-                  onChange={e => updateForm('password', e.target.value)} 
-                  trailing={
-                    <button
-                      type="button"
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: 0, display: 'flex' }}
-                      title={showNewPassword ? 'Ocultar senha' : 'Ver senha'}
-                    >
-                      {showNewPassword ? <EyeOffIcon /> : <EyeIcon />}
-                    </button>
-                  }
+          {createModalOpen && (
+            <Modal
+              open={true}
+              onClose={() => setCreateModalOpen(false)}
+              title="Novo utilizador"
+              size="md"
+            >
+              <p style={{ marginBottom: '1rem', color: 'var(--text-muted)' }}>A opção <strong>Direção</strong> é guardada internamente como role de sistema <strong>admin</strong>.</p>
+              {error && <div className="soft-box error" style={{ marginBottom: '1rem' }} role="alert">{error}</div>}
+              
+              <form className="form-grid two" onSubmit={handleSubmit}>
+                <Input label="Nome" required value={form.firstName} onChange={e => updateForm('firstName', e.target.value)} />
+                <Input label="Apelido" value={form.lastName} onChange={e => updateForm('lastName', e.target.value)} />
+                <Input label="Email" type="email" required value={form.email} onChange={e => updateForm('email', e.target.value)} />
+                <Input
+                  label="Telefone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder="912345678" 
+                  value={form.phoneNumber}
+                  onChange={e => updateForm('phoneNumber', e.target.value.replace(/[^\d+\s]/g, ''))}
+                  maxLength={9}
                 />
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #718096)', marginTop: '-0.25rem' }}>
-                  Mín. 8 caracteres, com maiúscula, minúscula e número.
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Roles</span>
-                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                  {ADMIN_ROLE_OPTIONS.map(opt => (
-                    <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 'normal' }}>
-                      <input
-                        type="checkbox"
-                        checked={Array.isArray(form.roles) && form.roles.includes(opt.value)}
-                        onChange={() => handleRoleToggle(opt.value)}
-                      />
-                      {opt.label}
-                    </label>
-                  ))}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <Input 
+                    label="Palavra-passe" 
+                    type={showNewPassword ? 'text' : 'password'} 
+                    required 
+                    minLength={8} 
+                    value={form.password} 
+                    onChange={e => updateForm('password', e.target.value)} 
+                    trailing={
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: 0, display: 'flex' }}
+                        title={showNewPassword ? 'Ocultar senha' : 'Ver senha'}
+                      >
+                        {showNewPassword ? <EyeOffIcon /> : <EyeIcon />}
+                      </button>
+                    }
+                  />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #718096)', marginTop: '-0.25rem' }}>
+                    Mín. 8 caracteres, com maiúscula, minúscula e número.
+                  </span>
                 </div>
-              </div>
 
-              {isFormStudent && (
-                <>
-                  <Input label="Número de Aluno (Opcional)" value={form.studentNumber} onChange={e => updateForm('studentNumber', e.target.value)} placeholder="Gerado automaticamente se vazio" />
-                  <Input label="Data de nascimento" type="date" required value={form.birthDate} onChange={e => updateForm('birthDate', e.target.value)} />
-                  <Input label="Nome do encarregado" value={form.guardianName} onChange={e => updateForm('guardianName', e.target.value)} />
-                  <Input label="Telefone do encarregado" value={form.guardianPhone} onChange={e => updateForm('guardianPhone', e.target.value)} />
-                </>
-              )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Roles</span>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {ADMIN_ROLE_OPTIONS.map(opt => {
+                    const isSelected = Array.isArray(form.roles) && form.roles.includes(opt.value);
+                    return (
+                      <label 
+                        key={opt.value} 
+                        style={{ 
+                          display: 'inline-flex', 
+                          alignItems: 'center', 
+                          padding: '0.4rem 0.8rem', 
+                          borderRadius: '999px',
+                          border: `1px solid ${isSelected ? 'var(--teal, #0b9d8f)' : 'var(--line, #e2d9eb)'}`,
+                          background: isSelected ? 'var(--teal, #0b9d8f)' : '#fff',
+                          color: isSelected ? '#fff' : 'var(--muted, #6d6480)',
+                          fontSize: '0.85rem',
+                          fontWeight: 500,
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          userSelect: 'none'
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleRoleToggle(opt.value)}
+                          style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
+                        />
+                        {opt.label}
+                      </label>
+                    )
+                  })}
+                </div>
+                </div>
 
-              <div className="card-actions form-actions" style={{ gridColumn: '1 / -1' }}>
-                <Button variant="cta" type="submit" isLoading={submitting}>
-                  Criar utilizador
-                </Button>
-                <Button variant="ghost" type="button" onClick={() => { setForm(emptyForm); setError(''); setNotice('') }}>
-                  Limpar
-                </Button>
-              </div>
-            </form>
-          </article>
+                {isFormStudent && (
+                  <>
+                    <Input label="Número de Aluno (Opcional)" value={form.studentNumber} onChange={e => updateForm('studentNumber', e.target.value)} placeholder="Gerado automaticamente se vazio" />
+                    <Input label="Data de nascimento" type="date" required value={form.birthDate} onChange={e => updateForm('birthDate', e.target.value)} />
+                    <Input label="Nome do EE" value={form.guardianName} onChange={e => updateForm('guardianName', e.target.value)} />
+                    <Input label="Telefone do EE" value={form.guardianPhone} onChange={e => updateForm('guardianPhone', e.target.value)} />
+                  </>
+                )}
+
+                <div className="card-actions form-actions" style={{ gridColumn: '1 / -1', marginTop: '1rem' }}>
+                  <Button variant="cta" type="submit" isLoading={submitting}>
+                    Criar utilizador
+                  </Button>
+                  <Button variant="ghost" type="button" onClick={() => setCreateModalOpen(false)}>
+                    Cancelar
+                  </Button>
+                </div>
+              </form>
+            </Modal>
+          )}
         </WithRole>
 
         {resetPasswordUser && (
@@ -600,23 +635,43 @@ export default function AdminUsersPage() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', gridColumn: '1 / -1' }}>
                 <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Roles</span>
-                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                  {ADMIN_ROLE_OPTIONS.map(opt => (
-                    <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 'normal' }}>
-                      <input
-                        type="checkbox"
-                        checked={Array.isArray(editForm.roles) && editForm.roles.includes(opt.value)}
-                        onChange={() => {
-                          setEditForm(prev => {
-                            const currentRoles = Array.isArray(prev.roles) ? prev.roles : []
-                            const roles = currentRoles.includes(opt.value) ? currentRoles.filter(r => r !== opt.value) : [...currentRoles, opt.value]
-                            return { ...prev, roles: roles.length ? roles : ['student'] }
-                          })
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {ADMIN_ROLE_OPTIONS.map(opt => {
+                    const isSelected = Array.isArray(editForm.roles) && editForm.roles.includes(opt.value);
+                    return (
+                      <label 
+                        key={opt.value} 
+                        style={{ 
+                          display: 'inline-flex', 
+                          alignItems: 'center', 
+                          padding: '0.4rem 0.8rem', 
+                          borderRadius: '999px',
+                          border: `1px solid ${isSelected ? 'var(--teal, #0b9d8f)' : 'var(--line, #e2d9eb)'}`,
+                          background: isSelected ? 'var(--teal, #0b9d8f)' : '#fff',
+                          color: isSelected ? '#fff' : 'var(--muted, #6d6480)',
+                          fontSize: '0.85rem',
+                          fontWeight: 500,
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          userSelect: 'none'
                         }}
-                      />
-                      {opt.label}
-                    </label>
-                  ))}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => {
+                            setEditForm(prev => {
+                              const currentRoles = Array.isArray(prev.roles) ? prev.roles : []
+                              const roles = currentRoles.includes(opt.value) ? currentRoles.filter(r => r !== opt.value) : [...currentRoles, opt.value]
+                              return { ...prev, roles: roles.length ? roles : ['student'] }
+                            })
+                          }}
+                          style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
+                        />
+                        {opt.label}
+                      </label>
+                    )
+                  })}
                 </div>
               </div>
 
@@ -624,8 +679,8 @@ export default function AdminUsersPage() {
                 <>
                   <Input label="Número de Aluno (Opcional)" value={editForm.studentNumber} onChange={e => setEditForm(prev => ({ ...prev, studentNumber: e.target.value }))} placeholder="Gerado automaticamente se vazio" />
                   <Input label="Data de nascimento" type="date" required value={editForm.birthDate} onChange={e => setEditForm(prev => ({ ...prev, birthDate: e.target.value }))} />
-                  <Input label="Nome do encarregado" value={editForm.guardianName} onChange={e => setEditForm(prev => ({ ...prev, guardianName: e.target.value }))} />
-                  <Input label="Telefone do encarregado" value={editForm.guardianPhone} onChange={e => setEditForm(prev => ({ ...prev, guardianPhone: e.target.value }))} />
+                  <Input label="Nome do EE" value={editForm.guardianName} onChange={e => setEditForm(prev => ({ ...prev, guardianName: e.target.value }))} />
+                  <Input label="Telefone do EE" value={editForm.guardianPhone} onChange={e => setEditForm(prev => ({ ...prev, guardianPhone: e.target.value }))} />
                   
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', gridColumn: '1 / -1', marginTop: '0.5rem' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>

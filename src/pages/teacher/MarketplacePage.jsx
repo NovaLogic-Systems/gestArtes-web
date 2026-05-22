@@ -62,6 +62,7 @@ export default function TeacherMarketplacePage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false))
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [searchHistory, setSearchHistory] = useState(loadSearchHistory)
 
   const [filters, setFilters] = useState({
@@ -73,14 +74,20 @@ export default function TeacherMarketplacePage() {
   })
 
   const teacherName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Professor'
+  const sidebarHidden = isMobile || sidebarCollapsed
+  const appShellClassName = ['app-shell', sidebarHidden ? 'sidebar-hidden' : ''].filter(Boolean).join(' ')
   const sidebarClassName = ['sidebar', isMobile && mobileOpen ? 'open' : ''].filter(Boolean).join(' ')
-  const sidebarToggleSymbol = isMobile ? (mobileOpen ? '✕' : '☰') : '☰'
-  const sidebarToggleLabel = mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'
+  const sidebarToggleSymbol = isMobile ? (mobileOpen ? '✕' : '☰') : (sidebarCollapsed ? '▶' : '◀')
+  const sidebarToggleLabel = isMobile
+    ? (mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral')
+    : (sidebarCollapsed ? 'Mostrar barra lateral' : 'Esconder barra lateral')
 
   const handleSidebarToggle = useCallback(() => {
     if (isMobile) {
       setMobileOpen((value) => !value)
+      return
     }
+    setSidebarCollapsed((value) => !value)
   }, [isMobile])
 
   const handleMobileNavClick = useCallback(() => {
@@ -237,7 +244,7 @@ export default function TeacherMarketplacePage() {
 
   return (
     <div className="market-page">
-      <div className="app-shell">
+      <div className={appShellClassName}>
         {isMobile && mobileOpen ? (
           <button
             type="button"

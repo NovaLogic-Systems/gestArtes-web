@@ -125,30 +125,22 @@ export default function AdminDashboardPage() {
         <section className="content-grid">
           {/* KPI Section */}
           <div className="kpi-grid">
-            <button className="kpi" type="button" style={{textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', appearance: 'none', border: '1px solid var(--border)'}}>
-
-              <h3>Pedidos Pendentes</h3>
-              <strong>{snapshot?.kpis?.pendingRequests || 0}</strong>
-            
-</button>
-            <button className="kpi" type="button" style={{textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', appearance: 'none', border: '1px solid var(--border)'}}>
-
-              <h3>Validações Pendentes</h3>
-              <strong>{snapshot?.kpis?.pendingValidations || 0}</strong>
-            
-</button>
-            <button className="kpi" type="button" style={{textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', appearance: 'none', border: '1px solid var(--border)'}}>
-
-              <h3>Submissões Pendentes</h3>
-              <strong>{snapshot?.kpis?.pendingSubmissions || 0}</strong>
-            
-</button>
-            <button className="kpi" type="button" style={{textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', appearance: 'none', border: '1px solid var(--border)'}}>
-
-              <h3>Receita Mensal</h3>
-              <strong>{snapshot?.kpis?.monthlyRevenue || 0}€</strong>
-            
-</button>
+            <div className="kpi" style={{ background: '#ffffff', boxShadow: '0 4px 14px rgba(0,0,0,0.05)', border: '1px solid #e2d9eb', borderRadius: '12px', padding: '12px', textAlign: 'left' }}>
+              <h3 style={{ margin: 0, fontSize: '0.88rem', color: '#4c4666', fontWeight: 600 }}>Pedidos Pendentes</h3>
+              <strong style={{ display: 'block', marginTop: '8px', fontSize: '1.7rem', color: '#08786d', fontWeight: 700 }}>{snapshot?.kpis?.pendingRequests || 0}</strong>
+            </div>
+            <div className="kpi" style={{ background: '#ffffff', boxShadow: '0 4px 14px rgba(0,0,0,0.05)', border: '1px solid #e2d9eb', borderRadius: '12px', padding: '12px', textAlign: 'left' }}>
+              <h3 style={{ margin: 0, fontSize: '0.88rem', color: '#4c4666', fontWeight: 600 }}>Validações Pendentes</h3>
+              <strong style={{ display: 'block', marginTop: '8px', fontSize: '1.7rem', color: '#08786d', fontWeight: 700 }}>{snapshot?.kpis?.pendingValidations || 0}</strong>
+            </div>
+            <div className="kpi" style={{ background: '#ffffff', boxShadow: '0 4px 14px rgba(0,0,0,0.05)', border: '1px solid #e2d9eb', borderRadius: '12px', padding: '12px', textAlign: 'left' }}>
+              <h3 style={{ margin: 0, fontSize: '0.88rem', color: '#4c4666', fontWeight: 600 }}>Submissões Pendentes</h3>
+              <strong style={{ display: 'block', marginTop: '8px', fontSize: '1.7rem', color: '#08786d', fontWeight: 700 }}>{snapshot?.kpis?.pendingSubmissions || 0}</strong>
+            </div>
+            <div className="kpi" style={{ background: '#ffffff', boxShadow: '0 4px 14px rgba(0,0,0,0.05)', border: '1px solid #e2d9eb', borderRadius: '12px', padding: '12px', textAlign: 'left' }}>
+              <h3 style={{ margin: 0, fontSize: '0.88rem', color: '#4c4666', fontWeight: 600 }}>Receita Mensal</h3>
+              <strong style={{ display: 'block', marginTop: '8px', fontSize: '1.7rem', color: '#08786d', fontWeight: 700 }}>{snapshot?.kpis?.monthlyRevenue || 0}€</strong>
+            </div>
           </div>
 
           <div className="split">

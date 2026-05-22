@@ -30,7 +30,23 @@ export default function NotificationsPage() {
   const [error, setError] = useState('')
   const [activeFilter, setActiveFilter] = useState('all')
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false))
+
+  const handleSidebarToggle = useCallback(() => {
+    if (isMobile) {
+      setMobileOpen((v) => !v)
+      return
+    }
+    setSidebarCollapsed((v) => !v)
+  }, [isMobile])
+
+  const sidebarHidden = isMobile || sidebarCollapsed
+  const appShellClassName = ['app-shell', sidebarHidden ? 'sidebar-hidden' : ''].filter(Boolean).join(' ')
+  const sidebarClassName = ['sidebar', isMobile && mobileOpen ? 'open' : ''].filter(Boolean).join(' ')
+  const sidebarToggleSymbol = isMobile
+    ? (mobileOpen ? '✕' : '☰')
+    : (sidebarCollapsed ? '▶' : '◀')
 
   const loadNotifications = useCallback(async () => {
     setLoading(true)
@@ -126,8 +142,16 @@ export default function NotificationsPage() {
 
   return (
     <div className="teacher-dashboard teacher-notifications-page">
-      <div className="app-shell">
-        <aside className={`sidebar${mobileOpen ? ' open' : ''}`} id="sidebar">
+      <div className={appShellClassName}>
+        {isMobile && mobileOpen ? (
+          <button
+            type="button"
+            className="sidebar-overlay"
+            aria-label="Fechar navegação lateral"
+            onClick={() => setMobileOpen(false)}
+          />
+        ) : null}
+        <aside className={sidebarClassName} id="sidebar">
           <div className="brand">
             <span className="brand-dot" />
             <div>
@@ -177,10 +201,10 @@ export default function NotificationsPage() {
                 className="sidebar-toggle-btn"
                 aria-controls="sidebar"
                 aria-expanded={mobileOpen}
-                aria-label={mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'}
-                onClick={() => setMobileOpen((current) => !current)}
+                aria-label={isMobile ? (mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral') : (sidebarCollapsed ? 'Mostrar barra lateral' : 'Esconder barra lateral')}
+                onClick={handleSidebarToggle}
               >
-                {mobileOpen ? '✕' : '☰'}
+                {sidebarToggleSymbol}
               </button>
               <div>
                 <h2>Notificações</h2>
