@@ -1415,6 +1415,24 @@
   color: #065f46;
 }
 
+.coaching-redesign-page .teacher-unavailability-warning {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  color: #b91c1c;
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 12px 14px;
+}
+
+.coaching-redesign-page .teacher-unavailability-warning ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+}
+
 .coaching-redesign-page .empty-state,
 .coaching-redesign-page .panel-subtle {
   background: #fafafa;

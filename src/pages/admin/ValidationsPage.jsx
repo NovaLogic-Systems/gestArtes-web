@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import api from '../../services/api'
+import { listAdminCoachingRequests, reviewRequestAsAdmin, getCompatibleStudiosForRequest, listAdminGroupProposals, getCompatibleStudiosForGroupProposal, reviewGroupProposalAsAdmin } from '../../services/coaching'
 import NotificationsBell from '../../components/NotificationsBell'
 import { ADMIN_NAV_ITEMS as navigationItems } from './adminNav'
 import '../admin-studios.css'
@@ -130,6 +131,30 @@ function ValidationsPage() {
   const [joinRequests, setJoinRequests] = useState([])
   const [loadingJoinRequests, setLoadingJoinRequests] = useState(true)
 
+  // Individual coaching requests (student→teacher→admin flow)
+  const [coachingRequests, setCoachingRequests] = useState([])
+  const [loadingCoachingRequests, setLoadingCoachingRequests] = useState(true)
+  const [selectedCoachingRequest, setSelectedCoachingRequest] = useState(null)
+  const [compatibleStudios, setCompatibleStudios] = useState([])
+  const [loadingStudios, setLoadingStudios] = useState(false)
+  const [selectedStudioId, setSelectedStudioId] = useState(null)
+  const [coachingAdminDecision, setCoachingAdminDecision] = useState('approve')
+  const [coachingAdminNotes, setCoachingAdminNotes] = useState('')
+  const [coachingAdminError, setCoachingAdminError] = useState('')
+  const [coachingAdminSaving, setCoachingAdminSaving] = useState(false)
+
+  // Group coaching proposals
+  const [groupProposals, setGroupProposals] = useState([])
+  const [loadingGroupProposals, setLoadingGroupProposals] = useState(true)
+  const [selectedGroupProposal, setSelectedGroupProposal] = useState(null)
+  const [groupCompatibleStudios, setGroupCompatibleStudios] = useState([])
+  const [loadingGroupStudios, setLoadingGroupStudios] = useState(false)
+  const [selectedGroupStudioId, setSelectedGroupStudioId] = useState(null)
+  const [groupAdminDecision, setGroupAdminDecision] = useState('approve')
+  const [groupAdminNotes, setGroupAdminNotes] = useState('')
+  const [groupAdminError, setGroupAdminError] = useState('')
+  const [groupAdminSaving, setGroupAdminSaving] = useState(false)
+
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
   const [loadingId, setLoadingId] = useState(null)
@@ -185,10 +210,34 @@ function ValidationsPage() {
     }
   }, [])
 
+  const loadCoachingRequests = useCallback(async () => {
+    setLoadingCoachingRequests(true)
+    try {
+      const items = await listAdminCoachingRequests()
+      setCoachingRequests(Array.isArray(items) ? items : [])
+    } catch {
+      setCoachingRequests([])
+    } finally {
+      setLoadingCoachingRequests(false)
+    }
+  }, [])
+
+  const loadGroupProposals = useCallback(async () => {
+    setLoadingGroupProposals(true)
+    try {
+      const items = await listAdminGroupProposals()
+      setGroupProposals(Array.isArray(items) ? items : [])
+    } catch {
+      setGroupProposals([])
+    } finally {
+      setLoadingGroupProposals(false)
+    }
+  }, [])
+
   useEffect(() => {
-    void Promise.all([loadBookings(), loadFinalizations(), loadJoinRequests()])
+    void Promise.all([loadBookings(), loadFinalizations(), loadJoinRequests(), loadCoachingRequests(), loadGroupProposals()])
     return undefined
-  }, [loadBookings, loadFinalizations, loadJoinRequests])
+  }, [loadBookings, loadFinalizations, loadJoinRequests, loadCoachingRequests, loadGroupProposals])
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 1024px)')
@@ -310,6 +359,106 @@ function ValidationsPage() {
     }
   }
 
+  const openGroupApprovalModal = async (proposal) => {
+    setSelectedGroupProposal(proposal)
+    setGroupAdminDecision('approve')
+    setGroupAdminNotes('')
+    setGroupAdminError('')
+    setSelectedGroupStudioId(null)
+    setGroupCompatibleStudios([])
+    setLoadingGroupStudios(true)
+    try {
+      const studios = await getCompatibleStudiosForGroupProposal(proposal.proposalId)
+      setGroupCompatibleStudios(studios)
+      const first = studios.find((s) => s.isAvailable)
+      if (first) setSelectedGroupStudioId(first.studioId)
+    } catch {
+      setGroupCompatibleStudios([])
+    } finally {
+      setLoadingGroupStudios(false)
+    }
+  }
+
+  const closeGroupApprovalModal = () => {
+    if (groupAdminSaving) return
+    setSelectedGroupProposal(null)
+    setGroupAdminError('')
+  }
+
+  const handleGroupAdminSubmit = async () => {
+    if (!selectedGroupProposal || groupAdminSaving) return
+    if (groupAdminDecision === 'approve' && !selectedGroupStudioId) {
+      setGroupAdminError('Seleciona um estúdio antes de aprovar.')
+      return
+    }
+    setGroupAdminSaving(true)
+    setGroupAdminError('')
+    try {
+      await reviewGroupProposalAsAdmin(selectedGroupProposal.proposalId, {
+        decision: groupAdminDecision,
+        notes: groupAdminNotes.trim() || undefined,
+        studioId: groupAdminDecision === 'approve' ? selectedGroupStudioId : undefined,
+      })
+      setGroupProposals((prev) => prev.filter((p) => p.proposalId !== selectedGroupProposal.proposalId))
+      setSelectedGroupProposal(null)
+      setNotice(groupAdminDecision === 'approve' ? 'Sessão de grupo aprovada e criada.' : 'Proposta de grupo rejeitada.')
+    } catch (err) {
+      setGroupAdminError(err?.response?.data?.error || err?.message || 'Erro ao processar proposta.')
+    } finally {
+      setGroupAdminSaving(false)
+    }
+  }
+
+  const openCoachingApprovalModal = async (req) => {
+    setSelectedCoachingRequest(req)
+    setCoachingAdminDecision('approve')
+    setCoachingAdminNotes('')
+    setCoachingAdminError('')
+    setSelectedStudioId(null)
+    setCompatibleStudios([])
+    setLoadingStudios(true)
+    try {
+      const studios = await getCompatibleStudiosForRequest(req.requestId)
+      setCompatibleStudios(studios)
+      const firstAvailable = studios.find((s) => s.isAvailable)
+      if (firstAvailable) setSelectedStudioId(firstAvailable.studioId)
+    } catch {
+      setCompatibleStudios([])
+    } finally {
+      setLoadingStudios(false)
+    }
+  }
+
+  const closeCoachingApprovalModal = () => {
+    if (coachingAdminSaving) return
+    setSelectedCoachingRequest(null)
+    setCoachingAdminError('')
+  }
+
+  const handleCoachingAdminSubmit = async () => {
+    if (!selectedCoachingRequest || coachingAdminSaving) return
+    if (coachingAdminDecision === 'approve' && !selectedStudioId) {
+      setCoachingAdminError('Seleciona um estúdio antes de aprovar.')
+      return
+    }
+    setCoachingAdminSaving(true)
+    setCoachingAdminError('')
+    try {
+      await reviewRequestAsAdmin(selectedCoachingRequest.requestId, {
+        decision: coachingAdminDecision,
+        notes: coachingAdminNotes.trim() || undefined,
+        studioId: coachingAdminDecision === 'approve' ? selectedStudioId : undefined,
+      })
+      setCoachingRequests((prev) => prev.filter((r) => r.requestId !== selectedCoachingRequest.requestId))
+      setSelectedCoachingRequest(null)
+      setNotice(coachingAdminDecision === 'approve' ? 'Pedido de coaching aprovado e aula criada.' : 'Pedido de coaching rejeitado.')
+    } catch (err) {
+      setCoachingAdminError(err?.response?.data?.error || err?.message || 'Erro ao processar pedido.')
+    } finally {
+      setCoachingAdminSaving(false)
+    }
+  }
+
   const modalities = [...new Set(bookings.map((b) => b.modalityName).filter(Boolean))]
   const teachers = [...new Set(finalizations.map((s) => s.teacherName).filter(Boolean))]
   const modalitiesFinals = [...new Set(finalizations.map((s) => s.modalityName).filter(Boolean))]
@@ -403,13 +552,27 @@ function ValidationsPage() {
           {error ? <div className="soft-box error" role="alert">{error}</div> : null}
 
           {/* Tab switcher */}
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <button
               type="button"
               className={activeTab === 'bookings' ? 'cta' : 'ghost-btn'}
               onClick={() => setActiveTab('bookings')}
             >
-              Pedidos de coaching{bookings.length > 0 ? ` · ${bookings.length}` : ''}
+              Sessões (professor){bookings.length > 0 ? ` · ${bookings.length}` : ''}
+            </button>
+            <button
+              type="button"
+              className={activeTab === 'coaching-requests' ? 'cta' : 'ghost-btn'}
+              onClick={() => setActiveTab('coaching-requests')}
+            >
+              Aulas Individuais{coachingRequests.length > 0 ? ` · ${coachingRequests.length}` : ''}
+            </button>
+            <button
+              type="button"
+              className={activeTab === 'group-proposals' ? 'cta' : 'ghost-btn'}
+              onClick={() => setActiveTab('group-proposals')}
+            >
+              Grupos{groupProposals.length > 0 ? ` · ${groupProposals.length}` : ''}
             </button>
             <button
               type="button"
@@ -432,7 +595,7 @@ function ValidationsPage() {
             <>
               <article className="panel">
                 <div className="panel-header">
-                  <h3>Pedidos de coaching pendentes</h3>
+                  <h3>Sessões abertas pelo professor — aprovação pendente</h3>
                   <div className="card-actions">
                     <select value={sortBookings} onChange={(e) => setSortBookings(e.target.value)} style={selectStyle}>
                       <option value="urgent">Mais urgentes primeiro</option>
@@ -530,6 +693,142 @@ function ValidationsPage() {
               </article>
 
             </>
+          ) : null}
+
+          {/* Tab 1b — Aulas Individuais (coaching requests PENDING_ADMIN_APPROVAL) */}
+          {activeTab === 'coaching-requests' ? (
+            <article className="panel">
+              <div className="panel-header">
+                <h3>Pedidos de aula individual — aprovação final</h3>
+                <div className="card-actions">
+                  <button type="button" className="ghost-btn" onClick={loadCoachingRequests}>Recarregar</button>
+                </div>
+              </div>
+              <p style={{ margin: '0 0 1rem', color: 'var(--studio-muted)', fontSize: '0.88rem' }}>
+                Pedidos aprovados pelo professor que aguardam confirmação da direção. Escolhe o estúdio e aprova ou rejeita.
+              </p>
+
+              {loadingCoachingRequests ? (
+                <div className="soft-box">A carregar pedidos...</div>
+              ) : coachingRequests.length === 0 ? (
+                <div className="soft-box">Não há pedidos de aula individual pendentes de aprovação.</div>
+              ) : (
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Pedido</th>
+                        <th>Aluno</th>
+                        <th>Professor</th>
+                        <th>Modalidade</th>
+                        <th>Data / Hora</th>
+                        <th>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {coachingRequests.map((req) => (
+                        <tr key={req.requestId}>
+                          <td>
+                            <strong>#{req.requestId}</strong>
+                            <br />
+                            <small>{formatDate(req.requestedAt)}</small>
+                          </td>
+                          <td>
+                            <strong>{[req.student?.firstName, req.student?.lastName].filter(Boolean).join(' ') || '—'}</strong>
+                            {req.student?.email ? <><br /><small>{req.student.email}</small></> : null}
+                          </td>
+                          <td>
+                            <strong>{[req.teacher?.firstName, req.teacher?.lastName].filter(Boolean).join(' ') || '—'}</strong>
+                          </td>
+                          <td>{req.modalityName || '—'}</td>
+                          <td>
+                            <strong>{req.currentStartTime ? new Date(req.currentStartTime).toLocaleDateString('pt-PT') : '—'}</strong>
+                            <br />
+                            <small>
+                              {req.currentStartTime ? new Date(req.currentStartTime).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : ''}
+                              {req.currentEndTime ? ` → ${new Date(req.currentEndTime).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}` : ''}
+                            </small>
+                          </td>
+                          <td>
+                            <button type="button" className="moderation-action-btn approve" onClick={() => openCoachingApprovalModal(req)}>
+                              Rever
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </article>
+          ) : null}
+
+          {/* Tab 1c — Grupos (GroupCoachingProposal PENDING_ADMIN_APPROVAL) */}
+          {activeTab === 'group-proposals' ? (
+            <article className="panel">
+              <div className="panel-header">
+                <h3>Propostas de sessão de grupo — aprovação final</h3>
+                <div className="card-actions">
+                  <button type="button" className="ghost-btn" onClick={loadGroupProposals}>Recarregar</button>
+                </div>
+              </div>
+              <p style={{ margin: '0 0 1rem', color: 'var(--studio-muted)', fontSize: '0.88rem' }}>
+                Sessões de grupo criadas pelo professor. Escolhe o estúdio e aprova ou rejeita.
+              </p>
+              {loadingGroupProposals ? (
+                <div className="soft-box">A carregar propostas...</div>
+              ) : groupProposals.length === 0 ? (
+                <div className="soft-box">Não há propostas de grupo pendentes.</div>
+              ) : (
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Proposta</th>
+                        <th>Professor</th>
+                        <th>Modalidade</th>
+                        <th>Data / Hora</th>
+                        <th>Alunos</th>
+                        <th>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {groupProposals.map((gp) => (
+                        <tr key={gp.proposalId}>
+                          <td>
+                            <strong>#{gp.proposalId}</strong>
+                            <br /><small>{formatDate(gp.requestedAt)}</small>
+                          </td>
+                          <td>
+                            <strong>{[gp.teacher?.firstName, gp.teacher?.lastName].filter(Boolean).join(' ') || '—'}</strong>
+                          </td>
+                          <td>{gp.modalityName || '—'}</td>
+                          <td>
+                            <strong>{gp.startTime ? new Date(gp.startTime).toLocaleDateString('pt-PT') : '—'}</strong>
+                            <br /><small>
+                              {gp.startTime ? new Date(gp.startTime).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : ''}
+                              {gp.endTime ? ` → ${new Date(gp.endTime).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}` : ''}
+                            </small>
+                          </td>
+                          <td>
+                            <strong>{gp.participants.length} aluno{gp.participants.length !== 1 ? 's' : ''}</strong>
+                            <br /><small style={{ color: 'var(--studio-muted)' }}>
+                              {gp.participants.slice(0, 3).map((p) => [p.student?.firstName, p.student?.lastName].filter(Boolean).join(' ')).join(', ')}
+                              {gp.participants.length > 3 ? ` +${gp.participants.length - 3}` : ''}
+                            </small>
+                          </td>
+                          <td>
+                            <button type="button" className="moderation-action-btn approve" onClick={() => openGroupApprovalModal(gp)}>
+                              Rever
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </article>
           ) : null}
 
           {/* Tab 2 — Validações Finais */}
@@ -670,6 +969,247 @@ function ValidationsPage() {
           ) : null}
         </section>
       </main>
+
+      {selectedGroupProposal ? (
+        <Modal open onClose={closeGroupApprovalModal} title={`Proposta de grupo #${selectedGroupProposal.proposalId} — Aprovação`}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.65rem' }}>
+              {[
+                { label: 'Professor', value: [selectedGroupProposal.teacher?.firstName, selectedGroupProposal.teacher?.lastName].filter(Boolean).join(' ') || '—' },
+                { label: 'Modalidade', value: selectedGroupProposal.modalityName || '—' },
+                { label: 'Horário', value: selectedGroupProposal.startTime ? `${new Date(selectedGroupProposal.startTime).toLocaleDateString('pt-PT')} · ${new Date(selectedGroupProposal.startTime).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })} → ${new Date(selectedGroupProposal.endTime).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}` : '—' },
+              ].map(({ label, value }) => (
+                <div key={label} style={{ background: 'var(--studio-soft-bg)', border: '1px solid var(--studio-soft-line)', borderRadius: '0.9rem', padding: '0.7rem 0.85rem' }}>
+                  <div style={{ fontSize: '0.73rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--studio-muted)' }}>{label}</div>
+                  <div style={{ fontWeight: 700, color: 'var(--studio-ink)', marginTop: '0.2rem' }}>{value}</div>
+                </div>
+              ))}
+            </div>
+
+            <div>
+              <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>Alunos ({selectedGroupProposal.participants.length})</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                {selectedGroupProposal.participants.map((p) => (
+                  <span key={p.participantId} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.7rem', border: '1px solid var(--studio-field-line)', borderRadius: '999px', fontSize: '0.82rem', fontWeight: 600, background: '#fff', color: 'var(--studio-ink)' }}>
+                    {[p.student?.firstName, p.student?.lastName].filter(Boolean).join(' ') || '—'}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.35rem' }}>Decisão</label>
+              <div style={{ display: 'inline-flex', gap: '0.5rem', padding: '0.35rem', border: '1px solid var(--studio-soft-line)', borderRadius: '999px', background: 'var(--studio-soft-bg)' }}>
+                {['approve', 'reject'].map((d) => (
+                  <button key={d} type="button" onClick={() => setGroupAdminDecision(d)} style={{
+                    border: groupAdminDecision === d ? (d === 'approve' ? '1px solid color-mix(in srgb, var(--studio-cta-start) 48%, #fff 52%)' : '1px solid var(--studio-danger-line)') : '1px solid transparent',
+                    borderRadius: '999px', cursor: 'pointer', font: 'inherit', fontWeight: 600, padding: '0.6rem 0.95rem',
+                    background: groupAdminDecision === d ? (d === 'approve' ? 'linear-gradient(135deg, rgba(11,157,143,0.18), rgba(16,178,163,0.1))' : 'var(--studio-danger-bg)') : 'transparent',
+                    color: groupAdminDecision === d ? (d === 'approve' ? '#0a7a70' : 'var(--studio-danger-ink)') : 'var(--studio-ink)',
+                  }}>
+                    {d === 'approve' ? 'Aprovar' : 'Rejeitar'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {groupAdminDecision === 'approve' ? (
+              <div>
+                <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>
+                  Estúdio {loadingGroupStudios ? '(a carregar...)' : `— ${groupCompatibleStudios.length} compatíveis`}
+                </label>
+                {loadingGroupStudios ? (
+                  <div style={{ color: 'var(--studio-muted)', fontSize: '0.9rem' }}>A verificar disponibilidade...</div>
+                ) : groupCompatibleStudios.length === 0 ? (
+                  <div style={{ color: 'var(--studio-error-ink)', fontSize: '0.9rem' }}>Nenhum estúdio compatível encontrado.</div>
+                ) : (
+                  <div style={{ display: 'grid', gap: '0.5rem' }}>
+                    {groupCompatibleStudios.map((studio) => (
+                      <label key={studio.studioId} style={{
+                        display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', cursor: 'pointer',
+                        border: `2px solid ${selectedGroupStudioId === studio.studioId ? 'var(--studio-cta-start)' : studio.isAvailable ? 'var(--studio-soft-line)' : 'var(--studio-error-line)'}`,
+                        borderRadius: '0.9rem',
+                        background: selectedGroupStudioId === studio.studioId ? 'linear-gradient(135deg,rgba(11,157,143,0.12),rgba(16,178,163,0.06))' : studio.isAvailable ? 'var(--studio-soft-bg)' : 'var(--studio-error-bg)',
+                      }}>
+                        <input type="radio" name="group-studio-select" value={studio.studioId} checked={selectedGroupStudioId === studio.studioId} onChange={() => setSelectedGroupStudioId(studio.studioId)} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 700, color: 'var(--studio-ink)' }}>{studio.studioName}</div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--studio-muted)', display: 'flex', gap: '0.75rem', marginTop: '0.15rem' }}>
+                            <span>Cap. {studio.capacity ?? '—'}</span>
+                            <span>Hoje: {studio.dailySessionCount}</span>
+                            <span>±2h: {studio.nearbySessionCount}</span>
+                          </div>
+                        </div>
+                        <span style={{ padding: '3px 9px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap', background: studio.isAvailable ? 'color-mix(in srgb,var(--studio-cta-start) 15%,#fff 85%)' : 'var(--studio-error-bg)', color: studio.isAvailable ? '#0a7a70' : 'var(--studio-error-ink)', border: `1px solid ${studio.isAvailable ? 'color-mix(in srgb,var(--studio-cta-start) 40%,#fff 60%)' : 'var(--studio-error-line)'}` }}>
+                          {studio.isAvailable ? 'Disponível' : `${studio.conflictCount} conflito${studio.conflictCount > 1 ? 's' : ''}`}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            <div>
+              <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.35rem' }}>Notas (opcional)</label>
+              <textarea value={groupAdminNotes} onChange={(e) => setGroupAdminNotes(e.target.value)} rows={2} placeholder="Notas para o professor e alunos..." style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.9rem', border: '1px solid var(--studio-field-line)', background: '#fff', font: 'inherit', resize: 'vertical', color: 'var(--studio-ink)' }} />
+            </div>
+
+            {groupAdminError ? (
+              <div style={{ padding: '0.75rem 0.9rem', background: 'var(--studio-error-bg)', border: '1px solid var(--studio-error-line)', borderRadius: '0.9rem', color: 'var(--studio-error-ink)', fontSize: '0.88rem' }} role="alert">
+                {groupAdminError}
+              </div>
+            ) : null}
+
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+              <Button variant="secondary" onClick={closeGroupApprovalModal} disabled={groupAdminSaving}>Cancelar</Button>
+              <Button variant={groupAdminDecision === 'approve' ? 'cta' : 'danger'} onClick={handleGroupAdminSubmit} disabled={groupAdminSaving || (groupAdminDecision === 'approve' && !selectedGroupStudioId)}>
+                {groupAdminSaving ? 'A processar...' : groupAdminDecision === 'approve' ? `Aprovar grupo (${selectedGroupProposal.participants.length} alunos)` : 'Rejeitar proposta'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
+
+      {selectedCoachingRequest ? (
+        <Modal open onClose={closeCoachingApprovalModal} title={`Pedido #${selectedCoachingRequest.requestId} — Aprovação final`}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.65rem' }}>
+              {[
+                { label: 'Aluno', value: [selectedCoachingRequest.student?.firstName, selectedCoachingRequest.student?.lastName].filter(Boolean).join(' ') || '—' },
+                { label: 'Professor', value: [selectedCoachingRequest.teacher?.firstName, selectedCoachingRequest.teacher?.lastName].filter(Boolean).join(' ') || '—' },
+                { label: 'Modalidade', value: selectedCoachingRequest.modalityName || '—' },
+                { label: 'Horário', value: selectedCoachingRequest.currentStartTime
+                  ? `${new Date(selectedCoachingRequest.currentStartTime).toLocaleDateString('pt-PT')} · ${new Date(selectedCoachingRequest.currentStartTime).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}${selectedCoachingRequest.currentEndTime ? ` → ${new Date(selectedCoachingRequest.currentEndTime).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}` : ''}`
+                  : '—' },
+              ].map(({ label, value }) => (
+                <div key={label} style={{ background: 'var(--studio-soft-bg)', border: '1px solid var(--studio-soft-line)', borderRadius: '0.9rem', padding: '0.7rem 0.85rem' }}>
+                  <div style={{ fontSize: '0.73rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--studio-muted)' }}>{label}</div>
+                  <div style={{ fontWeight: 700, color: 'var(--studio-ink)', marginTop: '0.2rem' }}>{value}</div>
+                </div>
+              ))}
+            </div>
+
+            <div>
+              <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.35rem' }}>Decisão</label>
+              <div style={{ display: 'inline-flex', gap: '0.5rem', padding: '0.35rem', border: '1px solid var(--studio-soft-line)', borderRadius: '999px', background: 'var(--studio-soft-bg)' }}>
+                <button
+                  type="button"
+                  onClick={() => setCoachingAdminDecision('approve')}
+                  style={{
+                    border: coachingAdminDecision === 'approve' ? '1px solid color-mix(in srgb, var(--studio-cta-start) 32%, #ffffff 68%)' : '1px solid transparent',
+                    borderRadius: '999px',
+                    background: coachingAdminDecision === 'approve' ? 'linear-gradient(135deg, rgba(11, 157, 143, 0.18), rgba(16, 178, 163, 0.1))' : 'transparent',
+                    color: coachingAdminDecision === 'approve' ? '#0a7a70' : 'var(--studio-ghost-ink)',
+                    cursor: 'pointer', font: 'inherit', fontWeight: 600, padding: '0.6rem 0.95rem',
+                  }}
+                >
+                  Aprovar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCoachingAdminDecision('reject')}
+                  style={{
+                    border: coachingAdminDecision === 'reject' ? '1px solid var(--studio-danger-line)' : '1px solid transparent',
+                    borderRadius: '999px',
+                    background: coachingAdminDecision === 'reject' ? 'var(--studio-danger-bg)' : 'transparent',
+                    color: coachingAdminDecision === 'reject' ? 'var(--studio-danger-ink)' : 'var(--studio-ghost-ink)',
+                    cursor: 'pointer', font: 'inherit', fontWeight: 600, padding: '0.6rem 0.95rem',
+                  }}
+                >
+                  Rejeitar
+                </button>
+              </div>
+            </div>
+
+            {coachingAdminDecision === 'approve' ? (
+              <div>
+                <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>
+                  Estúdio {loadingStudios ? '(a carregar...)' : `— ${compatibleStudios.length} compatíveis`}
+                </label>
+                {loadingStudios ? (
+                  <div style={{ color: 'var(--studio-muted)', fontSize: '0.9rem' }}>A verificar disponibilidade dos estúdios...</div>
+                ) : compatibleStudios.length === 0 ? (
+                  <div style={{ color: 'var(--studio-error-ink)', fontSize: '0.9rem' }}>Nenhum estúdio compatível encontrado.</div>
+                ) : (
+                  <div style={{ display: 'grid', gap: '0.5rem' }}>
+                    {compatibleStudios.map((studio) => (
+                      <label
+                        key={studio.studioId}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '0.75rem',
+                          padding: '0.75rem 1rem',
+                          border: `2px solid ${selectedStudioId === studio.studioId ? 'var(--studio-cta-start)' : studio.isAvailable ? 'var(--studio-soft-line)' : 'var(--studio-error-line)'}`,
+                          borderRadius: '0.9rem',
+                          background: selectedStudioId === studio.studioId
+                            ? 'linear-gradient(135deg, rgba(11, 157, 143, 0.12), rgba(16, 178, 163, 0.06))'
+                            : studio.isAvailable ? 'var(--studio-soft-bg)' : 'var(--studio-error-bg)',
+                          cursor: 'pointer',
+                          transition: 'border-color 0.15s',
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name="studio-select"
+                          value={studio.studioId}
+                          checked={selectedStudioId === studio.studioId}
+                          onChange={() => setSelectedStudioId(studio.studioId)}
+                        />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, color: 'var(--studio-ink)' }}>{studio.studioName}</div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--studio-muted)', display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.2rem' }}>
+                            <span>Capacidade: {studio.capacity ?? '—'}</span>
+                            <span>Aulas hoje: {studio.dailySessionCount}</span>
+                            <span>±2h: {studio.nearbySessionCount}</span>
+                          </div>
+                        </div>
+                        <span style={{
+                          padding: '3px 9px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap',
+                          background: studio.isAvailable ? 'color-mix(in srgb, var(--studio-cta-start) 15%, #fff 85%)' : 'var(--studio-error-bg)',
+                          color: studio.isAvailable ? '#0a7a70' : 'var(--studio-error-ink)',
+                          border: `1px solid ${studio.isAvailable ? 'color-mix(in srgb, var(--studio-cta-start) 40%, #fff 60%)' : 'var(--studio-error-line)'}`,
+                        }}>
+                          {studio.isAvailable ? 'Disponível' : `${studio.conflictCount} conflito${studio.conflictCount > 1 ? 's' : ''}`}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            <div>
+              <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.35rem' }}>
+                Notas {coachingAdminDecision === 'reject' ? <span style={{ color: '#b91c1c' }}>(obrigatórias)</span> : '(opcional)'}
+              </label>
+              <textarea
+                value={coachingAdminNotes}
+                onChange={(e) => setCoachingAdminNotes(e.target.value)}
+                rows={3}
+                placeholder={coachingAdminDecision === 'reject' ? 'Indica o motivo da rejeição...' : 'Notas adicionais...'}
+                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.9rem', border: '1px solid var(--studio-field-line)', background: '#fff', font: 'inherit', color: 'var(--studio-ink)', resize: 'vertical' }}
+              />
+            </div>
+
+            {coachingAdminError ? (
+              <div style={{ padding: '0.75rem 0.9rem', background: 'var(--studio-error-bg)', border: '1px solid var(--studio-error-line)', borderRadius: '0.9rem', color: 'var(--studio-error-ink)', fontSize: '0.88rem' }} role="alert">
+                {coachingAdminError}
+              </div>
+            ) : null}
+
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+              <Button variant="secondary" onClick={closeCoachingApprovalModal} disabled={coachingAdminSaving}>Cancelar</Button>
+              <Button
+                variant={coachingAdminDecision === 'approve' ? 'cta' : 'danger'}
+                onClick={handleCoachingAdminSubmit}
+                disabled={coachingAdminSaving || (coachingAdminDecision === 'approve' && !selectedStudioId)}
+              >
+                {coachingAdminSaving ? 'A processar...' : coachingAdminDecision === 'approve' ? 'Confirmar e criar aula' : 'Rejeitar pedido'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
     </div>
   )
 }

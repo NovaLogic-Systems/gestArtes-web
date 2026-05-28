@@ -159,7 +159,7 @@ export default function ListingForm({
         selectedFile,
       )
     } catch (submitError) {
-      setError(submitError?.message || 'Nao foi possivel guardar o anuncio.')
+      setError(submitError?.message || 'Não foi possível guardar o anúncio.')
     }
   }
 
@@ -181,7 +181,7 @@ export default function ListingForm({
         ) : null}
 
         <label className="market-form-full">
-          <span>Titulo</span>
+          <span>Título</span>
           <input
             value={values.title}
             onChange={(event) => handleChange('title', event.target.value)}

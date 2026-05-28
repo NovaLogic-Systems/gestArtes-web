@@ -86,7 +86,7 @@ export default function TeacherMarketplaceListingsPage() {
       setCategories(options.categories ?? [])
       setConditions(options.conditions ?? [])
     } catch (requestError) {
-      setError(localizeApiError(requestError, 'Nao foi possivel carregar os teus anuncios.'))
+      setError(localizeApiError(requestError, 'Não foi possível carregar os teus anúncios.'))
     } finally {
       setLoading(false)
     }
@@ -130,7 +130,7 @@ export default function TeacherMarketplaceListingsPage() {
   }
 
   async function handleDeleteListing(listing) {
-    const confirmed = window.confirm(`Queres apagar o anuncio "${listing.title}"?`)
+    const confirmed = window.confirm(`Queres apagar o anúncio "${listing.title}"?`)
 
     if (!confirmed) {
       return
@@ -140,7 +140,7 @@ export default function TeacherMarketplaceListingsPage() {
       await deleteMarketplaceListing(listing.listingId)
       await loadData()
     } catch (requestError) {
-      setError(localizeApiError(requestError, 'Nao foi possivel apagar o anuncio.'))
+      setError(localizeApiError(requestError, 'Não foi possível apagar o anúncio.'))
     }
   }
 

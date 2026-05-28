@@ -142,6 +142,7 @@ function StudioManagementPage() {
   const [studios, setStudios] = useState([])
   const [formatOptions, setFormatOptions] = useState([])
   const [modalityOptions, setModalityOptions] = useState([])
+  const [modalityObjects, setModalityObjects] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadingError, setLoadingError] = useState('')
   const [editingStudioId, setEditingStudioId] = useState(null)
@@ -149,6 +150,7 @@ function StudioManagementPage() {
   const [form, setForm] = useState(emptyForm)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
+  const [deletingModalityId, setDeletingModalityId] = useState(null)
 
   const formRef = useRef(null)
 
@@ -196,12 +198,19 @@ function StudioManagementPage() {
 
   const loadOptions = useCallback(async () => {
     try {
-      const options = await studioManagementService.listStudioOptions()
+      const [options, modalitiesWithIds] = await Promise.all([
+        studioManagementService.listStudioOptions(),
+        studioManagementService.listModalitiesWithIds(),
+      ])
       setFormatOptions(Array.isArray(options?.formats) ? options.formats : [])
-      setModalityOptions(Array.isArray(options?.modalities) ? options.modalities : [])
+      setModalityObjects(Array.isArray(modalitiesWithIds) ? modalitiesWithIds : [])
+      setModalityOptions(Array.isArray(modalitiesWithIds) && modalitiesWithIds.length > 0
+        ? modalitiesWithIds.map((m) => m.name)
+        : Array.isArray(options?.modalities) ? options.modalities : [])
     } catch {
       setFormatOptions([])
       setModalityOptions([])
+      setModalityObjects([])
     }
   }, [])
 
@@ -322,6 +331,25 @@ function StudioManagementPage() {
     } catch (requestError) {
       const message = requestError?.message || 'Não foi possível criar a opção.'
       setError(message)
+    }
+  }
+
+  const handleDeleteModality = async (modality) => {
+    if (deletingModalityId === modality.id) return
+    const confirmed = window.confirm(`Apagar a modalidade "${modality.name}"?\n\nNota: não é possível apagar modalidades que estejam associadas a estúdios, professores ou sessões.`)
+    if (!confirmed) return
+    setDeletingModalityId(modality.id)
+    try {
+      await studioManagementService.deleteStudioOption({ type: 'modalities', id: modality.id })
+      setModalityObjects((prev) => prev.filter((m) => m.id !== modality.id))
+      setModalityOptions((prev) => prev.filter((n) => n !== modality.name))
+      setNotice(`Modalidade "${modality.name}" removida.`)
+      setError('')
+    } catch (err) {
+      const msg = err?.response?.data?.error || err?.message || 'Não foi possível apagar a modalidade.'
+      setError(msg)
+    } finally {
+      setDeletingModalityId(null)
     }
   }
 
@@ -550,6 +578,48 @@ function StudioManagementPage() {
                 Abrir gestão detalhada de ocupação
               </Link>
             </div>
+          </article>
+
+          <article className="panel">
+            <div className="panel-header">
+              <h3>Modalidades</h3>
+              <p style={{ margin: 0, color: 'var(--studio-muted)', fontSize: '0.85rem' }}>
+                Para criar uma modalidade, usa o campo "Nova modalidade" no formulário de estúdio.
+              </p>
+            </div>
+            {modalityObjects.length === 0 ? (
+              <div className="soft-box">Sem modalidades registadas.</div>
+            ) : (
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Nome</th>
+                      <th style={{ textAlign: 'right' }}>Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {modalityObjects.map((m) => (
+                      <tr key={m.id}>
+                        <td style={{ color: 'var(--studio-muted)', fontSize: '0.85rem' }}>{m.id}</td>
+                        <td><strong>{m.name}</strong></td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button
+                            type="button"
+                            className="danger-btn"
+                            disabled={deletingModalityId === m.id}
+                            onClick={() => handleDeleteModality(m)}
+                          >
+                            {deletingModalityId === m.id ? 'A apagar...' : 'Apagar'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </article>
 
           {isStudioFormVisible ? (

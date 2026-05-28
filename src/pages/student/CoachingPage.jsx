@@ -9,11 +9,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Badge from '../../components/ui/Badge'
 import Button from '../../components/ui/Button'
+import Toast from '../../components/ui/Toast'
 import NotificationsBell from '../../components/NotificationsBell'
 import { useAuth } from '../../hooks/useAuth'
 import {
   createCoachingRequest,
   getCoachingRequestById,
+  getTeacherCoachingAvailability,
   listCoachingModalities,
   listCoachingTeachersByModality,
   listMyCoachingRequests,
@@ -70,6 +72,10 @@ function parseTimeToMinutes(value) {
   const [hours, mins] = String(value || '').split(':').map(Number)
   if (!Number.isFinite(hours) || !Number.isFinite(mins)) return null
   return (hours * 60) + mins
+}
+
+function isoDateTime(dateValue, timeValue) {
+  return `${dateValue}T${timeValue}:00.000Z`
 }
 
 function formatDateTimeRangeLabel(startValue, endValue) {
@@ -142,6 +148,15 @@ function isAllowedBookingDate(dateValue) {
   return Number.isFinite(parsed.getTime()) && day >= 1 && day <= 6
 }
 
+function timeFallsInsideRange(dateValue, timeValue, startValue, endValue) {
+  if (!dateValue || !timeValue || !startValue || !endValue) return false
+  const selected = new Date(isoDateTime(dateValue, timeValue))
+  const start = new Date(startValue)
+  const end = new Date(endValue)
+  if ([selected, start, end].some((value) => Number.isNaN(value.getTime()))) return false
+  return selected >= start && selected < end
+}
+
 export default function CoachingPage() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -170,6 +185,11 @@ export default function CoachingPage() {
   const [requestSubmitting, setRequestSubmitting] = useState(false)
   const [requestSubmitError, setRequestSubmitError] = useState('')
   const [requestSubmitSuccess, setRequestSubmitSuccess] = useState('')
+  const [toast, setToast] = useState(null)
+
+  const [teacherSchedule, setTeacherSchedule] = useState(null)
+  const [teacherScheduleLoading, setTeacherScheduleLoading] = useState(false)
+  const [teacherScheduleError, setTeacherScheduleError] = useState('')
 
   const [requests, setRequests] = useState([])
   const [requestsLoading, setRequestsLoading] = useState(true)
@@ -199,6 +219,17 @@ export default function CoachingPage() {
     () => teachers.find((teacher) => String(teacher.teacherId) === String(selectedTeacherId)) || null,
     [teachers, selectedTeacherId],
   )
+
+  const selectedDateUnavailabilities = useMemo(() => {
+    const day = teacherSchedule?.days?.find((item) => item.date === selectedDate)
+    return Array.isArray(day?.unavailabilities) ? day.unavailabilities : []
+  }, [teacherSchedule, selectedDate])
+
+  const selectedTimeUnavailable = useMemo(() => (
+    selectedDateUnavailabilities.some((absence) =>
+      timeFallsInsideRange(selectedDate, selectedStartTime, absence.startDate, absence.endDate)
+    )
+  ), [selectedDate, selectedDateUnavailabilities, selectedStartTime])
 
   const stepNumber = !selectedModalityId ? 1 : !selectedTeacherId ? 2 : 3
 
@@ -254,6 +285,33 @@ export default function CoachingPage() {
       setRequestsLoading(false)
     }
   }, [])
+
+  const loadTeacherSchedule = useCallback(async () => {
+    const parsedTeacherId = toPositiveInt(selectedTeacherId)
+    const parsedModalityId = toPositiveInt(selectedModalityId)
+
+    if (!parsedTeacherId || !parsedModalityId) {
+      setTeacherSchedule(null)
+      setTeacherScheduleError('')
+      return
+    }
+
+    setTeacherScheduleLoading(true)
+    setTeacherScheduleError('')
+    try {
+      const data = await getTeacherCoachingAvailability({
+        teacherId: parsedTeacherId,
+        modalityId: parsedModalityId,
+        weekStart,
+      })
+      setTeacherSchedule(data)
+    } catch (error) {
+      setTeacherSchedule(null)
+      setTeacherScheduleError(localizeApiError(error, 'Não foi possível verificar a indisponibilidade do professor.'))
+    } finally {
+      setTeacherScheduleLoading(false)
+    }
+  }, [selectedDate, selectedModalityId, selectedTeacherId, weekStart])
 
   const loadRequestDetail = useCallback(async (requestId) => {
     const parsedRequestId = toPositiveInt(requestId)
@@ -314,12 +372,18 @@ export default function CoachingPage() {
     if (!selectedModalityId || !selectedTeacherId) {
       setSelectedDate('')
       setSelectedStartTime('')
+      setTeacherSchedule(null)
+      setTeacherScheduleError('')
       return
     }
     if (!selectedDate || !weekDates.includes(selectedDate)) {
       setSelectedDate(weekDates[0] || '')
     }
   }, [selectedModalityId, selectedTeacherId, weekDates, selectedDate])
+
+  useEffect(() => {
+    void loadTeacherSchedule()
+  }, [loadTeacherSchedule])
 
   useEffect(() => {
     if (!selectedRequestId) {
@@ -357,6 +421,13 @@ export default function CoachingPage() {
       return
     }
 
+    if (selectedTimeUnavailable) {
+      const message = 'O professor não está disponível nessa hora.'
+      setRequestSubmitError(message)
+      setToast({ variant: 'danger', title: 'Professor indisponível', description: message })
+      return
+    }
+
     setRequestSubmitting(true)
     setRequestSubmitError('')
     setRequestSubmitSuccess('')
@@ -365,7 +436,7 @@ export default function CoachingPage() {
       const request = await createCoachingRequest({
         teacherId: selectedTeacher.teacherId,
         modalityId: selectedModality.modalityId,
-        startTime: `${selectedDate}T${selectedStartTime}:00.000Z`,
+        startTime: isoDateTime(selectedDate, selectedStartTime),
         notes: requestNotes || undefined,
       })
 
@@ -379,11 +450,15 @@ export default function CoachingPage() {
         setSelectedRequestId(requestId)
       }
     } catch (error) {
-      setRequestSubmitError(localizeApiError(error, 'Não foi possível submeter o pedido.'))
+      const message = localizeApiError(error, 'Não foi possível submeter o pedido.')
+      setRequestSubmitError(message)
+      if (message.toLowerCase().includes('professor') && message.toLowerCase().includes('dispon')) {
+        setToast({ variant: 'danger', title: 'Professor indisponível', description: message })
+      }
     } finally {
       setRequestSubmitting(false)
     }
-  }, [selectedDate, selectedStartTime, selectedTeacher, selectedModality, requestNotes, loadRequests])
+  }, [selectedDate, selectedStartTime, selectedTeacher, selectedModality, selectedTimeUnavailable, requestNotes, loadRequests])
 
   const handleStudentDecision = useCallback(async (decision) => {
     const requestId = toPositiveInt(selectedRequest?.requestId)
@@ -630,6 +705,29 @@ export default function CoachingPage() {
                       Horário livre entre segunda e sábado, das 09:00 às 23:00.
                     </p>
 
+                    {teacherScheduleLoading ? (
+                      <p className="bk-hint" style={{ margin: 0 }}>
+                        A verificar indisponibilidades do professor...
+                      </p>
+                    ) : null}
+
+                    {teacherScheduleError ? (
+                      <p className="teacher-unavailability-warning">{teacherScheduleError}</p>
+                    ) : null}
+
+                    {selectedDateUnavailabilities.length > 0 ? (
+                      <div className="teacher-unavailability-warning" role="status">
+                        <strong>Professor indisponível neste dia:</strong>
+                        <ul>
+                          {selectedDateUnavailabilities.map((absence) => (
+                            <li key={absence.absenceId}>
+                              {absence.label || formatDateTimeRangeLabel(absence.startDate, absence.endDate)}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+
                     <div>
                       <strong>Pedido atual</strong>
                       <p>
@@ -645,7 +743,7 @@ export default function CoachingPage() {
                         rows={2}
                         value={requestNotes}
                         onChange={(event) => setRequestNotes(event.target.value)}
-                        placeholder="Ex.: quero focar técnica e expressão nesta sessão"
+                        placeholder=""
                       />
                     </label>
 
@@ -816,6 +914,15 @@ export default function CoachingPage() {
           </section>
         </main>
       </div>
+      {toast ? (
+        <Toast
+          open
+          variant={toast.variant}
+          title={toast.title}
+          description={toast.description}
+          onClose={() => setToast(null)}
+        />
+      ) : null}
     </div>
   )
 }
