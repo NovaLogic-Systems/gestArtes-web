@@ -1,6 +1,7 @@
 export const STUDENT_NAV_ITEMS = [
   { label: 'Painel', href: '/student/dashboard' },
   { label: 'Coaching', href: '/student/coaching' },
+  { label: 'Horários', href: '/student/timetable' },
   { label: 'Histórico', href: '/student/history' },
   { label: 'Inventário da Escola', href: '/student/inventory' },
   { label: 'Pedidos de Aluguer', href: '/student/inventory/rentals' },
