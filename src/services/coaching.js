@@ -55,3 +55,35 @@ export async function getSessionHistory() {
   historyCacheTime = Date.now()
   return historyCache
 }
+
+export async function listCoachingModalities() {
+  const response = await api.get('/coaching/modalities')
+  return response.data?.modalities ?? []
+}
+
+export async function listCoachingTeachersByModality(modalityId) {
+  const response = await api.get('/coaching/teachers', {
+    params: { modalityId },
+  })
+  return response.data?.teachers ?? []
+}
+
+export async function createCoachingRequest(payload) {
+  const response = await api.post('/coaching/requests', payload)
+  return response.data?.request
+}
+
+export async function listMyCoachingRequests() {
+  const response = await api.get('/coaching/requests/my')
+  return response.data?.requests ?? []
+}
+
+export async function getCoachingRequestById(requestId) {
+  const response = await api.get(`/coaching/requests/${requestId}`)
+  return response.data?.request
+}
+
+export async function respondToTeacherSuggestion(requestId, payload) {
+  const response = await api.patch(`/coaching/requests/${requestId}/student-review`, payload)
+  return response.data?.request
+}
