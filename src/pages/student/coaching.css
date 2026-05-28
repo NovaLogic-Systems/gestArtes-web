@@ -1064,7 +1064,7 @@
 
 .coaching-redesign-page .teacher-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 12px;
 }
 
@@ -1088,6 +1088,10 @@
   gap: 12px;
 }
 
+.coaching-redesign-page .teacher-card-header > div {
+  min-width: 0;
+}
+
 .coaching-redesign-page .teacher-avatar {
   width: 52px;
   height: 52px;
@@ -1108,6 +1112,7 @@
 .coaching-redesign-page .teacher-card-header strong,
 .coaching-redesign-page .teacher-card-header small {
   display: block;
+  overflow-wrap: anywhere;
 }
 
 .coaching-redesign-page .teacher-card-header small {

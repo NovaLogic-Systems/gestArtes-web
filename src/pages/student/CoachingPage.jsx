@@ -804,7 +804,7 @@ export default function CoachingPage() {
               <div className="requests-header">
                 <div>
                   <h3>Os meus pedidos de coaching</h3>
-                  <p>Acompanhamento do estado, respostas e timeline</p>
+                  <p>Acompanhamento do estado, respostas e Linha Temporal</p>
                 </div>
                 <Button variant="secondary" size="sm" onClick={() => void loadRequests()}>
                   Atualizar
@@ -911,7 +911,7 @@ export default function CoachingPage() {
                     ) : null}
 
                     <div className="request-timeline">
-                      <h5>Linha temporal</h5>
+                      <h5>Linha Temporal</h5>
                       {currentTimeline.length === 0 ? (
                         <p className="panel-subtle">Ainda não há ações registadas.</p>
                       ) : (

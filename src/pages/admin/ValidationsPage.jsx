@@ -716,7 +716,6 @@ function ValidationsPage() {
                   ) : null}
                 </div>
               </div>
-              <p>Sessões confirmadas por professor e estudante. A validação final desencadeia o serviço de pricing e cria as entradas financeiras.</p>
 
               {loadingFinals ? (
                 <div className="soft-box">A carregar sessões...</div>
