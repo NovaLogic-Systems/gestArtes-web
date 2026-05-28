@@ -23,7 +23,9 @@ import MarketplaceModerationPage from './pages/admin/MarketplaceModerationPage'
 import AdminDashboardPage from './pages/admin/AdminDashboardPage'
 import AdminInventoryPage from './pages/admin/AdminInventoryPage'
 import AdminNotificationsPage from './pages/admin/NotificationsPage'
+import AdminTimetablesPage from './pages/admin/AdminTimetablesPage'
 import DashboardPage from './pages/student/DashboardPage'
+import StudentTimetablePage from './pages/student/TimetablePage'
 import CoachingStudentPage from './pages/student/CoachingPage'
 import AdmissionRequestsPage from './pages/teacher/AdmissionRequestsPage'
 import SessionConfirmationPage from './pages/teacher/SessionConfirmationPage'
@@ -33,6 +35,7 @@ import LostFoundPage from './pages/student/LostFoundPage'
 import RentalCheckoutPage from './pages/student/RentalCheckoutPage'
 import RentalRequestsPage from './pages/student/RentalRequestsPage'
 import TeacherDashboardPage from './pages/teacher/DashboardPage'
+import TeacherTimetablePage from './pages/teacher/TimetablePage'
 import MarketplacePage from './pages/student/MarketplacePage'
 import AccountPage from './pages/student/AccountPage'
 import MyListingsPage from './pages/student/MyListingsPage'
@@ -311,6 +314,7 @@ function App() {
         <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
         <Route path="/student/dashboard" element={<DashboardPage />} />
         <Route path="/student/coaching" element={<CoachingPage />} />
+        <Route path="/student/timetable" element={<StudentTimetablePage />} />
         <Route path="/student/inventory" element={<InventoryPage />} />
         <Route path="/student/inventory/checkout/:itemId" element={<RentalCheckoutPage />} />
         <Route path="/student/inventory/rentals" element={<RentalRequestsPage />} />
@@ -326,6 +330,7 @@ function App() {
       <Route element={<ProtectedRoute allowedRoles={['teacher']} />}>
         <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
         <Route path="/teacher/dashboard" element={<TeacherDashboardPage />} />
+        <Route path="/teacher/timetable" element={<TeacherTimetablePage />} />
         <Route path="/teacher/admission-requests" element={<AdmissionRequestsPage />} />
         <Route path="/teacher/sessions/confirmation" element={<SessionConfirmationPage />} />
         <Route path="/teacher/schedule" element={<Navigate to="/teacher/dashboard" replace />} />
@@ -354,6 +359,7 @@ function App() {
         <Route path="/admin/lost-and-found" element={<LostFoundAdminPage />} />
         <Route path="/admin/lostfound" element={<Navigate to="/admin/lost-and-found" replace />} />
         <Route path="/admin/notifications" element={<AdminNotificationsPage />} />
+        <Route path="/admin/timetables" element={<AdminTimetablesPage />} />
         <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
       </Route>
 
