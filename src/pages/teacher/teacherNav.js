@@ -1,6 +1,5 @@
 export const TEACHER_NAV_ITEMS = [
   { label: 'Painel', href: '/teacher/dashboard' },
-  { label: 'Horário', href: '/teacher/schedule' },
   { label: 'Coaching', href: '/teacher/coaching' },
   { label: 'Pedidos de adesão', href: '/teacher/admission-requests' },
   { label: 'Confirmação de sessões', href: '/teacher/sessions/confirmation' },

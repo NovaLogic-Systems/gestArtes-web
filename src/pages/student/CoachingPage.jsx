@@ -13,7 +13,6 @@ import NotificationsBell from '../../components/NotificationsBell'
 import { useAuth } from '../../hooks/useAuth'
 import {
   createCoachingRequest,
-  getAvailableSlots,
   getCoachingRequestById,
   listCoachingModalities,
   listCoachingTeachersByModality,
@@ -67,16 +66,16 @@ function formatDateTimeLabel(dateValue) {
   }).format(new Date(dateValue))
 }
 
-function formatTimeLabel(minutes) {
-  const hours = Math.floor(minutes / 60)
-  const mins = minutes % 60
-  return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
-}
-
 function parseTimeToMinutes(value) {
   const [hours, mins] = String(value || '').split(':').map(Number)
   if (!Number.isFinite(hours) || !Number.isFinite(mins)) return null
   return (hours * 60) + mins
+}
+
+function formatDateTimeRangeLabel(startValue, endValue) {
+  if (!startValue) return '—'
+  const startLabel = formatDateTimeLabel(startValue)
+  return endValue ? `${startLabel} - ${formatDateTimeLabel(endValue)}` : `${startLabel} - A definir`
 }
 
 function studentFullName(user) {
@@ -131,91 +130,16 @@ function initials(name) {
   return parts.slice(0, 2).map((part) => part[0]).join('').toUpperCase()
 }
 
-function buildTeacherAvailabilityMap(windows = [], teacherId) {
-  const byDate = new Map()
-
-  for (const windowRecord of windows) {
-    if (Number(windowRecord.teacherId) !== Number(teacherId)) continue
-
-    if (!byDate.has(windowRecord.date)) {
-      byDate.set(windowRecord.date, [])
-    }
-
-    byDate.get(windowRecord.date).push(windowRecord)
-  }
-
-  return byDate
+function isValidBookingTime(value) {
+  const minutes = parseTimeToMinutes(value)
+  if (minutes == null) return false
+  return minutes >= (9 * 60) && minutes <= (23 * 60)
 }
 
-function buildTimeRows(dayWindowsMap) {
-  const minutes = []
-
-  for (const windows of dayWindowsMap.values()) {
-    for (const windowRecord of windows) {
-      const start = parseTimeToMinutes(windowRecord.windowStart)
-      const end = parseTimeToMinutes(windowRecord.windowEnd)
-      if (start != null) minutes.push(start)
-      if (end != null) minutes.push(end)
-
-      for (const session of windowRecord.bookedSessions || []) {
-        const sessionStart = new Date(session.startTime).toISOString().slice(11, 16)
-        const sessionEnd = new Date(session.endTime).toISOString().slice(11, 16)
-        const startMinutes = parseTimeToMinutes(sessionStart)
-        const endMinutes = parseTimeToMinutes(sessionEnd)
-        if (startMinutes != null) minutes.push(startMinutes)
-        if (endMinutes != null) minutes.push(endMinutes)
-      }
-    }
-  }
-
-  const min = minutes.length ? Math.floor(Math.min(...minutes) / 30) * 30 : 18 * 60
-  const max = minutes.length ? Math.ceil(Math.max(...minutes) / 30) * 30 : (21 * 60) + 30
-  const rows = []
-
-  for (let minute = min; minute < max; minute += 30) {
-    rows.push(minute)
-  }
-
-  return rows
-}
-
-function getCellState(windowRecords, date, startMinutes, endMinutes) {
-  const slots = windowRecords || []
-  const booked = slots.some((windowRecord) => {
-    return (windowRecord.bookedSessions || []).some((session) => {
-      const sessionStart = parseTimeToMinutes(new Date(session.startTime).toISOString().slice(11, 16))
-      const sessionEnd = parseTimeToMinutes(new Date(session.endTime).toISOString().slice(11, 16))
-      return sessionStart != null && sessionEnd != null && sessionStart < endMinutes && sessionEnd > startMinutes
-    })
-  })
-
-  if (booked) {
-    return { state: 'booked' }
-  }
-
-  const available = slots.some((windowRecord) => {
-    const windowStart = parseTimeToMinutes(windowRecord.windowStart)
-    const windowEnd = parseTimeToMinutes(windowRecord.windowEnd)
-    return windowStart != null && windowEnd != null && startMinutes >= windowStart && endMinutes <= windowEnd
-  })
-
-  if (!available) {
-    return { state: 'empty' }
-  }
-
-  const slotDate = new Date(`${date}T${formatTimeLabel(startMinutes)}:00.000Z`)
-  if (slotDate.getTime() <= Date.now()) {
-    return { state: 'past' }
-  }
-
-  return {
-    state: 'free',
-    payload: {
-      date,
-      startTime: formatTimeLabel(startMinutes),
-      endTime: formatTimeLabel(endMinutes),
-    },
-  }
+function isAllowedBookingDate(dateValue) {
+  const parsed = new Date(`${dateValue}T00:00:00.000Z`)
+  const day = parsed.getUTCDay()
+  return Number.isFinite(parsed.getTime()) && day >= 1 && day <= 6
 }
 
 export default function CoachingPage() {
@@ -240,11 +164,8 @@ export default function CoachingPage() {
   const [teachersError, setTeachersError] = useState('')
   const [selectedTeacherId, setSelectedTeacherId] = useState('')
 
-  const [availabilityWindows, setAvailabilityWindows] = useState([])
-  const [availabilityLoading, setAvailabilityLoading] = useState(false)
-  const [availabilityError, setAvailabilityError] = useState('')
-
-  const [selectedSlot, setSelectedSlot] = useState(null)
+  const [selectedDate, setSelectedDate] = useState('')
+  const [selectedStartTime, setSelectedStartTime] = useState('')
   const [requestNotes, setRequestNotes] = useState('')
   const [requestSubmitting, setRequestSubmitting] = useState(false)
   const [requestSubmitError, setRequestSubmitError] = useState('')
@@ -280,13 +201,6 @@ export default function CoachingPage() {
   )
 
   const stepNumber = !selectedModalityId ? 1 : !selectedTeacherId ? 2 : 3
-
-  const availabilityByDate = useMemo(
-    () => buildTeacherAvailabilityMap(availabilityWindows, selectedTeacherId),
-    [availabilityWindows, selectedTeacherId],
-  )
-
-  const timeRows = useMemo(() => buildTimeRows(availabilityByDate), [availabilityByDate])
 
   const weekLabel = useMemo(() => {
     if (!weekDates.length) return ''
@@ -324,34 +238,6 @@ export default function CoachingPage() {
       setTeachersError(localizeApiError(error, 'Não foi possível carregar os professores.'))
     } finally {
       setTeachersLoading(false)
-    }
-  }, [])
-
-  const loadAvailability = useCallback(async ({ modalityId, teacherId, weekStartDate }) => {
-    const parsedTeacherId = toPositiveInt(teacherId)
-    const parsedModalityId = toPositiveInt(modalityId)
-
-    if (!parsedTeacherId || !parsedModalityId) {
-      setAvailabilityWindows([])
-      return
-    }
-
-    setAvailabilityLoading(true)
-    setAvailabilityError('')
-
-    try {
-      const data = await getAvailableSlots({
-        weekStart: weekStartDate,
-        teacherId: parsedTeacherId,
-        modalityId: parsedModalityId,
-      })
-
-      setAvailabilityWindows((data?.availabilityWindows || []).filter((windowRecord) => Number(windowRecord.teacherId) === parsedTeacherId))
-    } catch (error) {
-      setAvailabilityWindows([])
-      setAvailabilityError(localizeApiError(error, 'Não foi possível carregar a disponibilidade do professor.'))
-    } finally {
-      setAvailabilityLoading(false)
     }
   }, [])
 
@@ -411,14 +297,14 @@ export default function CoachingPage() {
     if (!selectedModalityId) {
       setTeachers([])
       setSelectedTeacherId('')
-      setAvailabilityWindows([])
-      setSelectedSlot(null)
+      setSelectedDate('')
+      setSelectedStartTime('')
       return
     }
 
     setSelectedTeacherId('')
-    setAvailabilityWindows([])
-    setSelectedSlot(null)
+    setSelectedDate('')
+    setSelectedStartTime('')
     setRequestSubmitError('')
     setRequestSubmitSuccess('')
     void loadTeachers(selectedModalityId)
@@ -426,16 +312,14 @@ export default function CoachingPage() {
 
   useEffect(() => {
     if (!selectedModalityId || !selectedTeacherId) {
-      setAvailabilityWindows([])
+      setSelectedDate('')
+      setSelectedStartTime('')
       return
     }
-
-    void loadAvailability({
-      modalityId: selectedModalityId,
-      teacherId: selectedTeacherId,
-      weekStartDate: weekStart,
-    })
-  }, [selectedModalityId, selectedTeacherId, weekStart, loadAvailability])
+    if (!selectedDate || !weekDates.includes(selectedDate)) {
+      setSelectedDate(weekDates[0] || '')
+    }
+  }, [selectedModalityId, selectedTeacherId, weekDates, selectedDate])
 
   useEffect(() => {
     if (!selectedRequestId) {
@@ -461,7 +345,17 @@ export default function CoachingPage() {
   }, [isMobile])
 
   const handleCreateRequest = useCallback(async () => {
-    if (!selectedSlot || !selectedTeacher || !selectedModality) return
+    if (!selectedDate || !selectedStartTime || !selectedTeacher || !selectedModality) return
+
+    if (!isAllowedBookingDate(selectedDate)) {
+      setRequestSubmitError('A data selecionada tem de ser entre segunda-feira e sábado.')
+      return
+    }
+
+    if (!isValidBookingTime(selectedStartTime)) {
+      setRequestSubmitError('A hora tem de estar entre as 09:00 e as 23:00.')
+      return
+    }
 
     setRequestSubmitting(true)
     setRequestSubmitError('')
@@ -471,13 +365,12 @@ export default function CoachingPage() {
       const request = await createCoachingRequest({
         teacherId: selectedTeacher.teacherId,
         modalityId: selectedModality.modalityId,
-        startTime: `${selectedSlot.date}T${selectedSlot.startTime}:00.000Z`,
-        endTime: `${selectedSlot.date}T${selectedSlot.endTime}:00.000Z`,
+        startTime: `${selectedDate}T${selectedStartTime}:00.000Z`,
         notes: requestNotes || undefined,
       })
 
-      setRequestSubmitSuccess('Pedido submetido com sucesso. Vais receber notificações em cada etapa.')
-      setSelectedSlot(null)
+      setRequestSubmitSuccess('Pedido submetido com sucesso. O professor irá definir a duração.')
+      setSelectedStartTime('')
       setRequestNotes('')
       await loadRequests()
 
@@ -490,7 +383,7 @@ export default function CoachingPage() {
     } finally {
       setRequestSubmitting(false)
     }
-  }, [selectedSlot, selectedTeacher, selectedModality, requestNotes, loadRequests])
+  }, [selectedDate, selectedStartTime, selectedTeacher, selectedModality, requestNotes, loadRequests])
 
   const handleStudentDecision = useCallback(async (decision) => {
     const requestId = toPositiveInt(selectedRequest?.requestId)
@@ -663,7 +556,8 @@ export default function CoachingPage() {
                               size="sm"
                               onClick={() => {
                                 setSelectedTeacherId(String(teacher.teacherId))
-                                setSelectedSlot(null)
+                                setSelectedDate('')
+                                setSelectedStartTime('')
                                 setRequestSubmitError('')
                                 setRequestSubmitSuccess('')
                               }}
@@ -681,7 +575,7 @@ export default function CoachingPage() {
               {selectedTeacher ? (
                 <div className="flow-block">
                   <div className="schedule-header-row">
-                    <h3>3. Agenda semanal de {selectedTeacher.name}</h3>
+                    <h3>3. Escolhe a hora</h3>
                     <div className="week-nav">
                       <button type="button" className="week-nav-btn" onClick={() => setWeekOffset((value) => value - 1)}>
                         ‹
@@ -693,84 +587,55 @@ export default function CoachingPage() {
                     </div>
                   </div>
 
-                  <div className="legend-row">
-                    <span className="legend-item"><span className="legend-dot free" />Disponível</span>
-                    <span className="legend-item"><span className="legend-dot busy" />Ocupado</span>
-                  </div>
-
-                  {availabilityError ? <p className="error-banner">{availabilityError}</p> : null}
-
-                  {availabilityLoading ? (
-                    <p className="panel-subtle">A carregar horários...</p>
-                  ) : (
-                    <div className="schedule-wrap">
-                      <table className="schedule-grid coaching-slot-grid">
-                        <thead>
-                          <tr>
-                            <th style={{ width: 72 }}>Hora</th>
-                            {weekDates.map((date) => (
-                              <th key={date}>
-                                {DAY_LABELS[new Date(`${date}T00:00:00.000Z`).getUTCDay()]}
-                                <br />
-                                <span>{formatDateLabel(date)}</span>
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {timeRows.map((rowMinute) => (
-                            <tr key={rowMinute}>
-                              <th className="time-col">{formatTimeLabel(rowMinute)}</th>
-                              {weekDates.map((date) => {
-                                const dayWindows = availabilityByDate.get(date) || []
-                                const cellState = getCellState(dayWindows, date, rowMinute, rowMinute + 30)
-
-                                if (cellState.state === 'free') {
-                                  const isSelected = selectedSlot?.date === cellState.payload.date
-                                    && selectedSlot?.startTime === cellState.payload.startTime
-                                    && selectedSlot?.endTime === cellState.payload.endTime
-
-                                  return (
-                                    <td key={`${date}-${rowMinute}`} className="slot-cell slot-cell-free">
-                                      <button
-                                        type="button"
-                                        className={`slot-pick-btn${isSelected ? ' active' : ''}`}
-                                        onClick={() => {
-                                          setSelectedSlot(cellState.payload)
-                                          setRequestSubmitError('')
-                                          setRequestSubmitSuccess('')
-                                        }}
-                                      >
-                                        {cellState.payload.startTime}
-                                      </button>
-                                    </td>
-                                  )
-                                }
-
-                                if (cellState.state === 'booked') {
-                                  return <td key={`${date}-${rowMinute}`} className="slot-cell slot-cell-booked" />
-                                }
-
-                                if (cellState.state === 'past') {
-                                  return <td key={`${date}-${rowMinute}`} className="slot-cell slot-cell-past" />
-                                }
-
-                                return <td key={`${date}-${rowMinute}`} className="slot-cell slot-cell-empty" />
-                              })}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-
                   <div className="request-composer">
+                    <div className="request-detail-grid">
+                      <label>
+                        Data
+                        <select
+                          value={selectedDate}
+                          onChange={(event) => {
+                            setSelectedDate(event.target.value)
+                            setRequestSubmitError('')
+                            setRequestSubmitSuccess('')
+                          }}
+                          disabled={!weekDates.length}
+                        >
+                          {weekDates.map((date) => (
+                            <option key={date} value={date}>
+                              {DAY_LABELS[new Date(`${date}T00:00:00.000Z`).getUTCDay()]} · {formatDateLabel(date)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label>
+                        Hora
+                        <input
+                          type="time"
+                          min="09:00"
+                          max="23:00"
+                          step="300"
+                          className="coaching-time-input"
+                          value={selectedStartTime}
+                          onChange={(event) => {
+                            setSelectedStartTime(event.target.value)
+                            setRequestSubmitError('')
+                            setRequestSubmitSuccess('')
+                          }}
+                        />
+                      </label>
+                    </div>
+
+                    <p className="bk-hint" style={{ margin: 0 }}>
+                      Horário livre entre segunda e sábado, das 09:00 às 23:00.
+                    </p>
+
                     <div>
                       <strong>Pedido atual</strong>
                       <p>
-                        {selectedSlot
-                          ? `${selectedModality?.modalityName} · ${selectedTeacher.name} · ${formatDateLabel(selectedSlot.date)} ${selectedSlot.startTime} - ${selectedSlot.endTime}`
-                          : 'Escolhe um slot disponível para criar o pedido.'}
+                        {selectedDate && selectedStartTime
+                          ? `${selectedModality?.modalityName} · ${selectedTeacher.name} · ${formatDateLabel(selectedDate)} ${selectedStartTime}`
+                          : 'Escreve a hora para criar o pedido. A duração será definida pelo professor.'}
                       </p>
                     </div>
 
@@ -788,10 +653,20 @@ export default function CoachingPage() {
                     {requestSubmitSuccess ? <p className="success-banner">{requestSubmitSuccess}</p> : null}
 
                     <div className="request-composer-actions">
-                      <Button variant="secondary" size="sm" onClick={() => setSelectedSlot(null)} disabled={!selectedSlot || requestSubmitting}>
-                        Limpar
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setSelectedStartTime('')}
+                        disabled={!selectedDate || !selectedStartTime || requestSubmitting}
+                      >
+                        Limpar hora
                       </Button>
-                      <Button variant="cta" size="sm" onClick={() => void handleCreateRequest()} disabled={!selectedSlot || requestSubmitting}>
+                      <Button
+                        variant="cta"
+                        size="sm"
+                        onClick={() => void handleCreateRequest()}
+                        disabled={!selectedDate || !selectedStartTime || requestSubmitting}
+                      >
                         {requestSubmitting ? 'A submeter...' : 'Submeter pedido'}
                       </Button>
                     </div>
@@ -865,11 +740,11 @@ export default function CoachingPage() {
                     <div className="request-detail-grid">
                       <span>
                         <strong>Horário atual</strong>
-                        {formatDateTimeLabel(selectedRequest.currentStartTime)} - {formatDateTimeLabel(selectedRequest.currentEndTime)}
+                        {formatDateTimeRangeLabel(selectedRequest.currentStartTime, selectedRequest.currentEndTime)}
                       </span>
                       <span>
                         <strong>Pedido inicial</strong>
-                        {formatDateTimeLabel(selectedRequest.preferredStartTime)} - {formatDateTimeLabel(selectedRequest.preferredEndTime)}
+                        {formatDateTimeRangeLabel(selectedRequest.preferredStartTime, selectedRequest.preferredEndTime)}
                       </span>
                       <span>
                         <strong>Criado em</strong>
@@ -885,8 +760,8 @@ export default function CoachingPage() {
                       <div className="suggestion-box">
                         <h5>O professor sugeriu um novo horário</h5>
                         <p>
-                          {selectedRequest.suggestedStartTime && selectedRequest.suggestedEndTime
-                            ? `${formatDateTimeLabel(selectedRequest.suggestedStartTime)} - ${formatDateTimeLabel(selectedRequest.suggestedEndTime)}`
+                          {selectedRequest.suggestedStartTime
+                            ? formatDateTimeRangeLabel(selectedRequest.suggestedStartTime, selectedRequest.suggestedEndTime)
                             : 'Sem horário sugerido.'}
                         </p>
                         <label>
