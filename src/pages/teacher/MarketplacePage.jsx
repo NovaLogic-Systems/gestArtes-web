@@ -110,7 +110,7 @@ export default function TeacherMarketplacePage() {
         setListings(listingsResult.value)
       } else {
         setListings([])
-        setError(listingsResult.localizeApiError(reason, 'Nao foi possivel carregar o marketplace.'))
+        setError(listingsResult.localizeApiError(reason, 'Não foi possível carregar o marketplace.'))
       }
 
       if (optionsResult.status === 'fulfilled') {
@@ -121,7 +121,7 @@ export default function TeacherMarketplacePage() {
         setConditions([])
       }
     } catch (requestError) {
-      setError(localizeApiError(requestError, 'Nao foi possivel carregar o marketplace.'))
+      setError(localizeApiError(requestError, 'Não foi possível carregar o marketplace.'))
     } finally {
       setLoading(false)
     }

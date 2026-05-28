@@ -55,7 +55,7 @@ export default function NotificationsPage() {
     try {
       setNotifications(await notificationService.list())
     } catch {
-      setError('Nao foi possivel carregar as notificacoes.')
+      setError('Não foi possível carregar as notificações.')
     } finally {
       setLoading(false)
     }
@@ -116,7 +116,7 @@ export default function NotificationsPage() {
       setNotifications((current) =>
         current.map((item) => (item.id === notification.id ? { ...item, isRead: false } : item)),
       )
-      setError('Nao foi possivel marcar a notificacao como lida.')
+      setError('Não foi possível marcar a notificação como lida.')
     }
   }
 
@@ -128,7 +128,7 @@ export default function NotificationsPage() {
       await notificationService.remove(notification.id)
     } catch {
       setNotifications(previous)
-      setError('Nao foi possivel apagar a notificacao.')
+      setError('Não foi possível apagar a notificação.')
     }
   }
 
