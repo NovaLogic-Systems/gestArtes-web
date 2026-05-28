@@ -1257,9 +1257,53 @@
   resize: vertical;
 }
 
+.coaching-redesign-page .request-composer select,
+.coaching-redesign-page .request-detail select,
+.coaching-redesign-page .suggestion-box select,
+.coaching-redesign-page .request-detail-grid select,
+.coaching-redesign-page .coaching-time-input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+}
+
+.coaching-redesign-page .coaching-time-input {
+  min-height: 46px;
+  letter-spacing: 0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.coaching-redesign-page .coaching-time-input::-webkit-calendar-picker-indicator {
+  opacity: 0.55;
+  cursor: pointer;
+}
+
+.coaching-redesign-page .coaching-time-input:hover::-webkit-calendar-picker-indicator,
+.coaching-redesign-page .coaching-time-input:focus::-webkit-calendar-picker-indicator {
+  opacity: 0.85;
+}
+
+.coaching-redesign-page .request-detail-grid label,
+.coaching-redesign-page .request-composer label,
+.coaching-redesign-page .suggestion-box label {
+  display: grid;
+  gap: 8px;
+  color: var(--text-h);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
 .coaching-redesign-page .request-composer textarea:focus,
 .coaching-redesign-page .request-detail textarea:focus,
 .coaching-redesign-page .suggestion-box textarea:focus,
+.coaching-redesign-page .request-composer select:focus,
+.coaching-redesign-page .request-detail select:focus,
+.coaching-redesign-page .suggestion-box select:focus,
+.coaching-redesign-page .request-detail-grid select:focus,
 .coaching-redesign-page .coaching-main-select:focus {
   border-color: var(--teal);
   box-shadow: 0 0 0 3px rgba(11, 157, 143, 0.14);

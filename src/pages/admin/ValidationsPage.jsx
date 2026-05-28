@@ -14,7 +14,6 @@ import { ADMIN_NAV_ITEMS as navigationItems } from './adminNav'
 import '../admin-studios.css'
 import Modal from '../../components/ui/Modal'
 import Button from '../../components/ui/Button'
-import UnavailabilityModal from '../../components/teacher/UnavailabilityModal'
 
 
 
@@ -128,14 +127,6 @@ function ValidationsPage() {
   const [filterTeacher, setFilterTeacher] = useState('')
   const [filterModalityFinals, setFilterModalityFinals] = useState('')
 
-  const [availabilityRequests, setAvailabilityRequests] = useState([])
-  const [loadingAvailability, setLoadingAvailability] = useState(true)
-  const [availabilityModalOpen, setAvailabilityModalOpen] = useState(false)
-  const [availabilityModalData, setAvailabilityModalData] = useState(null)
-  const [absenceRequests, setAbsenceRequests] = useState([])
-  const [loadingAbsences, setLoadingAbsences] = useState(true)
-  const [absenceModalOpen, setAbsenceModalOpen] = useState(false)
-  const [absenceModalData, setAbsenceModalData] = useState(null)
   const [joinRequests, setJoinRequests] = useState([])
   const [loadingJoinRequests, setLoadingJoinRequests] = useState(true)
 
@@ -164,25 +155,6 @@ function ValidationsPage() {
     } catch {
       setBookings([])
       setError('Não foi possível carregar os pedidos de coaching pendentes.')
-    }
-
-    try {
-      const { data } = await api.get('/admin/validations/availability')
-      const list = Array.isArray(data) ? data : (Array.isArray(data?.availability) ? data.availability : [])
-      setAvailabilityRequests(list)
-    } catch {
-      setAvailabilityRequests([])
-    }
-
-    try {
-      const { data } = await api.get('/admin/validations/absences')
-      const list = Array.isArray(data) ? data : (Array.isArray(data?.absences) ? data.absences : [])
-      setAbsenceRequests(list)
-    } catch {
-      setAbsenceRequests([])
-    } finally {
-      setLoadingAvailability(false)
-      setLoadingAbsences(false)
     }
     setLoadingBookings(false)
   }, [])
@@ -557,138 +529,6 @@ function ValidationsPage() {
                 )}
               </article>
 
-              {/* Availability submissions panel */}
-              <article className="panel">
-                <div className="panel-header">
-                  <h3>Pedidos de submissão de disponibilidade</h3>
-                </div>
-
-                {loadingAvailability ? (
-                  <div className="soft-box">A carregar disponibilidades...</div>
-                ) : availabilityRequests.length === 0 ? (
-                  <div className="soft-box">Não há pedidos de disponibilidade pendentes.</div>
-                ) : (
-                  <div className="table-wrap">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Professor</th>
-                          <th>Tipo</th>
-                          <th>Horários / Slots</th>
-                          <th>Data do Pedido</th>
-                          <th style={{ textAlign: 'right' }}>Ações</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {availabilityRequests.map((a) => {
-                          const teacherName = a.teacher ? `${a.teacher.firstName || ''} ${a.teacher.lastName || ''}`.trim() : (a.teacherName || '—')
-
-                          return (
-                            <tr key={a.availabilityId || a.id}>
-                              <td style={{ fontWeight: 500 }}>{teacherName}</td>
-                              <td>
-                                <span className={`badge ${a.mode === 'weekly' ? 'ok' : 'warn'}`} style={{ fontSize: '0.7rem' }}>
-                                  {formatMode(a.mode)}
-                                </span>
-                              </td>
-                              <td style={{ maxWidth: 400 }}>
-                                <div style={{ fontSize: '0.85rem', color: 'var(--studio-muted)', lineHeight: '1.4' }}>
-                                  {formatSlotSummary(a)}
-                                </div>
-                              </td>
-                              <td style={{ fontSize: '0.85rem' }}>{formatDate(a.requestedAt || a.submittedAt)}</td>
-                              <td>
-                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                  <button
-                                    type="button"
-                                    className="moderation-action-btn neutral"
-                                    onClick={() => { setAvailabilityModalData(a); setAvailabilityModalOpen(true) }}
-                                    style={{ fontSize: '0.8rem' }}
-                                  >
-                                    Detalhes
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="moderation-action-btn approve"
-                                    disabled={loadingId === (a.availabilityId || a.id)}
-                                    onClick={() => handleApproveAvailability(a.availabilityId || a.id)}
-                                    style={{ fontSize: '0.8rem', minWidth: '90px' }}
-                                  >
-                                    {loadingId === (a.availabilityId || a.id) ? '...' : 'Aprovar'}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="moderation-action-btn reject"
-                                    disabled={loadingId === (a.availabilityId || a.id)}
-                                    onClick={() => handleRejectAvailability(a.availabilityId || a.id)}
-                                    style={{ fontSize: '0.8rem' }}
-                                  >
-                                    Rejeitar
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </article>
-
-              <article className="panel">
-                <div className="panel-header">
-                  <h3>Pedidos de ausência pendentes</h3>
-                </div>
-
-                {loadingAbsences ? (
-                  <div className="soft-box">A carregar ausências...</div>
-                ) : absenceRequests.length === 0 ? (
-                  <div className="soft-box">Não há pedidos de ausência pendentes.</div>
-                ) : (
-                  <div className="table-wrap">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Professor</th>
-                          <th>Período</th>
-                          <th>Motivo</th>
-                          <th>Data do Pedido</th>
-                          <th style={{ textAlign: 'right' }}>Ações</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {absenceRequests.map((absence) => {
-                          const teacherName = absence.teacher ? `${absence.teacher.firstName || ''} ${absence.teacher.lastName || ''}`.trim() : '—'
-
-                          return (
-                            <tr key={absence.absenceId || absence.id}>
-                              <td style={{ fontWeight: 500 }}>{teacherName}</td>
-                              <td style={{ fontSize: '0.85rem' }}>
-                                {formatDate(absence.startDate)} → {formatDate(absence.endDate)}
-                              </td>
-                              <td style={{ maxWidth: 300, fontSize: '0.85rem', color: 'var(--studio-muted)' }}>{absence.reason || '—'}</td>
-                              <td style={{ fontSize: '0.85rem' }}>{formatDate(absence.requestedAt)}</td>
-                              <td>
-                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                  <button
-                                    type="button"
-                                    className="moderation-action-btn neutral"
-                                    onClick={() => { setAbsenceModalData(absence); setAbsenceModalOpen(true) }}
-                                    style={{ fontSize: '0.8rem' }}
-                                  >
-                                    Detalhes
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </article>
             </>
           ) : null}
 
@@ -830,77 +670,6 @@ function ValidationsPage() {
             </article>
           ) : null}
         </section>
-        {availabilityModalOpen && availabilityModalData ? (
-          <Modal
-            open={availabilityModalOpen}
-            title="Disponibilidade submetida"
-            onClose={() => { setAvailabilityModalOpen(false); setAvailabilityModalData(null) }}
-            size="md"
-          >
-            <div style={{ display: 'grid', gap: '10px' }}>
-              <div>
-                <strong>Professor:</strong> {availabilityModalData.teacher ? `${availabilityModalData.teacher.firstName || ''} ${availabilityModalData.teacher.lastName || ''}`.trim() : availabilityModalData.teacherName}
-              </div>
-              {availabilityModalData.notes ? (
-                <div>
-                  <strong>Notas do professor:</strong>
-                  <div style={{ marginTop: '6px', padding: '10px', background: 'var(--studio-soft-bg)', borderRadius: '8px' }}>{availabilityModalData.notes}</div>
-                </div>
-              ) : null}
-
-              <div>
-                <strong>Slots submetidos:</strong>
-                <div style={{ marginTop: '8px', display: 'grid', gap: '8px' }}>
-                  {(() => {
-                    const a = availabilityModalData
-                    if (!a || !a.slot) return <div>—</div>
-                    try {
-                      if (a.mode === 'weekly' && Array.isArray(a.slot.days)) {
-                        return a.slot.days.map((d, idx) => {
-                          const dayName = daysPT[d.dayOfWeek] || d.dayOfWeek
-                          const start = (d.startTime || '').substring(0, 5)
-                          const end = (d.endTime || '').substring(0, 5)
-                          return <div key={idx} style={{ padding: '6px 10px', background: 'var(--studio-soft-bg)', borderRadius: '6px', fontSize: '0.9rem' }}>
-                            {dayName} — {start} → {end}
-                          </div>
-                        })
-                      }
-                      if (a.mode === 'range' || a.mode === 'semester') {
-                        return <div style={{ padding: '6px 10px', background: 'var(--studio-soft-bg)', borderRadius: '6px' }}>
-                          {formatDate(a.slot.startDateTime)} → {formatDate(a.slot.endDateTime)}
-                        </div>
-                      }
-                      if (a.slot.dayOfWeek !== undefined) {
-                        const dayName = daysPT[a.slot.dayOfWeek] || a.slot.dayOfWeek
-                        const start = (a.slot.startTime || '').substring(0, 5)
-                        const end = (a.slot.endTime || '').substring(0, 5)
-                        return <div style={{ padding: '6px 10px', background: 'var(--studio-soft-bg)', borderRadius: '6px' }}>
-                          {dayName} — {start} → {end}
-                        </div>
-                      }
-                    } catch {
-                      return <div>—</div>
-                    }
-                    return <div>—</div>
-                  })()}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
-                <Button variant="secondary" onClick={() => { setAvailabilityModalOpen(false); setAvailabilityModalData(null) }}>Fechar</Button>
-              </div>
-            </div>
-          </Modal>
-        ) : null}
-
-        {absenceModalOpen && absenceModalData ? (
-          <UnavailabilityModal
-            isOpen={absenceModalOpen}
-            viewOnly
-            details={absenceModalData}
-            onClose={() => { setAbsenceModalOpen(false); setAbsenceModalData(null) }}
-          />
-        ) : null}
       </main>
     </div>
   )

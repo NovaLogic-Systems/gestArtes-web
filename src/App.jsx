@@ -40,7 +40,6 @@ import TeacherMarketplacePage from './pages/teacher/MarketplacePage'
 import TeacherMarketplaceListingsPage from './pages/teacher/MyListingsPage'
 import NotificationsPage from './pages/teacher/NotificationsPage';
 import StudentNotificationsPage from './pages/student/NotificationsPage';
-import ScheduleSubmissionPage from './pages/teacher/ScheduleSubmissionPage'
 import LostFoundAdminPage from './pages/admin/LostFoundAdminPage'
 import CreateCoachingPage from './pages/teacher/CreateCoachingPage'
 import TeacherAccountPage from './pages/teacher/AccountPage'
@@ -329,8 +328,8 @@ function App() {
         <Route path="/teacher/dashboard" element={<TeacherDashboardPage />} />
         <Route path="/teacher/admission-requests" element={<AdmissionRequestsPage />} />
         <Route path="/teacher/sessions/confirmation" element={<SessionConfirmationPage />} />
-        <Route path="/teacher/schedule" element={<ScheduleSubmissionPage />} />
-        <Route path="/teacher/availability" element={<Navigate to="/teacher/schedule" replace />} />
+        <Route path="/teacher/schedule" element={<Navigate to="/teacher/dashboard" replace />} />
+        <Route path="/teacher/availability" element={<Navigate to="/teacher/dashboard" replace />} />
         <Route path="/teacher/coaching" element={<TeacherCoachingPage />} />
         <Route path="/teacher/inventory" element={<TeacherInventoryPage />} />
         <Route path="/teacher/marketplace" element={<TeacherMarketplacePage />} />
