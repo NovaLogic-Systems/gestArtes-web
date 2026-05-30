@@ -231,7 +231,7 @@
   font: inherit;
   font-size: 0.88rem;
   background: #fff;
-  
+
   min-width: 140px;
 }
 
@@ -292,10 +292,21 @@
   flex-shrink: 0;
 }
 
-.coaching-page .legend-dot.busy { background: #f9a8a8; }
-.coaching-page .legend-dot.pending-teacher { background: #fde68a; }
-.coaching-page .legend-dot.pending-direction { background: #93c5fd; }
-.coaching-page .legend-dot.free { background: #6ee7b7; }
+.coaching-page .legend-dot.busy {
+  background: #f9a8a8;
+}
+
+.coaching-page .legend-dot.pending-teacher {
+  background: #fde68a;
+}
+
+.coaching-page .legend-dot.pending-direction {
+  background: #93c5fd;
+}
+
+.coaching-page .legend-dot.free {
+  background: #6ee7b7;
+}
 
 /* Schedule grid */
 .coaching-page .schedule-wrap {
@@ -547,8 +558,13 @@
 }
 
 @keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* Responsive */
@@ -658,7 +674,7 @@
   min-width: 0;
 }
 
-.coaching-modal .bk-form label > span:first-child {
+.coaching-modal .bk-form label>span:first-child {
   color: #4c4666;
   font-size: 0.86rem;
   font-weight: 600;
@@ -856,8 +872,8 @@
 }
 
 /* Per-field validation */
-.coaching-modal label.err > input,
-.coaching-modal label.err > select {
+.coaching-modal label.err>input,
+.coaching-modal label.err>select {
   border-color: #ef4444;
   background: #fff5f5;
 }
@@ -984,7 +1000,7 @@
   align-items: flex-start;
 }
 
-.coaching-redesign-page .topbar-left > div p {
+.coaching-redesign-page .topbar-left>div p {
   margin: 4px 0 0;
   color: var(--muted);
   font-size: 0.9rem;
@@ -1057,6 +1073,13 @@
   margin: 0;
 }
 
+.coaching-redesign-page .requests-header h3 {
+  font-family: var(--heading);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
 .coaching-redesign-page .coaching-main-select {
   min-width: 220px;
   max-width: 420px;
@@ -1088,7 +1111,7 @@
   gap: 12px;
 }
 
-.coaching-redesign-page .teacher-card-header > div {
+.coaching-redesign-page .teacher-card-header>div {
   min-width: 0;
 }
 
@@ -1327,6 +1350,20 @@
   gap: 10px;
 }
 
+.coaching-redesign-page .request-list-item,
+.coaching-redesign-page .request-detail,
+.coaching-redesign-page .request-timeline li {
+  font-family: var(--sans);
+  font-size: 0.9rem;
+}
+
+.coaching-redesign-page .request-list-item small,
+.coaching-redesign-page .request-detail p,
+.coaching-redesign-page .request-timeline li p,
+.coaching-redesign-page .request-timeline li small {
+  font-size: 0.86rem;
+}
+
 .coaching-redesign-page .request-list-item {
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -1446,6 +1483,7 @@
 }
 
 @media (max-width: 860px) {
+
   .coaching-redesign-page .teacher-grid,
   .coaching-redesign-page .request-detail-grid,
   .coaching-redesign-page .flow-steps {
@@ -1461,6 +1499,7 @@
 }
 
 @media (max-width: 640px) {
+
   .coaching-redesign-page .request-list-item,
   .coaching-redesign-page .request-composer-actions {
     align-items: flex-start;
