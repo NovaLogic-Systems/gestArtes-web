@@ -250,9 +250,15 @@
   font-size: 0.9rem;
 }
 
-.student-timetable-page .timetable-layout,
-.teacher-timetable-page .timetable-layout {
+.student-timetable-page .timetable-layout {
   grid-template-columns: 1fr;
+}
+
+.teacher-timetable-page .timetable-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+  align-items: start;
 }
 
 .student-timetable-page .timetable-section-stack {
@@ -299,23 +305,27 @@
   color: var(--muted);
 }
 
-.student-timetable-page .timetable-week-grid {
+.student-timetable-page .timetable-week-grid,
+.teacher-timetable-page .timetable-week-grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 10px;
 }
 
-.student-timetable-page .timetable-day-column {
+.student-timetable-page .timetable-day-column,
+.teacher-timetable-page .timetable-day-column {
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 14px;
   background: linear-gradient(180deg, #fff 0%, #fbf9ff 100%);
   padding: 12px;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 }
 
-.student-timetable-page .timetable-day-column-head {
+.student-timetable-page .timetable-day-column-head,
+.teacher-timetable-page .timetable-day-column-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -327,17 +337,21 @@
   font-weight: 600;
 }
 
-.student-timetable-page .timetable-day-column-head span {
+.student-timetable-page .timetable-day-column-head span,
+.teacher-timetable-page .timetable-day-column-head span {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 
-.student-timetable-page .timetable-slot-list {
-  display: grid;
+.student-timetable-page .timetable-slot-list,
+.teacher-timetable-page .timetable-slot-list {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
-.student-timetable-page .timetable-slot-item {
+.student-timetable-page .timetable-slot-item,
+.teacher-timetable-page .timetable-slot-item {
   border-left: 4px solid var(--slot-accent, var(--teal));
   border-radius: 12px;
   background: color-mix(in srgb, var(--slot-accent, var(--teal)) 10%, #fff 90%);
@@ -346,12 +360,14 @@
   gap: 2px;
 }
 
-.student-timetable-page .timetable-slot-item strong {
+.student-timetable-page .timetable-slot-item strong,
+.teacher-timetable-page .timetable-slot-item strong {
   color: #221d35;
   font-size: 0.9rem;
 }
 
-.student-timetable-page .timetable-slot-item p {
+.student-timetable-page .timetable-slot-item p,
+.teacher-timetable-page .timetable-slot-item p {
   margin: 0;
   color: var(--teal-dark);
   font-size: 0.84rem;
@@ -359,13 +375,15 @@
   font-variant-numeric: tabular-nums;
 }
 
-.student-timetable-page .timetable-slot-item small {
+.student-timetable-page .timetable-slot-item small,
+.teacher-timetable-page .timetable-slot-item small {
   color: var(--muted);
   font-size: 0.8rem;
   line-height: 1.4;
 }
 
-.student-timetable-page .timetable-slot-empty {
+.student-timetable-page .timetable-slot-empty,
+.teacher-timetable-page .timetable-slot-empty {
   border: 1px dashed #dacfe5;
   border-radius: 12px;
   background: #faf7fd;
@@ -505,12 +523,80 @@
   flex-wrap: wrap;
 }
 
-.student-timetable-page .timetable-retry-btn {
-  border-color: #f2c2af;
-  background: #fff;
-  color: #8c402a;
+.student-timetable-page .timetable-retry-btn,
+.teacher-timetable-page .timetable-retry-btn {
+  border: 1px solid #0b9d8f;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #0b9d8f;
+  padding: 0.5rem 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  font-size: 0.88rem;
   cursor: pointer;
-  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  line-height: 1.2;
+  transition: all 160ms ease;
+  text-decoration: none;
+}
+
+.student-timetable-page .timetable-retry-btn:hover,
+.teacher-timetable-page .timetable-retry-btn:hover {
+  background: #f1f8f7;
+  border-color: #08786d;
+  color: #08786d;
+  transform: translateY(-1px);
+}
+
+.student-timetable-page .timetable-retry-btn:active,
+.teacher-timetable-page .timetable-retry-btn:active {
+  transform: translateY(0);
+}
+
+/* Beautiful Individual Pill Toggles with platform's teal theme */
+.student-timetable-page .timetable-toggle-btn {
+  border: 1px solid #d7ccdf;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #6d6480;
+  padding: 0.5rem 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 160ms ease;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.student-timetable-page .timetable-toggle-btn:hover {
+  background: #faf7fd;
+  border-color: #b8a8c8;
+  color: #4a3f60;
+  transform: translateY(-1px);
+}
+
+.student-timetable-page .timetable-toggle-btn:active {
+  transform: translateY(0);
+}
+
+.student-timetable-page .timetable-toggle-btn.active {
+  background: #0b9d8f;
+  color: #ffffff;
+  border-color: #0b9d8f;
+  box-shadow: 0 4px 12px rgba(11, 157, 143, 0.22);
+}
+
+.student-timetable-page .timetable-toggle-btn.active:hover {
+  background: #08786d;
+  border-color: #08786d;
+  color: #ffffff;
+  transform: translateY(-1px);
 }
 
 .student-timetable-page .timetable-workspace {
@@ -569,24 +655,28 @@
   transform: translateY(-1px);
 }
 
-.student-timetable-page .timetable-card-top {
+.student-timetable-page .timetable-card-top,
+.teacher-timetable-page .timetable-card-top {
   display: flex;
   align-items: start;
   justify-content: space-between;
   gap: 12px;
 }
 
-.student-timetable-page .timetable-card-copy {
+.student-timetable-page .timetable-card-copy,
+.teacher-timetable-page .timetable-card-copy {
   min-width: 0;
 }
 
-.student-timetable-page .timetable-card-copy strong {
+.student-timetable-page .timetable-card-copy strong,
+.teacher-timetable-page .timetable-card-copy strong {
   display: block;
   color: var(--ink);
   font-size: 0.98rem;
 }
 
-.student-timetable-page .timetable-card-copy p {
+.student-timetable-page .timetable-card-copy p,
+.teacher-timetable-page .timetable-card-copy p {
   margin-top: 4px;
   color: var(--muted);
   font-size: 0.84rem;
@@ -1067,8 +1157,13 @@
     grid-template-columns: 1fr;
   }
 
-  .student-timetable-page .timetable-week-grid {
+  .student-timetable-page .timetable-week-grid,
+  .teacher-timetable-page .timetable-week-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .teacher-timetable-page .timetable-layout {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1140,6 +1235,10 @@
     align-items: flex-start;
     flex-direction: column;
   }
+
+  .teacher-timetable-page .timetable-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
@@ -1156,7 +1255,8 @@
     border-radius: 14px;
   }
 
-  .student-timetable-page .timetable-week-grid {
+  .student-timetable-page .timetable-week-grid,
+  .teacher-timetable-page .timetable-week-grid {
     grid-template-columns: 1fr;
   }
 }

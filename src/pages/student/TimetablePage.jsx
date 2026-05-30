@@ -274,32 +274,30 @@ export default function TimetablePage() {
               <div>
                 <h3>Horário semanal por modalidade</h3>
                 <p>
-                  {timetableCount} modalidade{timetableCount === 1 ? '' : 's'} disponível{timetableCount === 1 ? '' : 'eis'}
-                  {activeCount > 0 ? ` · ${activeCount} ativas` : ''}
+                  {timetableCount} {timetableCount === 1 ? 'modalidade disponível' : 'modalidades disponíveis'}
+                  {activeCount > 0 ? ` · ${activeCount} ${activeCount === 1 ? 'ativa' : 'ativas'}` : ''}
                 </p>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                <div className="timetable-view-toggle" role="tablist" aria-label="Vista de horários" style={{ display: 'flex', gap: '0.35rem' }}>
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={viewMode === 'all'}
-                    className={viewMode === 'all' ? 'pill' : 'timetable-retry-btn'}
-                    onClick={() => setViewMode('all')}
-                  >
-                    Todos os horários
-                  </button>
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={viewMode === 'mine'}
-                    className={viewMode === 'mine' ? 'pill' : 'timetable-retry-btn'}
-                    onClick={() => setViewMode('mine')}
-                  >
-                    As minhas modalidades
-                  </button>
-                </div>
-                <button className="pill timetable-retry-btn" type="button" onClick={() => setReloadToken((value) => value + 1)}>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={viewMode === 'all'}
+                  className={`timetable-toggle-btn ${viewMode === 'all' ? 'active' : ''}`}
+                  onClick={() => setViewMode('all')}
+                >
+                  Todos os horários
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={viewMode === 'mine'}
+                  className={`timetable-toggle-btn ${viewMode === 'mine' ? 'active' : ''}`}
+                  onClick={() => setViewMode('mine')}
+                >
+                  As minhas modalidades
+                </button>
+                <button className="timetable-retry-btn" type="button" onClick={() => setReloadToken((value) => value + 1)}>
                   Atualizar
                 </button>
               </div>
@@ -308,7 +306,7 @@ export default function TimetablePage() {
             {error ? (
               <div className="error-banner timetable-banner">
                 <span>{error}</span>
-                <button className="pill timetable-retry-btn" type="button" onClick={() => setReloadToken((value) => value + 1)}>
+                <button className="timetable-retry-btn" type="button" onClick={() => setReloadToken((value) => value + 1)}>
                   Tentar novamente
                 </button>
               </div>

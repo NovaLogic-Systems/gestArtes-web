@@ -128,18 +128,20 @@ export default function TeacherTimetablePage() {
                     className={`timetable-card${Number(timetable.TimetableID) === Number(selectedTimetableId) ? ' active' : ''}`}
                     onClick={() => setSelectedTimetableId(timetable.TimetableID)}
                   >
-                    <div className="timetable-card-head">
-                      <strong>{timetable.Label}</strong>
+                    <div className="timetable-card-top">
+                      <div className="timetable-card-copy">
+                        <strong>{timetable.Label}</strong>
+                        <p>{sortTimetableSlots(timetable?.Slots || timetable?.slots || []).length} blocos horários</p>
+                      </div>
                       {timetable.IsActive ? <span className="timetable-pill">Ativo</span> : null}
                     </div>
-                    <p>{sortTimetableSlots(timetable?.Slots || timetable?.slots || []).length} blocos horários</p>
                   </button>
                 ))}
               </div>
             </article>
 
             <article className="panel timetable-main-panel">
-              <div className="timetable-main-head">
+              <div className="timetable-panel-head">
                 <div>
                   <h3>{selectedTimetable?.Label || 'Seleciona um mapa'}</h3>
                   <p>{selectedSlots.length} blocos distribuídos por dia da semana</p>
@@ -150,19 +152,28 @@ export default function TeacherTimetablePage() {
               {selectedSlots.length === 0 ? (
                 <p className="empty-state">Não existem horários neste mapa.</p>
               ) : (
-                <div className="timetable-grid">
+                <div className="timetable-week-grid">
                   {Object.entries(groupedSlots)
                     .sort(([a], [b]) => Number(a) - Number(b))
                     .map(([day, slots]) => (
-                      <section key={day} className="timetable-day-card">
-                        <h4>{dayLabel(day)}</h4>
-                        {slots.map((slot) => (
-                          <div key={slot.SlotID} className="timetable-slot-card">
-                            <strong>{slot.Title}</strong>
-                            <p>{formatMinutes(slot.StartMinutes)} - {formatMinutes(slot.EndMinutes)}</p>
-                            {slot.Notes ? <small>{slot.Notes}</small> : null}
-                          </div>
-                        ))}
+                      <section key={day} className="timetable-day-column">
+                        <div className="timetable-day-column-head">
+                          <strong>{dayLabel(day)}</strong>
+                          <span>{slots.length}</span>
+                        </div>
+                        <div className="timetable-slot-list">
+                          {slots.map((slot) => (
+                            <article
+                              key={slot.SlotID}
+                              className="timetable-slot-item"
+                              style={slot.Color ? { '--slot-accent': slot.Color } : undefined}
+                            >
+                              <strong>{slot.Title}</strong>
+                              <p>{formatMinutes(slot.StartMinutes)} - {formatMinutes(slot.EndMinutes)}</p>
+                              {slot.Notes ? <small>{slot.Notes}</small> : null}
+                            </article>
+                          ))}
+                        </div>
                       </section>
                     ))}
                 </div>
