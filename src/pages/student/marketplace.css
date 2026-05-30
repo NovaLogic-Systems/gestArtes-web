@@ -43,6 +43,9 @@
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #efe8f7;
+  padding-bottom: 0.75rem;
 }
 
 .market-page .market-feed-header h3 {
@@ -51,9 +54,9 @@
 
 .market-page .market-count-info {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   color: #6d6480;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .market-page .market-field-row {
@@ -254,80 +257,106 @@
 }
 
 .market-listing-status-badge {
-  border: 1px solid #d7ccdf;
+  border: 1px solid #e2d9eb;
   border-radius: 999px;
   display: inline-flex;
-  font-size: 0.76rem;
-  font-weight: 700;
+  font-size: 0.72rem;
+  font-weight: 600;
   line-height: 1;
-  padding: 0.28rem 0.58rem;
+  padding: 0.28rem 0.6rem;
+  background: #f8f4fb;
+  color: #6d6480;
 }
 
 .market-listing-status-badge[data-variant='danger'] {
-  background: rgba(220, 38, 38, 0.12);
-  border-color: rgba(220, 38, 38, 0.25);
-  color: #b91c1c;
+  background: rgba(220, 38, 38, 0.08);
+  border-color: rgba(220, 38, 38, 0.18);
+  color: #dc2626;
 }
 
 .market-listing-status-badge[data-variant='warning'] {
-  background: rgba(249, 115, 22, 0.14);
-  border-color: rgba(249, 115, 22, 0.25);
-  color: #c2410c;
+  background: rgba(249, 115, 22, 0.08);
+  border-color: rgba(249, 115, 22, 0.18);
+  color: #ea580c;
 }
 
 .market-listing-status-badge[data-variant='success'] {
-  background: rgba(34, 197, 94, 0.12);
-  border-color: rgba(34, 197, 94, 0.25);
-  color: #15803d;
+  background: rgba(34, 197, 94, 0.08);
+  border-color: rgba(34, 197, 94, 0.18);
+  color: #16a34a;
 }
 
 .market-listing-status-badge[data-variant='neutral'] {
   background: #f8f4fb;
-  color: #2e2942;
+  color: #6d6480;
 }
 
 .market-listing-actions {
   display: flex;
-  gap: 0.45rem;
-  margin-top: 0.2rem;
-  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  width: 100%;
 }
 
 .market-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 0;
   border-radius: 10px;
   background: linear-gradient(135deg, #0b9d8f, #10b2a3);
   color: #fff;
   cursor: pointer;
   font: inherit;
-  font-size: 0.84rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  padding: 0.46rem 0.75rem;
+  height: 38px;
+  padding: 0 0.5rem;
+  box-sizing: border-box;
+  text-align: center;
+  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease, background 160ms ease, color 160ms ease, border-color 160ms ease;
+  white-space: nowrap;
 }
 
 .market-btn:disabled {
   cursor: not-allowed;
-  opacity: 0.65;
-}
-
-.market-btn {
-  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+  opacity: 0.55;
+  background: #d7ccdf;
+  color: #6d6480;
+  box-shadow: none !important;
+  transform: none !important;
 }
 
 .market-btn:hover:not(:disabled),
 .market-btn:focus-visible:not(:disabled) {
-  box-shadow: 0 0 0 3px rgba(11, 157, 143, 0.22), 0 4px 16px rgba(11, 157, 143, 0.35);
+  box-shadow: 0 0 0 3px rgba(11, 157, 143, 0.18), 0 4px 12px rgba(11, 157, 143, 0.25);
   transform: translateY(-1px);
 }
 
 .market-btn-secondary {
-  background: #f5edfb;
-  color: #2e2942;
-  border: 1px solid #d7ccdf;
+  background: #ffffff;
+  color: #0b9d8f;
+  border: 1.5px solid #0b9d8f;
+}
+
+.market-btn-secondary:hover:not(:disabled),
+.market-btn-secondary:focus-visible:not(:disabled) {
+  background: rgba(11, 157, 143, 0.05);
+  color: #08786d;
+  border-color: #08786d;
+  box-shadow: 0 0 0 3px rgba(11, 157, 143, 0.12);
+  transform: translateY(-1px);
 }
 
 .market-btn-danger {
   background: #b52142;
+}
+
+.market-btn-danger:hover:not(:disabled),
+.market-btn-danger:focus-visible:not(:disabled) {
+  background: #961b36;
+  box-shadow: 0 0 0 3px rgba(181, 33, 66, 0.18);
 }
 
 .market-detail-grid {
@@ -604,5 +633,196 @@
   .market-page .topbar-right {
     gap: 6px;
   }
+}
 
+/* Marketplace View Toggles */
+.marketplace-view-toggle-bar {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.market-toggle-btn {
+  border: 1px solid #d7ccdf;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #6d6480;
+  padding: 0.55rem 1.1rem;
+  font-weight: 600;
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 160ms ease;
+  white-space: nowrap;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+.market-toggle-btn:hover {
+  background: #faf7fd;
+  border-color: #b8a8c8;
+  color: #4a3f60;
+  transform: translateY(-1px);
+}
+
+.market-toggle-btn:active {
+  transform: translateY(0);
+}
+
+.market-toggle-btn.active {
+  background: #0b9d8f;
+  color: #ffffff;
+  border-color: #0b9d8f;
+  box-shadow: 0 4px 12px rgba(11, 157, 143, 0.22);
+}
+
+.market-toggle-btn.active:hover {
+  background: #08786d;
+  border-color: #08786d;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+/* Origin Badges (Rounded Capsule Pills) */
+.market-listing-origin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px; /* Rounded pill capsule */
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 4px;
+  margin-bottom: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.market-listing-origin-badge span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  max-width: 100%;
+}
+
+.market-listing-origin-badge.origin-school {
+  background-color: #e6f7f5;
+  color: #0b9d8f;
+  border: 1px solid #bfece7;
+}
+
+.market-listing-origin-badge.origin-community {
+  background-color: #f3effa;
+  color: #6f5ca5;
+  border: 1px solid #dfd5f5;
+}
+
+/* Flex layout overrides to align vertical position of card buttons */
+.market-listing-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.market-listing-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 0.85rem;
+  gap: 0.4rem;
+}
+
+.market-listing-actions {
+  margin-top: auto; /* Push buttons to the bottom of the card content */
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+/* Premium CTA button styling overrides */
+.market-page .topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.market-page .topbar-right .cta {
+  background: linear-gradient(135deg, #0b9d8f, #10b2a3);
+  color: #ffffff;
+  border: none;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  height: 40px;
+  padding: 0 1.5rem;
+  box-shadow: 0 4px 14px rgba(11, 157, 143, 0.25);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.market-page .topbar-right .cta:hover {
+  background: linear-gradient(135deg, #08786d, #0b9d8f);
+  box-shadow: 0 6px 20px rgba(11, 157, 143, 0.35);
+  transform: translateY(-1.5px);
+}
+
+.market-page .topbar-right .cta:active {
+  transform: translateY(0);
+}
+
+.market-page .topbar-right .pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 1.25rem;
+  box-sizing: border-box;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1.5px solid #6f5ca5;
+  background: #f7f5fc;
+  color: #6f5ca5;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.market-page .topbar-right .pill:hover {
+  background: #efeaf7;
+  color: #5b4a8c;
+  border-color: #5b4a8c;
+  transform: translateY(-1.5px);
+}
+
+.market-page .topbar-right .pill:active {
+  transform: translateY(0);
+}
+
+.market-page .topbar-right .notifications-pill {
+  border: 1.5px solid #f08a5d;
+  background: #fff6f2;
+  color: #c95726;
+}
+
+.market-page .topbar-right .notifications-pill:hover {
+  background: #ffede5;
+  color: #ad4418;
+  border-color: #ad4418;
 }

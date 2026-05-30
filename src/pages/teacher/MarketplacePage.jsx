@@ -10,9 +10,13 @@ import {
   getMarketplaceOptions,
   listMarketplaceListings,
 } from '../../services/marketplace'
+import {
+  listInventoryItems,
+  createInventoryRental
+} from '../../services/inventory'
 import ListingForm from '../../components/ListingForm'
-import InventoryCatalog from '../../components/InventoryCatalog'
 import Modal from '../../components/ui/Modal'
+import Button from '../../components/ui/Button'
 import '../admin-studios.css'
 import '../student/marketplace.css'
 import { TEACHER_NAV_ITEMS as NAV_ITEMS } from './teacherNav'
@@ -47,6 +51,22 @@ function saveSearchHistory(entries) {
   window.localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(entries.slice(0, SEARCH_HISTORY_LIMIT)))
 }
 
+const PAYMENT_METHOD_OPTIONS = [
+  { id: 1, label: 'MB Way' },
+  { id: 2, label: 'Cartão' },
+  { id: 3, label: 'Referência Multibanco' },
+]
+
+function toIsoDate(dateString) {
+  if (!dateString) return null
+  return `${dateString}T00:00:00.000Z`
+}
+
+function formatCurrency(value) {
+  if (value === null || value === undefined) return '—'
+  return new Intl.NumberFormat('pt-PT', { currency: 'EUR', style: 'currency' }).format(Number(value))
+}
+
 export default function TeacherMarketplacePage() {
   const { logout, user } = useAuth()
   const location = useLocation()
@@ -66,12 +86,19 @@ export default function TeacherMarketplacePage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [searchHistory, setSearchHistory] = useState(loadSearchHistory)
 
+  // Rental modal states
+  const [rentalModal, setRentalModal] = useState({ open: false, item: null })
+  const [rentalForm, setRentalForm] = useState({ startDate: '', endDate: '', paymentMethodId: PAYMENT_METHOD_OPTIONS[0].id })
+  const [submittingRental, setSubmittingRental] = useState(false)
+  const [rentalError, setRentalError] = useState('')
+
   const [filters, setFilters] = useState({
     search: '',
     category: '',
     location: '',
     minPrice: '',
     maxPrice: '',
+    origin: 'all',
   })
 
   const teacherName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Professor'
@@ -102,17 +129,40 @@ export default function TeacherMarketplacePage() {
       setLoading(true)
       setError('')
 
-      const [listingsResult, optionsResult] = await Promise.allSettled([
+      const [listingsResult, inventoryResult, optionsResult] = await Promise.allSettled([
         listMarketplaceListings(),
+        listInventoryItems({ onlyAvailable: false }),
         getMarketplaceOptions(),
       ])
 
+      let loadedListings = []
+      let loadedInventory = []
+
       if (listingsResult.status === 'fulfilled') {
-        setListings(listingsResult.value)
+        loadedListings = listingsResult.value.map(item => ({
+          ...item,
+          id: `community-${item.listingId}`,
+          origin: 'community'
+        }))
       } else {
-        setListings([])
-        setError(listingsResult.localizeApiError(reason, 'Não foi possível carregar o marketplace.'))
+        setError(localizeApiError(listingsResult.reason, 'Não foi possível carregar o marketplace.'))
       }
+
+      if (inventoryResult.status === 'fulfilled') {
+        loadedInventory = inventoryResult.value.map(item => ({
+          ...item,
+          id: `school-${item.itemId}`,
+          origin: 'school',
+          title: item.itemName,
+          price: item.symbolicFee,
+          condition: { conditionName: item.conditionLabel || 'Verificado' },
+          location: 'Escola'
+        }))
+      } else {
+        setError(prev => prev || localizeApiError(inventoryResult.reason, 'Não foi possível carregar o inventário.'))
+      }
+
+      setListings([...loadedListings, ...loadedInventory])
 
       if (optionsResult.status === 'fulfilled') {
         setCategories(optionsResult.value.categories ?? [])
@@ -153,13 +203,33 @@ export default function TeacherMarketplacePage() {
     return () => document.body.classList.remove('studio-page')
   }, [])
 
+  const combinedCategories = useMemo(() => {
+    const map = new Map()
+    for (const cat of categories) {
+      if (cat.categoryId) {
+        map.set(String(cat.categoryId), cat.categoryName)
+      }
+    }
+    for (const item of listings) {
+      if (item.origin === 'school' && item.category?.categoryId) {
+        map.set(String(item.category.categoryId), item.category.categoryName)
+      }
+    }
+    return Array.from(map.entries()).map(([id, name]) => ({ categoryId: id, categoryName: name }))
+  }, [categories, listings])
+
   const filteredListings = useMemo(() => {
     const search = filters.search.trim().toLowerCase()
     const locationTerm = filters.location.trim().toLowerCase()
     const minPrice = filters.minPrice === '' ? null : Number(filters.minPrice)
     const maxPrice = filters.maxPrice === '' ? null : Number(filters.maxPrice)
+    const originFilter = filters.origin || 'all'
 
     return listings.filter((listing) => {
+      if (originFilter !== 'all' && listing.origin !== originFilter) {
+        return false
+      }
+
       const listingSearchable = [listing.title, listing.description, listing.category?.categoryName, listing.location]
         .filter(Boolean)
         .join(' ')
@@ -177,11 +247,12 @@ export default function TeacherMarketplacePage() {
         return false
       }
 
-      if (minPrice !== null && Number(listing.price) < minPrice) {
+      const price = listing.origin === 'school' ? Number(listing.symbolicFee || 0) : Number(listing.price || 0)
+      if (minPrice !== null && price < minPrice) {
         return false
       }
 
-      if (maxPrice !== null && Number(listing.price) > maxPrice) {
+      if (maxPrice !== null && price > maxPrice) {
         return false
       }
 
@@ -197,7 +268,7 @@ export default function TeacherMarketplacePage() {
   }
 
   function clearFilters() {
-    setFilters({ search: '', category: '', location: '', minPrice: '', maxPrice: '' })
+    setFilters({ search: '', category: '', location: '', minPrice: '', maxPrice: '', origin: 'all' })
   }
 
   function storeSearchInHistory(value) {
@@ -222,13 +293,23 @@ export default function TeacherMarketplacePage() {
   }
 
   async function handleOpenListing(listing) {
-    try {
-      const fresh = await getMarketplaceListingById(listing.listingId)
-      setSelectedListing(fresh || listing)
-      setIsDetailOpen(true)
-    } catch {
+    if (listing.origin === 'school') {
       setSelectedListing(listing)
       setIsDetailOpen(true)
+      return
+    }
+    // Open modal instantly with what we have in memory
+    setSelectedListing(listing)
+    setIsDetailOpen(true)
+    
+    // In background, fetch full listing details (like seller info)
+    try {
+      const fresh = await getMarketplaceListingById(listing.listingId)
+      if (fresh) {
+        setSelectedListing(fresh)
+      }
+    } catch {
+      // Keep existing listing if background fetch fails
     }
   }
 
@@ -240,6 +321,48 @@ export default function TeacherMarketplacePage() {
       await loadData()
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  // School Rental modal handlers
+  function openRentalModal(item) {
+    setIsDetailOpen(false)
+    setSelectedListing(null)
+    const today = new Date().toISOString().slice(0, 10)
+    setRentalForm({ startDate: today, endDate: '', paymentMethodId: PAYMENT_METHOD_OPTIONS[0].id })
+    setRentalError('')
+    setRentalModal({ open: true, item })
+  }
+
+  function closeRentalModal() {
+    if (submittingRental) return
+    setRentalModal({ open: false, item: null })
+    setRentalError('')
+  }
+
+  async function submitRental(event) {
+    event.preventDefault()
+    if (!rentalModal.item) return
+    if (!rentalForm.startDate) { setRentalError('A data de início é obrigatória.'); return }
+    if (rentalForm.endDate && rentalForm.endDate < rentalForm.startDate) {
+      setRentalError('A data de fim não pode ser anterior à data de início.')
+      return
+    }
+    try {
+      setSubmittingRental(true)
+      setRentalError('')
+      await createInventoryRental({
+        inventoryItemId: rentalModal.item.itemId || Number(rentalModal.item.id.replace('school-', '')),
+        startDate: toIsoDate(rentalForm.startDate),
+        endDate: rentalForm.endDate ? toIsoDate(rentalForm.endDate) : undefined,
+        paymentMethodId: Number(rentalForm.paymentMethodId),
+      })
+      setRentalModal({ open: false, item: null })
+      await loadData()
+    } catch (err) {
+      setRentalError(localizeApiError(err, 'Não foi possível criar a reserva.'))
+    } finally {
+      setSubmittingRental(false)
     }
   }
 
@@ -303,7 +426,7 @@ export default function TeacherMarketplacePage() {
                 {sidebarToggleSymbol}
               </button>
               <div>
-                <h2>Marketplace da Comunidade</h2>
+                <h2>Marketplace</h2>
               </div>
             </div>
 
@@ -317,19 +440,6 @@ export default function TeacherMarketplacePage() {
               <NotificationsBell pageLink="/teacher/notifications" />
             </div>
           </header>
-
-          <section className="content-grid">
-            <article className="panel">
-              <div className="market-feed-header">
-                <h3>Artigos de Entartes (escola)</h3>
-                <p className="market-count-info">Inventário da escola disponível para aluguer</p>
-              </div>
-              <InventoryCatalog
-                onRentalCreated={() => navigate('/teacher/inventory')}
-                modalClassName="teacher-inventory-modal"
-              />
-            </article>
-          </section>
 
           <section className="content-grid market-layout">
             <article className="panel market-filters">
@@ -349,10 +459,19 @@ export default function TeacherMarketplacePage() {
               </div>
 
               <label>
+                <span>Origem</span>
+                <select value={filters.origin} onChange={(event) => updateFilter('origin', event.target.value)}>
+                  <option value="all">Todas as origens</option>
+                  <option value="school">Escola (Aluguer)</option>
+                  <option value="community">Comunidade (Venda/Troca)</option>
+                </select>
+              </label>
+
+              <label>
                 <span>Categoria</span>
                 <select value={filters.category} onChange={(event) => updateFilter('category', event.target.value)}>
                   <option value="">Todas</option>
-                  {categories.map((category) => (
+                  {combinedCategories.map((category) => (
                     <option key={category.categoryId} value={category.categoryId}>
                       {category.categoryName}
                     </option>
@@ -365,6 +484,7 @@ export default function TeacherMarketplacePage() {
                 <input
                   value={filters.location}
                   onChange={(event) => updateFilter('location', event.target.value)}
+                  placeholder="Ex.: Viana do Castelo"
                 />
               </label>
 
@@ -423,27 +543,34 @@ export default function TeacherMarketplacePage() {
 
             <article className="panel">
               <div className="market-feed-header">
-                <h3>Marketplace da comunidade</h3>
+                <h3>Catálogo de Artigos</h3>
                 {!loading && listings.length > 0 ? (
                   <p className="market-count-info">
-                    {filteredListings.length} de {listings.length} anuncio{listings.length !== 1 ? 's' : ''}
+                    {filteredListings.length} de {listings.length} artigo{listings.length !== 1 ? 's' : ''}
                   </p>
                 ) : null}
               </div>
 
               {error ? <p className="error-banner">{error}</p> : null}
-              {loading ? <p className="panel-subtle">A carregar anuncios...</p> : null}
+              {loading ? <p className="panel-subtle">A carregar artigos...</p> : null}
 
               {!loading && filteredListings.length === 0 ? (
-                <p className="empty">Nao encontramos anuncios com os filtros atuais.</p>
+                <p className="empty">Nao encontramos artigos com os filtros atuais.</p>
               ) : (
                 <div className="market-listing-grid">
                   {filteredListings.map((listing) => (
                     <ListingCard
-                      key={listing.listingId}
+                      key={listing.id}
                       listing={listing}
                       onOpen={handleOpenListing}
-                      originLabel={`Comunidade${listing?.seller ? ` · ${[listing.seller.firstName, listing.seller.lastName].filter(Boolean).join(' ')}` : ''}`}
+                      onBuy={listing.origin === 'school' ? openRentalModal : handleOpenListing}
+                      originLabel={
+                        listing.origin === 'school'
+                          ? 'Escola'
+                          : listing.seller
+                          ? [listing.seller.firstName, listing.seller.lastName].filter(Boolean).join(' ')
+                          : 'Comunidade'
+                      }
                     />
                   ))}
                 </div>
@@ -460,6 +587,7 @@ export default function TeacherMarketplacePage() {
           setIsDetailOpen(false)
           setSelectedListing(null)
         }}
+        onRent={openRentalModal}
       />
 
       <Modal
@@ -478,6 +606,74 @@ export default function TeacherMarketplacePage() {
           onSubmit={handleCreateListing}
           onCancel={() => setIsCreateOpen(false)}
         />
+      </Modal>
+
+      {/* Modal: Alugar (School Rental Modal) */}
+      <Modal
+        open={rentalModal.open}
+        title={rentalModal.item ? `Alugar "${rentalModal.item.title || rentalModal.item.itemName}"` : 'Alugar artigo'}
+        description="Seleciona o período de aluguer e o método de pagamento."
+        size="md"
+        className="teacher-inventory-modal"
+        onClose={closeRentalModal}
+        closeOnBackdrop={!submittingRental}
+        footer={
+          <div className="modal-footer-actions" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+            <Button type="button" variant="secondary" onClick={closeRentalModal} disabled={submittingRental}>
+              Cancelar
+            </Button>
+            <Button form="rental-form" type="submit" variant="cta" disabled={submittingRental}>
+              {submittingRental ? 'A enviar pedido…' : 'Enviar pedido à direção'}
+            </Button>
+          </div>
+        }
+      >
+        <form id="rental-form" className="modal-form" onSubmit={submitRental}>
+          {rentalModal.item ? (
+            <div className="rental-summary" style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '8px', background: '#f5edfb' }}>
+              <p style={{ margin: '0 0 0.25rem' }}>Artigo: <strong>{rentalModal.item.title || rentalModal.item.itemName}</strong></p>
+              <p style={{ margin: '0 0 0.25rem' }}>Taxa simbólica: <strong>{formatCurrency(rentalModal.item.price || rentalModal.item.symbolicFee)}</strong></p>
+              <p style={{ margin: '0' }}>Disponível: <strong>{rentalModal.item.availableQuantity} / {rentalModal.item.totalQuantity}</strong></p>
+            </div>
+          ) : null}
+
+          <label className="form-label" style={{ display: 'grid', gap: '0.35rem', marginBottom: '0.85rem' }}>
+            <span style={{ fontWeight: 600, color: '#4c4666' }}>Data de início</span>
+            <input
+              type="date"
+              required
+              className="form-input"
+              style={{ padding: '0.56rem 0.7rem', border: '1px solid #d7ccdf', borderRadius: '10px', width: '100%' }}
+              value={rentalForm.startDate}
+              onChange={(e) => setRentalForm((f) => ({ ...f, startDate: e.target.value }))}
+            />
+          </label>
+          <label className="form-label" style={{ display: 'grid', gap: '0.35rem', marginBottom: '0.85rem' }}>
+            <span style={{ fontWeight: 600, color: '#4c4666' }}>Data de fim (opcional)</span>
+            <input
+              type="date"
+              className="form-input"
+              style={{ padding: '0.56rem 0.7rem', border: '1px solid #d7ccdf', borderRadius: '10px', width: '100%' }}
+              value={rentalForm.endDate}
+              onChange={(e) => setRentalForm((f) => ({ ...f, endDate: e.target.value }))}
+            />
+          </label>
+          <label className="form-label" style={{ display: 'grid', gap: '0.35rem', marginBottom: '0.85rem' }}>
+            <span style={{ fontWeight: 600, color: '#4c4666' }}>Método de pagamento</span>
+            <select
+              className="form-select"
+              style={{ padding: '0.56rem 0.7rem', border: '1px solid #d7ccdf', borderRadius: '10px', width: '100%' }}
+              value={rentalForm.paymentMethodId}
+              onChange={(e) => setRentalForm((f) => ({ ...f, paymentMethodId: e.target.value }))}
+            >
+              {PAYMENT_METHOD_OPTIONS.map((opt) => (
+                <option key={opt.id} value={opt.id}>{opt.label}</option>
+              ))}
+            </select>
+          </label>
+
+          {rentalError ? <p className="modal-error" style={{ color: '#b52142', margin: '0.5rem 0 0', fontWeight: 600 }}>{rentalError}</p> : null}
+        </form>
       </Modal>
     </div>
   )

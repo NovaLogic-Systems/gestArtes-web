@@ -315,7 +315,7 @@ function App() {
         <Route path="/student/dashboard" element={<DashboardPage />} />
         <Route path="/student/coaching" element={<CoachingPage />} />
         <Route path="/student/timetable" element={<StudentTimetablePage />} />
-        <Route path="/student/inventory" element={<InventoryPage />} />
+        <Route path="/student/inventory" element={<Navigate to="/student/marketplace" replace />} />
         <Route path="/student/inventory/checkout/:itemId" element={<RentalCheckoutPage />} />
         <Route path="/student/inventory/rentals" element={<RentalRequestsPage />} />
         <Route path="/student/marketplace" element={<MarketplacePage />} />
@@ -336,7 +336,7 @@ function App() {
         <Route path="/teacher/schedule" element={<Navigate to="/teacher/dashboard" replace />} />
         <Route path="/teacher/availability" element={<Navigate to="/teacher/dashboard" replace />} />
         <Route path="/teacher/coaching" element={<TeacherCoachingPage />} />
-        <Route path="/teacher/inventory" element={<TeacherInventoryPage />} />
+        <Route path="/teacher/inventory" element={<Navigate to="/teacher/marketplace" replace />} />
         <Route path="/teacher/marketplace" element={<TeacherMarketplacePage />} />
         <Route path="/teacher/marketplace/conversas" element={<Navigate to="/teacher/marketplace" replace />} />
         <Route path="/teacher/marketplace/my-listings" element={<TeacherMarketplaceListingsPage />} />
