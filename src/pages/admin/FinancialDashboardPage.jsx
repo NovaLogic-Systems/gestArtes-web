@@ -239,7 +239,6 @@ function FinancialDashboardPage() {
               </button>
               <h2>Finanças e Relatórios</h2>
             </div>
-            <p>Resumo de entradas financeiras, penalizações e exportação para contabilidade</p>
           </div>
           <div className="topbar-right">
             <NotificationsBell pageLink="/admin/notifications" />

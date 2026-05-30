@@ -111,7 +111,7 @@ export default function TeacherMarketplacePage() {
         setListings(listingsResult.value)
       } else {
         setListings([])
-        setError(listingsResult.localizeApiError(reason, 'Não foi possível carregar o marketplace.'))
+        setError(localizeApiError(listingsResult.reason, 'Não foi possível carregar o marketplace.'))
       }
 
       if (optionsResult.status === 'fulfilled') {
@@ -292,17 +292,17 @@ export default function TeacherMarketplacePage() {
         <main className="main">
           <header className="topbar">
             <div className="topbar-left">
-              <button
-                type="button"
-                className="sidebar-toggle-btn"
-                aria-label={sidebarToggleLabel}
-                aria-controls="sidebar"
-                aria-expanded={mobileOpen}
-                onClick={handleSidebarToggle}
-              >
-                {sidebarToggleSymbol}
-              </button>
-              <div>
+              <div className="topbar-heading">
+                <button
+                  type="button"
+                  className="sidebar-toggle-btn"
+                  aria-label={sidebarToggleLabel}
+                  aria-controls="sidebar"
+                  aria-expanded={mobileOpen}
+                  onClick={handleSidebarToggle}
+                >
+                  {sidebarToggleSymbol}
+                </button>
                 <h2>Marketplace da Comunidade</h2>
               </div>
             </div>

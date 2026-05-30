@@ -118,7 +118,6 @@ export default function AdminDashboardPage() {
   return (
     <AdminShell 
       title="Painel de Administração" 
-      subtitle="Monitorização em tempo real e gestão do sistema"
       activePath="/admin/dashboard"
     >
       <div className="admin-dashboard-content">
