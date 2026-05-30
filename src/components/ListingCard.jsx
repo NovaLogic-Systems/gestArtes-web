@@ -106,6 +106,7 @@ export default function ListingCard({
   onEdit,
   onDelete,
   showOwnerActions = false,
+  originLabel = null,
 }) {
   const photoUrl = resolveMarketplacePhotoUrl(listing?.photoUrl)
   const statusLabel = resolveStatusLabel(listing?.status)
@@ -125,6 +126,15 @@ export default function ListingCard({
         <button type="button" className="market-listing-title" onClick={() => onOpen?.(listing)}>
           {listing?.title || 'Anúncio sem título'}
         </button>
+
+        {originLabel ? (
+          <span
+            className="market-listing-origin"
+            style={{ display: 'inline-block', fontSize: '0.72rem', fontWeight: 700, color: '#0b9d8f', marginTop: '2px' }}
+          >
+            {originLabel}
+          </span>
+        ) : null}
 
         <p className="market-listing-price">{formatMoney(listing?.price)}</p>
 

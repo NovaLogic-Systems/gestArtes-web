@@ -1020,7 +1020,7 @@ export default function AdminInventoryPage() {
 
           <article className="panel">
             <div className="panel-header">
-              <h3>Devoluções ativas e validação</h3>
+              <h3>Alugueres e devoluções</h3>
             </div>
 
             <div className="table-wrap">
@@ -1046,12 +1046,25 @@ export default function AdminInventoryPage() {
                         key: 'item',
                         align: 'left',
                         verticalAlign: 'middle',
-                        render: (rental) => (
-                        <div className="inventory-item-cell">
-                          <strong>{rental.item?.itemName || 'Artigo'}</strong>
-                          <span>{formatMoney(rental.symbolicFee)}</span>
-                        </div>
-                      ),
+                        render: (rental) => {
+                          const thumbUrl = resolveMarketplacePhotoUrl(rental.item?.photoUrl)
+                          return (
+                            <div className="inventory-item-cell" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                              {thumbUrl ? (
+                                <img
+                                  src={thumbUrl}
+                                  alt={rental.item?.itemName || 'Artigo'}
+                                  style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }}
+                                  onError={(event) => { event.currentTarget.style.display = 'none' }}
+                                />
+                              ) : null}
+                              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <strong>{rental.item?.itemName || 'Artigo'}</strong>
+                                <span>{formatMoney(rental.symbolicFee)}</span>
+                              </div>
+                            </div>
+                          )
+                        },
                     },
                     {
                         header: 'Requisitante',
@@ -1086,7 +1099,7 @@ export default function AdminInventoryPage() {
                   ]}
                   rows={rentals}
                   getRowKey={(rental) => rental.rentalId}
-                  emptyState="Sem devoluções pendentes de validação."
+                  emptyState="Sem alugueres ou devoluções para mostrar."
                     rowActionsHeader="Ações"
                     rowActionsVerticalAlign="middle"
                     renderRowActions={(rental) => (
@@ -1414,6 +1427,15 @@ export default function AdminInventoryPage() {
         <div className="inventory-rental-modal-grid">
           <div className="soft-box">
             <strong>Resumo do aluguer</strong>
+            {resolveMarketplacePhotoUrl(selectedRental?.item?.photoUrl) ? (
+              <img
+                src={resolveMarketplacePhotoUrl(selectedRental?.item?.photoUrl)}
+                alt={selectedRental?.item?.itemName || 'Artigo'}
+                className="inventory-modal-image"
+                style={{ marginTop: '0.5rem' }}
+                onError={(event) => { event.currentTarget.style.display = 'none' }}
+              />
+            ) : null}
             <p className="inventory-modal-line-first">
               Artigo: {selectedRental?.item?.itemName || '—'}
             </p>

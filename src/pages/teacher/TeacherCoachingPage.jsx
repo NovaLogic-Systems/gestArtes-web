@@ -410,12 +410,19 @@ export default function TeacherCoachingPage() {
   }, [decision, observations, selectedRequest, saving])
 
   const openCoachingReq = useCallback((req) => {
+    // Pré-preenche a data/hora de fim (início + 60 min) para acelerar a aprovação.
+    const startIso = req.currentStartTime ? new Date(req.currentStartTime).toISOString().slice(0, 16) : ''
+    const endPlusOneHourIso = req.currentStartTime
+      ? new Date(new Date(req.currentStartTime).getTime() + 60 * 60 * 1000).toISOString().slice(0, 16)
+      : ''
+
     setSelectedCoachingReq(req)
     setCoachingDecision('approve')
     setCoachingNotes('')
-    setCoachingEndTime('')
-    setCoachingSuggestStart(req.currentStartTime ? new Date(req.currentStartTime).toISOString().slice(0, 16) : '')
-    setCoachingSuggestEnd('')
+    // Se o aluno não definiu fim, sugerimos início + 1h (editável antes de aprovar).
+    setCoachingEndTime(req.currentEndTime ? '' : endPlusOneHourIso)
+    setCoachingSuggestStart(startIso)
+    setCoachingSuggestEnd(endPlusOneHourIso)
     setCoachingReviewError('')
   }, [])
 

@@ -689,7 +689,7 @@ export default function AdminUsersPage() {
                         checked={editForm.isModalityLocked || false}
                         onChange={e => setEditForm(prev => ({ ...prev, isModalityLocked: e.target.checked }))}
                       />
-                      Bloquear aluno a modalidades específicas
+                      Permitir apenas modalidades específicas
                     </label>
                   </div>
 

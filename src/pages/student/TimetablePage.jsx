@@ -6,6 +6,7 @@ import LoadingSkeleton from '../../components/ui/LoadingSkeleton'
 import { useAuth } from '../../hooks/useAuth'
 import { localizeApiError } from '../../utils/apiErrors'
 import { dayLabel, formatMinutes, listTimetables, sortTimetableSlots } from '../../services/timetableService'
+import { listCoachingModalities } from '../../services/coaching'
 import { STUDENT_NAV_ITEMS as NAV_ITEMS } from './studentNav'
 import './timetablePage.css'
 
@@ -19,11 +20,12 @@ function buildWeeklySlots(slots) {
   }))
 }
 
-function TimetableSection({ timetable }) {
-  const slots = useMemo(
-    () => sortTimetableSlots(timetable?.Slots || timetable?.slots || []),
-    [timetable],
-  )
+function TimetableSection({ timetable, modalityFilter }) {
+  const slots = useMemo(() => {
+    const all = sortTimetableSlots(timetable?.Slots || timetable?.slots || [])
+    if (!modalityFilter) return all
+    return all.filter((slot) => slot.ModalityID != null && modalityFilter.has(Number(slot.ModalityID)))
+  }, [timetable, modalityFilter])
 
   const weeklySlots = useMemo(() => buildWeeklySlots(slots), [slots])
 
@@ -101,6 +103,8 @@ export default function TimetablePage() {
   const [error, setError] = useState('')
   const [timetables, setTimetables] = useState([])
   const [reloadToken, setReloadToken] = useState(0)
+  const [viewMode, setViewMode] = useState('all') // 'all' | 'mine'
+  const [myModalityIds, setMyModalityIds] = useState(null) // Set<number> | null
 
   const sidebarHidden = isMobile || sidebarCollapsed
   const appShellClassName = ['app-shell', sidebarHidden ? 'sidebar-hidden' : ''].filter(Boolean).join(' ')
@@ -155,8 +159,35 @@ export default function TimetablePage() {
     }
   }, [loadTimetables, reloadToken])
 
-  const timetableCount = timetables.length
-  const activeCount = timetables.filter((timetable) => Boolean(timetable.IsActive)).length
+  // Modalidades em que o aluno está inscrito (StudentAllowedModality, via /coaching/modalities).
+  useEffect(() => {
+    let cancelled = false
+    listCoachingModalities()
+      .then((data) => {
+        if (!cancelled) setMyModalityIds(new Set((data || []).map((m) => Number(m.modalityId))))
+      })
+      .catch(() => {
+        if (!cancelled) setMyModalityIds(new Set())
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const modalityFilter = viewMode === 'mine' ? (myModalityIds || new Set()) : null
+
+  const visibleTimetables = useMemo(() => {
+    if (viewMode !== 'mine') return timetables
+    const set = myModalityIds || new Set()
+    return timetables.filter((timetable) =>
+      (timetable.Slots || timetable.slots || []).some(
+        (slot) => slot.ModalityID != null && set.has(Number(slot.ModalityID)),
+      ),
+    )
+  }, [viewMode, timetables, myModalityIds])
+
+  const timetableCount = visibleTimetables.length
+  const activeCount = visibleTimetables.filter((timetable) => Boolean(timetable.IsActive)).length
 
   return (
     <div className="student-timetable-page">
@@ -247,9 +278,31 @@ export default function TimetablePage() {
                   {activeCount > 0 ? ` · ${activeCount} ativas` : ''}
                 </p>
               </div>
-              <button className="pill timetable-retry-btn" type="button" onClick={() => setReloadToken((value) => value + 1)}>
-                Atualizar
-              </button>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <div className="timetable-view-toggle" role="tablist" aria-label="Vista de horários" style={{ display: 'flex', gap: '0.35rem' }}>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={viewMode === 'all'}
+                    className={viewMode === 'all' ? 'pill' : 'timetable-retry-btn'}
+                    onClick={() => setViewMode('all')}
+                  >
+                    Todos os horários
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={viewMode === 'mine'}
+                    className={viewMode === 'mine' ? 'pill' : 'timetable-retry-btn'}
+                    onClick={() => setViewMode('mine')}
+                  >
+                    As minhas modalidades
+                  </button>
+                </div>
+                <button className="pill timetable-retry-btn" type="button" onClick={() => setReloadToken((value) => value + 1)}>
+                  Atualizar
+                </button>
+              </div>
             </article>
 
             {error ? (
@@ -266,14 +319,16 @@ export default function TimetablePage() {
                 <LoadingTimetableSection />
                 <LoadingTimetableSection />
               </div>
-            ) : timetables.length === 0 ? (
+            ) : visibleTimetables.length === 0 ? (
               <div className="panel empty-state timetable-empty-state">
-                Não existem horários disponíveis para mostrar.
+                {viewMode === 'mine'
+                  ? 'Não há horários nas modalidades em que estás inscrito.'
+                  : 'Não existem horários disponíveis para mostrar.'}
               </div>
             ) : (
               <div className="timetable-section-stack">
-                {timetables.map((timetable) => (
-                  <TimetableSection key={timetable.TimetableID} timetable={timetable} />
+                {visibleTimetables.map((timetable) => (
+                  <TimetableSection key={timetable.TimetableID} timetable={timetable} modalityFilter={modalityFilter} />
                 ))}
               </div>
             )}

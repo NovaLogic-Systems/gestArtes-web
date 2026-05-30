@@ -11,6 +11,7 @@ import {
   listMarketplaceListings,
 } from '../../services/marketplace'
 import ListingForm from '../../components/ListingForm'
+import InventoryCatalog from '../../components/InventoryCatalog'
 import Modal from '../../components/ui/Modal'
 import '../admin-studios.css'
 import '../student/marketplace.css'
@@ -317,6 +318,19 @@ export default function TeacherMarketplacePage() {
             </div>
           </header>
 
+          <section className="content-grid">
+            <article className="panel">
+              <div className="market-feed-header">
+                <h3>Artigos de Entartes (escola)</h3>
+                <p className="market-count-info">Inventário da escola disponível para aluguer</p>
+              </div>
+              <InventoryCatalog
+                onRentalCreated={() => navigate('/teacher/inventory')}
+                modalClassName="teacher-inventory-modal"
+              />
+            </article>
+          </section>
+
           <section className="content-grid market-layout">
             <article className="panel market-filters">
               <h3>Pesquisa e filtros</h3>
@@ -409,7 +423,7 @@ export default function TeacherMarketplacePage() {
 
             <article className="panel">
               <div className="market-feed-header">
-                <h3>Feed de anuncios</h3>
+                <h3>Marketplace da comunidade</h3>
                 {!loading && listings.length > 0 ? (
                   <p className="market-count-info">
                     {filteredListings.length} de {listings.length} anuncio{listings.length !== 1 ? 's' : ''}
@@ -425,7 +439,12 @@ export default function TeacherMarketplacePage() {
               ) : (
                 <div className="market-listing-grid">
                   {filteredListings.map((listing) => (
-                    <ListingCard key={listing.listingId} listing={listing} onOpen={handleOpenListing} />
+                    <ListingCard
+                      key={listing.listingId}
+                      listing={listing}
+                      onOpen={handleOpenListing}
+                      originLabel={`Comunidade${listing?.seller ? ` · ${[listing.seller.firstName, listing.seller.lastName].filter(Boolean).join(' ')}` : ''}`}
+                    />
                   ))}
                 </div>
               )}

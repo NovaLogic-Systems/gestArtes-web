@@ -91,11 +91,11 @@ function studentFullName(user) {
 function requestStatusMeta(status) {
   switch (String(status || '').toUpperCase()) {
     case 'PENDING_TEACHER_REVIEW':
-      return { label: 'Aguarda professor', variant: 'warning' }
+      return { label: 'Aguarda resposta do professor', variant: 'warning' }
     case 'PENDING_STUDENT_CONFIRMATION':
-      return { label: 'A tua resposta', variant: 'warning' }
+      return { label: 'Aguarda a tua resposta', variant: 'warning' }
     case 'PENDING_ADMIN_APPROVAL':
-      return { label: 'Aguarda direção', variant: 'info' }
+      return { label: 'Aguarda aprovação da direção', variant: 'info' }
     case 'APPROVED':
       return { label: 'Aprovado', variant: 'success' }
     case 'REJECTED':

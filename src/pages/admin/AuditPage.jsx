@@ -7,15 +7,18 @@ import Pagination from '../../components/ui/Pagination'
 import api from '../../services/api'
 import AdminShell from './AdminShell'
 
-const MODULES = ['finance', 'coaching', 'validations', 'marketplace', 'lostfound', 'users', 'system']
+const MODULES = ['finance', 'coaching', 'validations', 'marketplace', 'inventory', 'lostfound', 'users', 'system']
 
 const MODULE_LABELS = {
   finance: 'Finanças',
   coaching: 'Aulas/Sessões',
   validations: 'Validações',
   marketplace: 'Marketplace',
+  inventory: 'Inventário',
   lostfound: 'Perdidos e Achados',
   users: 'Utilizadores',
+  studios: 'Estúdios',
+  auth: 'Autenticação',
   system: 'Sistema',
 }
 
@@ -24,12 +27,147 @@ const ACTION_LABELS = {
   NOSHOW_PENALTY_APPLIED: 'Penalização No-Show',
   SESSION_FINALIZED: 'Sessão Finalizada',
   SESSION_CANCELLED: 'Sessão Cancelada',
+  SESSION_CREATED: 'Sessão Criada',
+  SESSION_APPROVED: 'Sessão Aprovada',
+  SESSION_REJECTED: 'Sessão Rejeitada',
   VALIDATION_APPROVED: 'Validação Aprovada',
   VALIDATION_REJECTED: 'Validação Rejeitada',
   LOSTFOUND_CLAIMED: 'Item Reclamado',
   LOSTFOUND_ARCHIVED: 'Item Arquivado',
-  MARKETPLACE_HIDDEN: 'Item Ocultado',
-  USER_PASSWORD_RESET: 'Reset de Password',
+  MARKETPLACE_HIDDEN: 'Anúncio Ocultado',
+  MARKETPLACE_APPROVED: 'Anúncio Aprovado',
+  MARKETPLACE_REJECTED: 'Anúncio Rejeitado',
+  INVENTORY_RENTAL_APPROVED: 'Aluguer Aprovado',
+  INVENTORY_RENTAL_REJECTED: 'Aluguer Rejeitado',
+  INVENTORY_RETURN_VERIFIED: 'Devolução Verificada',
+  INVENTORY_ITEM_CREATED: 'Artigo Criado',
+  INVENTORY_ITEM_UPDATED: 'Artigo Atualizado',
+  INVENTORY_ITEM_DELETED: 'Artigo Removido',
+  USER_PASSWORD_RESET: 'Redefinição de Palavra-passe',
+  USER_CREATED: 'Utilizador Criado',
+  USER_UPDATED: 'Utilizador Atualizado',
+  USER_SUSPENDED: 'Utilizador Suspenso',
+  USER_LOGIN: 'Início de Sessão',
+  USER_LOGOUT: 'Fim de Sessão',
+}
+
+const ROLE_LABELS = {
+  admin: 'Direção',
+  teacher: 'Professor',
+  student: 'Aluno',
+  guardian: 'Encarregado de Educação',
+  system: 'Sistema',
+}
+
+const RESULT_LABELS = {
+  success: 'Sucesso',
+  failure: 'Falha',
+}
+
+// Best-effort: traduz fragmentos comuns em inglês nos detalhes de auditoria para PT-PT.
+const DETAIL_DICTIONARY = [
+  [/\bexported\b/gi, 'exportado'],
+  [/\bcreated\b/gi, 'criado'],
+  [/\bupdated\b/gi, 'atualizado'],
+  [/\bdeleted\b/gi, 'removido'],
+  [/\bremoved\b/gi, 'removido'],
+  [/\bapproved\b/gi, 'aprovado'],
+  [/\brejected\b/gi, 'rejeitado'],
+  [/\bcancelled\b/gi, 'cancelado'],
+  [/\bcanceled\b/gi, 'cancelado'],
+  [/\bfinalized\b/gi, 'finalizado'],
+  [/\bverified\b/gi, 'verificado'],
+  [/\bsuspended\b/gi, 'suspenso'],
+  [/\bclaimed\b/gi, 'reclamado'],
+  [/\barchived\b/gi, 'arquivado'],
+  [/\bhidden\b/gi, 'ocultado'],
+  [/\blogged in\b/gi, 'iniciou sessão'],
+  [/\blogged out\b/gi, 'terminou sessão'],
+  [/\bpassword reset\b/gi, 'palavra-passe redefinida'],
+  [/\bby\b/gi, 'por'],
+  [/\bfor\b/gi, 'para'],
+  [/\bfrom\b/gi, 'de'],
+  [/\bto\b/gi, 'para'],
+  [/\bsession\b/gi, 'sessão'],
+  [/\buser\b/gi, 'utilizador'],
+  [/\bitem\b/gi, 'artigo'],
+  [/\brental\b/gi, 'aluguer'],
+  [/\breturn\b/gi, 'devolução'],
+  [/\blisting\b/gi, 'anúncio'],
+]
+
+function localizeAuditDetail(detail) {
+  if (!detail) return '—'
+  let text = String(detail)
+  for (const [pattern, replacement] of DETAIL_DICTIONARY) {
+    text = text.replace(pattern, replacement)
+  }
+  return text
+}
+
+function localizeRole(role) {
+  if (!role) return '—'
+  return ROLE_LABELS[String(role).toLowerCase()] || role
+}
+
+function formatAuditTimestamp(value) {
+  if (!value) return '—'
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return '—'
+  return parsed.toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'medium' })
+}
+
+function escapeCsvField(value) {
+  const text = value === null || value === undefined ? '' : String(value)
+  if (/[";\n\r]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`
+  }
+  return text
+}
+
+function buildAuditCsv(rows) {
+  const headers = [
+    'Data/Hora',
+    'Utilizador',
+    'Perfil',
+    'Ação',
+    'Módulo',
+    'Tipo de Alvo',
+    'ID do Alvo',
+    'Resultado',
+    'Detalhe',
+  ]
+
+  const lines = [headers.join(';')]
+
+  for (const row of rows) {
+    lines.push([
+      formatAuditTimestamp(row.timestamp),
+      row.userName || (row.userId ? `#${row.userId}` : '—'),
+      localizeRole(row.userRole),
+      ACTION_LABELS[row.action] || row.action || '—',
+      MODULE_LABELS[row.module] || row.module || '—',
+      row.targetType || '—',
+      row.targetId || '—',
+      RESULT_LABELS[row.result] || row.result || '—',
+      localizeAuditDetail(row.detail),
+    ].map(escapeCsvField).join(';'))
+  }
+
+  // BOM para o Excel reconhecer UTF-8 corretamente
+  return `﻿${lines.join('\r\n')}`
+}
+
+function downloadCsv(content, fileName) {
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = fileName
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
 }
 
 const INITIAL_FILTERS = {
@@ -48,6 +186,7 @@ const TABLE_COLUMNS = [
         : '—',
   },
   { key: 'userName', header: 'Utilizador', render: (row) => row.userName || `#${row.userId ?? '?'}` },
+  { key: 'userRole', header: 'Perfil', render: (row) => localizeRole(row.userRole) },
   {
     key: 'action',
     header: 'Ação',
@@ -67,7 +206,7 @@ const TABLE_COLUMNS = [
       </Badge>
     ),
   },
-  { key: 'detail', header: 'Detalhe', render: (row) => row.detail || '—' },
+  { key: 'detail', header: 'Detalhe', render: (row) => localizeAuditDetail(row.detail) },
 ]
 
 export default function AuditPage() {
@@ -80,6 +219,7 @@ export default function AuditPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
+  const [exporting, setExporting] = useState(false)
   const pageSize = 25
 
   useEffect(() => {
@@ -148,6 +288,36 @@ export default function AuditPage() {
     e.preventDefault()
     setCurrentPage(1)
     setAppliedFilters(filters)
+  }
+
+  async function handleExportCsv() {
+    if (exporting) return
+    setExporting(true)
+    setError('')
+    try {
+      const params = {}
+      if (appliedFilters.periodStart) params.periodStart = appliedFilters.periodStart
+      if (appliedFilters.periodEnd) params.periodEnd = appliedFilters.periodEnd
+      if (appliedFilters.module) params.module = appliedFilters.module
+
+      const response = await api.get('/admin/audit', {
+        params: { ...params, limit: 100000, offset: 0 },
+      })
+      const rows = Array.isArray(response.data?.items) ? response.data.items : []
+
+      if (rows.length === 0) {
+        setError('Não há eventos de auditoria para exportar com os filtros atuais.')
+        return
+      }
+
+      const stamp = new Date().toISOString().slice(0, 10)
+      downloadCsv(buildAuditCsv(rows), `auditoria-gestartes-${stamp}.csv`)
+    } catch (err) {
+      console.error('Erro ao exportar auditoria:', err)
+      setError('Não foi possível exportar o CSV de auditoria.')
+    } finally {
+      setExporting(false)
+    }
   }
 
   const totalPages = Math.max(1, Math.ceil(eventTotal / pageSize))
@@ -264,9 +434,29 @@ export default function AuditPage() {
 
       {/* Events table */}
       <section>
-        <h3 style={{ margin: '0 0 0.75rem' }}>
-          Eventos de auditoria ({eventTotal})
-        </h3>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', margin: '0 0 0.75rem' }}>
+          <h3 style={{ margin: 0 }}>
+            Eventos de auditoria ({eventTotal})
+          </h3>
+          <button
+            type="button"
+            onClick={handleExportCsv}
+            disabled={exporting || loading || eventTotal === 0}
+            style={{
+              background: 'var(--studio-cta-start, #0b9d8f)',
+              border: 0,
+              borderRadius: '999px',
+              color: '#fff',
+              cursor: (exporting || loading || eventTotal === 0) ? 'not-allowed' : 'pointer',
+              font: 'inherit',
+              fontWeight: 600,
+              opacity: (exporting || loading || eventTotal === 0) ? 0.7 : 1,
+              padding: '0.5rem 1.1rem',
+            }}
+          >
+            {exporting ? 'A exportar…' : 'Exportar CSV'}
+          </button>
+        </div>
         <Table
           columns={TABLE_COLUMNS}
           rows={events}
