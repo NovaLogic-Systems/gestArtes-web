@@ -94,6 +94,7 @@ const DETAIL_DICTIONARY = [
   [/\brental\b/gi, 'aluguer'],
   [/\breturn\b/gi, 'devolução'],
   [/\blisting\b/gi, 'anúncio'],
+  [/\bpenalty\b/gi, 'Penalização de'],
 ]
 
 function localizeAuditDetail(detail) {
@@ -170,9 +171,18 @@ function downloadCsv(content, fileName) {
   URL.revokeObjectURL(url)
 }
 
+const getDateOffsetString = (offsetDays) => {
+  const d = new Date()
+  d.setDate(d.getDate() + offsetDays)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 const INITIAL_FILTERS = {
-  periodStart: '',
-  periodEnd: '',
+  periodStart: getDateOffsetString(-7),
+  periodEnd: getDateOffsetString(0),
   module: '',
 }
 
