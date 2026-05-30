@@ -327,7 +327,6 @@ export default function AuditPage() {
   return (
     <AdminShell
       title="Auditoria"
-      subtitle="Registo de ações críticas do sistema"
       activePath={location.pathname}
     >
       {error ? (

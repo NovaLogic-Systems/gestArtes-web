@@ -52,6 +52,40 @@ function formatDateTime(value) {
   return new Intl.DateTimeFormat('pt-PT', { dateStyle: 'short', timeStyle: 'short' }).format(parsed)
 }
 
+function toLocalInputDateTime(value) {
+  if (!value) return ''
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return ''
+  const pad = (number) => String(number).padStart(2, '0')
+  return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}T${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`
+}
+
+const DEFAULT_COACHING_DURATION_MIN = 60
+const COACHING_DURATIONS = [45, 60, 90, 120]
+
+function resolveDurationMinutes(startValue, endValue, fallback = DEFAULT_COACHING_DURATION_MIN) {
+  if (!startValue || !endValue) return fallback
+  const start = new Date(startValue)
+  const end = new Date(endValue)
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return fallback
+  const minutes = Math.round((end.getTime() - start.getTime()) / 60000)
+  return minutes > 0 ? minutes : fallback
+}
+
+function addMinutes(value, minutes) {
+  const parsed = new Date(value)
+  const parsedMinutes = Number(minutes)
+  if (Number.isNaN(parsed.getTime()) || !Number.isFinite(parsedMinutes) || parsedMinutes <= 0) return null
+  return new Date(parsed.getTime() + parsedMinutes * 60000)
+}
+
+function formatTimeLabel(value) {
+  if (!value) return '—'
+  const parsed = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(parsed.getTime())) return '—'
+  return parsed.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
+}
+
 function resolveStatusVariant(statusName) {
   const n = String(statusName || '').trim().toLowerCase()
   if (n.includes('reject') || n.includes('rejeit')) return 'danger'
@@ -147,9 +181,9 @@ export default function TeacherCoachingPage() {
   const [selectedCoachingReq, setSelectedCoachingReq] = useState(null)
   const [coachingDecision, setCoachingDecision] = useState('approve')
   const [coachingNotes, setCoachingNotes] = useState('')
-  const [coachingEndTime, setCoachingEndTime] = useState('')
+  const [coachingDurationMin, setCoachingDurationMin] = useState(String(DEFAULT_COACHING_DURATION_MIN))
   const [coachingSuggestStart, setCoachingSuggestStart] = useState('')
-  const [coachingSuggestEnd, setCoachingSuggestEnd] = useState('')
+  const [coachingSuggestDurationMin, setCoachingSuggestDurationMin] = useState(String(DEFAULT_COACHING_DURATION_MIN))
   const [coachingReviewError, setCoachingReviewError] = useState('')
   const [coachingSaving, setCoachingSaving] = useState(false)
 
@@ -410,19 +444,21 @@ export default function TeacherCoachingPage() {
   }, [decision, observations, selectedRequest, saving])
 
   const openCoachingReq = useCallback((req) => {
-    // Pré-preenche a data/hora de fim (início + 60 min) para acelerar a aprovação.
-    const startIso = req.currentStartTime ? new Date(req.currentStartTime).toISOString().slice(0, 16) : ''
-    const endPlusOneHourIso = req.currentStartTime
-      ? new Date(new Date(req.currentStartTime).getTime() + 60 * 60 * 1000).toISOString().slice(0, 16)
-      : ''
+    const preferredStart = req.preferredStartTime ?? req.currentStartTime
+    const preferredEnd = req.preferredEndTime ?? req.currentEndTime
+    const startIso = preferredStart ? toLocalInputDateTime(preferredStart) : ''
+    const durationMinutes = resolveDurationMinutes(preferredStart, preferredEnd)
+    const durationValue = COACHING_DURATIONS.includes(durationMinutes)
+      ? durationMinutes
+      : DEFAULT_COACHING_DURATION_MIN
+    const durationLabel = String(durationValue)
 
     setSelectedCoachingReq(req)
     setCoachingDecision('approve')
     setCoachingNotes('')
-    // Se o aluno não definiu fim, sugerimos início + 1h (editável antes de aprovar).
-    setCoachingEndTime(req.currentEndTime ? '' : endPlusOneHourIso)
+    setCoachingDurationMin(durationLabel)
     setCoachingSuggestStart(startIso)
-    setCoachingSuggestEnd(endPlusOneHourIso)
+    setCoachingSuggestDurationMin(durationLabel)
     setCoachingReviewError('')
   }, [])
 
@@ -441,20 +477,24 @@ export default function TeacherCoachingPage() {
     if (coachingDecision === 'approve') {
       const needsEndTime = !selectedCoachingReq.currentEndTime
       if (needsEndTime) {
-        if (!coachingEndTime) {
-          setCoachingReviewError('Define a hora de fim da aula antes de aprovar.')
+        const durationValue = Number(coachingDurationMin)
+        const endDate = addMinutes(selectedCoachingReq.currentStartTime, durationValue)
+        if (!durationValue || !endDate) {
+          setCoachingReviewError('Define a duração da aula antes de aprovar.')
           return
         }
         payload.approvedStartTime = selectedCoachingReq.currentStartTime
-        payload.approvedEndTime = new Date(coachingEndTime).toISOString()
+        payload.approvedEndTime = endDate.toISOString()
       }
     } else if (coachingDecision === 'suggest') {
-      if (!coachingSuggestStart || !coachingSuggestEnd) {
-        setCoachingReviewError('Preenche a data/hora de início e fim da sugestão.')
+      const durationValue = Number(coachingSuggestDurationMin)
+      const endDate = addMinutes(coachingSuggestStart, durationValue)
+      if (!coachingSuggestStart || !durationValue || !endDate) {
+        setCoachingReviewError('Preenche a data/hora de início e a duração da sugestão.')
         return
       }
       payload.suggestedStartTime = new Date(coachingSuggestStart).toISOString()
-      payload.suggestedEndTime = new Date(coachingSuggestEnd).toISOString()
+      payload.suggestedEndTime = endDate.toISOString()
     } else if (coachingDecision === 'reject') {
       if (!payload.notes) {
         setCoachingReviewError('Notas são obrigatórias ao rejeitar.')
@@ -481,7 +521,7 @@ export default function TeacherCoachingPage() {
     } finally {
       setCoachingSaving(false)
     }
-  }, [selectedCoachingReq, coachingSaving, coachingDecision, coachingNotes, coachingEndTime, coachingSuggestStart, coachingSuggestEnd])
+  }, [selectedCoachingReq, coachingSaving, coachingDecision, coachingNotes, coachingDurationMin, coachingSuggestStart, coachingSuggestDurationMin])
 
   const handleUnavailabilitySubmit = useCallback(async ({ reason, slotData }) => {
     if (unavailabilitySaving) return
@@ -523,6 +563,12 @@ export default function TeacherCoachingPage() {
   }, [logout, navigate])
 
   const selectedCapState = useMemo(() => selectedRequest ? getCapacityState(selectedRequest) : null, [selectedRequest])
+  const requestedStartTime = selectedCoachingReq?.preferredStartTime ?? selectedCoachingReq?.currentStartTime
+  const requestedEndTime = selectedCoachingReq?.preferredEndTime ?? selectedCoachingReq?.currentEndTime
+  const coachingDurationValue = Number(coachingDurationMin) || DEFAULT_COACHING_DURATION_MIN
+  const coachingSuggestDurationValue = Number(coachingSuggestDurationMin) || DEFAULT_COACHING_DURATION_MIN
+  const coachingEndPreview = selectedCoachingReq?.currentStartTime ? addMinutes(selectedCoachingReq.currentStartTime, coachingDurationValue) : null
+  const coachingSuggestEndPreview = coachingSuggestStart ? addMinutes(coachingSuggestStart, coachingSuggestDurationValue) : null
 
   return (
     <div className="teacher-coaching-page">
@@ -955,7 +1001,12 @@ export default function TeacherCoachingPage() {
       ) : null}
 
       {selectedCoachingReq ? (
-        <Modal open onClose={closeCoachingModal} title={`Pedido #${selectedCoachingReq.requestId} — ${[selectedCoachingReq.student?.firstName, selectedCoachingReq.student?.lastName].filter(Boolean).join(' ') || 'Aluno'}`}>
+        <Modal
+          open
+          onClose={closeCoachingModal}
+          title={`Pedido #${selectedCoachingReq.requestId} — ${[selectedCoachingReq.student?.firstName, selectedCoachingReq.student?.lastName].filter(Boolean).join(' ') || 'Aluno'}`}
+          className="teacher-coaching-modal"
+        >
           <div className="request-modal-content">
             <div className="request-meta-grid">
               <div className="request-meta-card">
@@ -964,13 +1015,13 @@ export default function TeacherCoachingPage() {
               </div>
               <div className="request-meta-card">
                 <strong>Data pedida</strong>
-                <span>{formatDate(selectedCoachingReq.currentStartTime)}</span>
+                <span>{formatDate(requestedStartTime)}</span>
                 <small>
-                  {selectedCoachingReq.currentStartTime
-                    ? new Date(selectedCoachingReq.currentStartTime).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
+                  {requestedStartTime
+                    ? new Date(requestedStartTime).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
                     : '—'}
-                  {selectedCoachingReq.currentEndTime
-                    ? ` → ${new Date(selectedCoachingReq.currentEndTime).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`
+                  {requestedEndTime
+                    ? ` → ${new Date(requestedEndTime).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`
                     : ' (duração a definir)'}
                 </small>
               </div>
@@ -993,44 +1044,64 @@ export default function TeacherCoachingPage() {
 
             {coachingDecision === 'approve' && !selectedCoachingReq.currentEndTime ? (
               <div className="observations-field">
-                <span>Hora de fim da aula <span style={{ color: '#b91c1c' }}>(obrigatória)</span></span>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--studio-muted)' }}>
-                  O aluno não definiu duração. Define aqui a hora de fim antes de aprovar.
+                <span>Duração da aula <span style={{ color: '#b91c1c' }}>(obrigatória)</span></span>
+                <p className="coaching-modal-hint">
+                  O aluno não definiu duração. Indica a duração antes de aprovar.
                 </p>
-                <input
-                  type="datetime-local"
-                  value={coachingEndTime}
-                  min={selectedCoachingReq.currentStartTime ? new Date(selectedCoachingReq.currentStartTime).toISOString().slice(0, 16) : undefined}
-                  onChange={(e) => setCoachingEndTime(e.target.value)}
-                  style={{ padding: '0.5rem 0.75rem', borderRadius: '0.75rem', border: '1px solid var(--studio-field-line)', background: '#fff', font: 'inherit', color: 'var(--studio-ink)', width: '100%' }}
-                />
+                <div className="coaching-modal-field">
+                  <label htmlFor="coaching-duration">Duração</label>
+                  <select
+                    id="coaching-duration"
+                    className="coaching-modal-input"
+                    value={coachingDurationMin}
+                    onChange={(e) => setCoachingDurationMin(e.target.value)}
+                  >
+                    {COACHING_DURATIONS.map((duration) => (
+                      <option key={duration} value={duration}>{duration} min</option>
+                    ))}
+                  </select>
+                </div>
+                {coachingEndPreview ? (
+                  <small className="coaching-duration-preview">
+                    Termina as {formatTimeLabel(coachingEndPreview)}.
+                  </small>
+                ) : null}
               </div>
             ) : null}
 
             {coachingDecision === 'suggest' ? (
               <div className="observations-field">
                 <span>Novo horário sugerido</span>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                  <div>
-                    <label style={{ fontSize: '0.82rem', color: 'var(--studio-muted)' }}>Início</label>
+                <div className="coaching-modal-grid">
+                  <div className="coaching-modal-field">
+                    <label htmlFor="coaching-suggest-start">Início</label>
                     <input
+                      id="coaching-suggest-start"
                       type="datetime-local"
+                      className="coaching-modal-input"
                       value={coachingSuggestStart}
                       onChange={(e) => setCoachingSuggestStart(e.target.value)}
-                      style={{ padding: '0.5rem 0.75rem', borderRadius: '0.75rem', border: '1px solid var(--studio-field-line)', background: '#fff', font: 'inherit', color: 'var(--studio-ink)', width: '100%' }}
                     />
                   </div>
-                  <div>
-                    <label style={{ fontSize: '0.82rem', color: 'var(--studio-muted)' }}>Fim</label>
-                    <input
-                      type="datetime-local"
-                      value={coachingSuggestEnd}
-                      min={coachingSuggestStart || undefined}
-                      onChange={(e) => setCoachingSuggestEnd(e.target.value)}
-                      style={{ padding: '0.5rem 0.75rem', borderRadius: '0.75rem', border: '1px solid var(--studio-field-line)', background: '#fff', font: 'inherit', color: 'var(--studio-ink)', width: '100%' }}
-                    />
+                  <div className="coaching-modal-field">
+                    <label htmlFor="coaching-suggest-duration">Duração</label>
+                    <select
+                      id="coaching-suggest-duration"
+                      className="coaching-modal-input"
+                      value={coachingSuggestDurationMin}
+                      onChange={(e) => setCoachingSuggestDurationMin(e.target.value)}
+                    >
+                      {COACHING_DURATIONS.map((duration) => (
+                        <option key={duration} value={duration}>{duration} min</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
+                {coachingSuggestEndPreview ? (
+                  <small className="coaching-duration-preview">
+                    Termina as {formatTimeLabel(coachingSuggestEndPreview)}.
+                  </small>
+                ) : null}
               </div>
             ) : null}
 

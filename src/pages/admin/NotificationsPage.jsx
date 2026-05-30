@@ -121,7 +121,6 @@ export default function AdminNotificationsPage() {
   return (
     <AdminShell
       title="Notificações"
-      subtitle="Alertas de coaching, sistema e marketplace"
       activePath="/admin/notifications"
     >
       <section className="content-grid admin-notifications-page">

@@ -646,6 +646,29 @@
   gap: 12px;
 }
 
+.teacher-timetable-page .timetable-card {
+  font-size: 0.9rem;
+}
+
+.teacher-timetable-page .timetable-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.teacher-timetable-page .timetable-card-head strong {
+  display: block;
+  color: var(--ink);
+  font-size: 0.98rem;
+}
+
+.teacher-timetable-page .timetable-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
 .student-timetable-page .timetable-card:hover,
 .student-timetable-page .timetable-card.active,
 .teacher-timetable-page .timetable-card:hover,
@@ -1065,25 +1088,21 @@
   padding: 0;
   min-height: 420px;
   background:
-    repeating-linear-gradient(
-      to bottom,
+    repeating-linear-gradient(to bottom,
       #fff 0,
       #fff 63px,
       #d8d8d8 63px,
-      #d8d8d8 64px
-    );
+      #d8d8d8 64px);
 }
 
 .student-timetable-page .timetable-board-column.empty .timetable-board-column-body,
 .teacher-timetable-page .timetable-board-column.empty .timetable-board-column-body {
   background:
-    repeating-linear-gradient(
-      to bottom,
+    repeating-linear-gradient(to bottom,
       #fff 0,
       #fff 63px,
       #d8d8d8 63px,
-      #d8d8d8 64px
-    );
+      #d8d8d8 64px);
 }
 
 .student-timetable-page .timetable-slot-card-board,
@@ -1168,6 +1187,7 @@
 }
 
 @media (max-width: 1024px) {
+
   .student-timetable-page .app-shell,
   .teacher-timetable-page .app-shell {
     grid-template-columns: 1fr;
@@ -1242,6 +1262,7 @@
 }
 
 @media (max-width: 640px) {
+
   .student-timetable-page .timetable-stat-grid,
   .student-timetable-page .timetable-day-strip {
     grid-template-columns: 1fr;

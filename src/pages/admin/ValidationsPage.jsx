@@ -532,7 +532,6 @@ function ValidationsPage() {
               </button>
               <h2>Fila de Validação</h2>
             </div>
-            <p>Aprovação de marcações e fecho financeiro de sessões</p>
             <input
               type="search"
               className="topbar-search"

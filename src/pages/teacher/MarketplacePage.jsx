@@ -145,6 +145,8 @@ export default function TeacherMarketplacePage() {
           origin: 'community'
         }))
       } else {
+        setListings([])
+
         setError(localizeApiError(listingsResult.reason, 'Não foi possível carregar o marketplace.'))
       }
 

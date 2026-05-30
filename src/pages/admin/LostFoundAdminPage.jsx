@@ -190,7 +190,6 @@ function LostFoundAdminPage() {
               <button type="button" className="sidebar-toggle-btn" onClick={() => isMobile ? setMobileOpen((v) => !v) : setSidebarCollapsed((v) => !v)}>{toggleSymbol}</button>
               <h2>Perdidos e Achados</h2>
             </div>
-            <p>Registo e gestão de objetos encontrados</p>
             <input
               type="search"
               className="topbar-search"

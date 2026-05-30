@@ -489,7 +489,6 @@ function StudioManagementPage() {
               </button>
               <h2>Gestão de Estúdios</h2>
             </div>
-            <p>Configuração de capacidade, formatos, modalidades e ocupação</p>
           </div>
 
           <div className="topbar-right">

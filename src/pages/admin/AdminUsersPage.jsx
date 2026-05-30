@@ -413,7 +413,6 @@ export default function AdminUsersPage() {
   return (
     <AdminShell
       title="Gestão de Utilizadores"
-      subtitle="Criação e gestão de contas, atribuição de perfis e status."
       activePath={location.pathname}
     >
       <section className="content-grid">

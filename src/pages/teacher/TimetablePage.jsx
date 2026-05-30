@@ -107,7 +107,6 @@ export default function TeacherTimetablePage() {
               </button>
               <div>
                 <h2>Horários</h2>
-                <p>Consulta dos mapas de horário disponíveis</p>
               </div>
             </div>
             <div className="topbar-right">

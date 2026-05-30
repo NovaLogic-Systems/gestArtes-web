@@ -247,7 +247,7 @@ function AdminTimetablesPage() {
   const totalSlots = sortTimetableSlots(selected?.Slots || []).length
 
   return (
-    <AdminShell title="Mapas de Horário" subtitle="Editor interativo de horários por modalidade" activePath="/admin/timetables">
+    <AdminShell title="Mapas de Horário" activePath="/admin/timetables">
       {error ? <div className="soft-box error timetable-admin-alert">{error}</div> : null}
 
       <div className="timetable-admin-layout">
