@@ -217,21 +217,6 @@ export default function LostFoundPage() {
 							<div>
 								<h2>Perdidos e Achados</h2>
 							</div>
-							<input
-								type="search"
-								className="topbar-search"
-								placeholder="Pesquisar objetos..."
-								value={searchTerm}
-								onChange={(e) => setSearchTerm(e.target.value)}
-							/>
-							<input
-								type="text"
-								className="topbar-search"
-								placeholder="Localização..."
-								value={filterLocation}
-								onChange={(e) => setFilterLocation(e.target.value)}
-								style={{ maxWidth: '180px' }}
-							/>
 						</div>
 
 						<div className="topbar-right">
@@ -247,13 +232,33 @@ export default function LostFoundPage() {
 						</div>
 					</section>
 
-<section className="lostfound-feed panel">
-					<div className="inventory-feed-header">
-						<div>
-							<h3>Lista de objetos</h3>
-							<p>{visibleItems.length} resultado(s) encontrado(s)</p>
+					<section className="lostfound-feed panel">
+						<div className="inventory-feed-header">
+							<div>
+								<h3>Lista de objetos</h3>
+								<p>{visibleItems.length} resultado(s) encontrado(s)</p>
+							</div>
+							<div className="lostfound-search">
+								<input
+									type="search"
+									className="filter-input lostfound-search-input"
+									placeholder="Pesquisar titulo, descricao ou local..."
+									value={searchTerm}
+									onChange={(e) => setSearchTerm(e.target.value)}
+									aria-label="Pesquisar objetos perdidos e achados"
+								/>
+								{searchTerm ? (
+									<button
+										type="button"
+										className="ghost-btn"
+										onClick={() => setSearchTerm('')}
+										aria-label="Limpar pesquisa"
+									>
+										Limpar
+									</button>
+								) : null}
+							</div>
 						</div>
-					</div>
 
 							{error ? <p className="inventory-error-banner">{error}</p> : null}
 

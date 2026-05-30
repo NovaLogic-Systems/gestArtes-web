@@ -68,6 +68,20 @@ function formatDateTimeLabel(dateValue) {
   }).format(new Date(dateValue))
 }
 
+function formatDateOnlyLabel(dateValue) {
+  if (!dateValue) return '—'
+  return new Intl.DateTimeFormat('pt-PT', {
+    dateStyle: 'short',
+  }).format(new Date(dateValue))
+}
+
+function formatTimeOnlyLabel(dateValue) {
+  if (!dateValue) return '—'
+  return new Intl.DateTimeFormat('pt-PT', {
+    timeStyle: 'short',
+  }).format(new Date(dateValue))
+}
+
 function parseTimeToMinutes(value) {
   const [hours, mins] = String(value || '').split(':').map(Number)
   if (!Number.isFinite(hours) || !Number.isFinite(mins)) return null
@@ -80,8 +94,28 @@ function isoDateTime(dateValue, timeValue) {
 
 function formatDateTimeRangeLabel(startValue, endValue) {
   if (!startValue) return '—'
-  const startLabel = formatDateTimeLabel(startValue)
-  return endValue ? `${startLabel} - ${formatDateTimeLabel(endValue)}` : `${startLabel} - A definir`
+  const startDate = new Date(startValue)
+  if (Number.isNaN(startDate.getTime())) return '—'
+
+  if (!endValue) {
+    return `${formatDateTimeLabel(startValue)} - A definir`
+  }
+
+  const endDate = new Date(endValue)
+  if (Number.isNaN(endDate.getTime())) {
+    return `${formatDateTimeLabel(startValue)} - A definir`
+  }
+
+  const sameDay =
+    startDate.getFullYear() === endDate.getFullYear() &&
+    startDate.getMonth() === endDate.getMonth() &&
+    startDate.getDate() === endDate.getDate()
+
+  if (sameDay) {
+    return `${formatDateOnlyLabel(startValue)} ${formatTimeOnlyLabel(startValue)} - ${formatTimeOnlyLabel(endValue)}`
+  }
+
+  return `${formatDateTimeLabel(startValue)} - ${formatDateTimeLabel(endValue)}`
 }
 
 function studentFullName(user) {
@@ -505,7 +539,6 @@ export default function CoachingPage() {
               <p>{studentName}</p>
             </div>
           </div>
-
           <div className="nav-group">
             <h2>Aluno</h2>
             {NAV_ITEMS.map((item) => {
@@ -548,7 +581,6 @@ export default function CoachingPage() {
               </button>
               <div>
                 <h2>Coaching</h2>
-                <p>Modalidade, professor, horário e acompanhamento do pedido</p>
               </div>
             </div>
 
@@ -650,7 +682,7 @@ export default function CoachingPage() {
               {selectedTeacher ? (
                 <div className="flow-block">
                   <div className="schedule-header-row">
-                    <h3>3. Escolhe a hora</h3>
+                    <h3>3. Escolhe a data e hora</h3>
                     <div className="week-nav">
                       <button type="button" className="week-nav-btn" onClick={() => setWeekOffset((value) => value - 1)}>
                         ‹
@@ -899,7 +931,7 @@ export default function CoachingPage() {
                               {action.message ? <p>{action.message}</p> : null}
                               {action.proposedStartTime && action.proposedEndTime ? (
                                 <small>
-                                  {formatDateTimeLabel(action.proposedStartTime)} - {formatDateTimeLabel(action.proposedEndTime)}
+                                  {formatDateTimeRangeLabel(action.proposedStartTime, action.proposedEndTime)}
                                 </small>
                               ) : null}
                             </li>

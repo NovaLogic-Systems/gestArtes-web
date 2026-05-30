@@ -261,7 +261,6 @@ export default function TimetablePage() {
               </button>
               <div>
                 <h2 id="main-content">Horários</h2>
-                <p>Horário semanal organizado por modalidade</p>
               </div>
             </div>
             <div className="topbar-right">
