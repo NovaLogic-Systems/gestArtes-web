@@ -14,7 +14,7 @@ export const ROLE_HIERARCHY = Object.freeze({
 export const ADMIN_ROLE_OPTIONS = Object.freeze([
   { value: 'student', label: 'Aluno' },
   { value: 'teacher', label: 'Professor' },
-  { value: 'direction', label: 'Direção' },
+  { value: 'admin', label: 'Direção' },
 ])
 
 export const DASHBOARD_PATHS = Object.freeze({

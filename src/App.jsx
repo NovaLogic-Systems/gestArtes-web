@@ -27,7 +27,6 @@ import AdminTimetablesPage from './pages/admin/AdminTimetablesPage'
 import DashboardPage from './pages/student/DashboardPage'
 import StudentTimetablePage from './pages/student/TimetablePage'
 import CoachingStudentPage from './pages/student/CoachingPage'
-import AdmissionRequestsPage from './pages/teacher/AdmissionRequestsPage'
 import SessionConfirmationPage from './pages/teacher/SessionConfirmationPage'
 import TeacherInventoryPage from './pages/teacher/InventoryPage'
 import InventoryPage from './pages/student/InventoryPage'
@@ -331,7 +330,7 @@ function App() {
         <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
         <Route path="/teacher/dashboard" element={<TeacherDashboardPage />} />
         <Route path="/teacher/timetable" element={<TeacherTimetablePage />} />
-        <Route path="/teacher/admission-requests" element={<AdmissionRequestsPage />} />
+        <Route path="/teacher/admission-requests" element={<Navigate to="/teacher/coaching" replace />} />
         <Route path="/teacher/sessions/confirmation" element={<SessionConfirmationPage />} />
         <Route path="/teacher/schedule" element={<Navigate to="/teacher/dashboard" replace />} />
         <Route path="/teacher/availability" element={<Navigate to="/teacher/dashboard" replace />} />

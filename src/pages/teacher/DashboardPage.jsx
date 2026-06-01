@@ -383,20 +383,24 @@ export default function DashboardPage() {
                 )}
               </article>
 
-              <article className="panel">
-                <h3>Ações rápidas</h3>
-                <p className="panel-subtle">Operações do dia a dia.</p>
-                <div className="quick-actions">
-                  <Link className="cta" to="/teacher/sessions/confirmation">Confirmar conclusão</Link>
-                  <Link className="cta secondary" to="/teacher/sessions/confirmation">Registar falta sem aviso</Link>
+              <article className="panel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                  <h3 style={{ margin: 0 }}>Ações rápidas</h3>
+                  <p className="panel-subtle" style={{ margin: 0 }}>Operações do dia a dia.</p>
+                  <div className="quick-actions" style={{ marginTop: '0.25rem' }}>
+                    <Link className="cta" to="/teacher/sessions/confirmation">Confirmar conclusão</Link>
+                    <Link className="cta secondary" to="/teacher/sessions/confirmation">Registar falta sem aviso</Link>
+                  </div>
                 </div>
 
-                <h3 className="panel-subheading">Atalhos</h3>
-                <p className="panel-subtle">Acesso rápido aos módulos do professor.</p>
-                <div className="quick-actions">
-                  <Link className="cta secondary" to="/teacher/coaching">Coaching</Link>
-                  <Link className="cta secondary" to="/teacher/inventory">Inventário da Escola</Link>
-                  <Link className="cta secondary" to="/teacher/marketplace">Marketplace</Link>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                  <h3 style={{ margin: 0 }}>Atalhos</h3>
+                  <p className="panel-subtle" style={{ margin: 0 }}>Acesso rápido aos módulos do professor.</p>
+                  <div className="quick-actions" style={{ marginTop: '0.25rem' }}>
+                    <Link className="cta secondary" to="/teacher/coaching">Coaching</Link>
+                    <Link className="cta secondary" to="/teacher/inventory">Inventário da Escola</Link>
+                    <Link className="cta secondary" to="/teacher/marketplace">Marketplace</Link>
+                  </div>
                 </div>
               </article>
             </div>

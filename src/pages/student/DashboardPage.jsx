@@ -298,9 +298,9 @@ export default function DashboardPage() {
 </button>
               <button className="kpi" type="button" style={{textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', appearance: 'none', border: '1px solid var(--border)'}}>
 
-                <h3>Pagamentos externos em curso</h3>
-                <strong>{dashboard?.externalPaymentsInProgress ?? 0}</strong>
-              
+                <h3>Anúncios no marketplace</h3>
+                <strong>{dashboard?.activeMarketplaceListings ?? 0}</strong>
+
 </button>
             </div>
 

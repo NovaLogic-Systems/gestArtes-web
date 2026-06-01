@@ -23,6 +23,9 @@ function mapUser(entry) {
     birthDate: entry?.birthDate || null,
     guardianName: entry?.guardianName || '',
     guardianPhone: entry?.guardianPhone || '',
+    isModalityLocked: entry?.isModalityLocked ?? undefined,
+    allowedModalities: Array.isArray(entry?.allowedModalities) ? entry.allowedModalities : undefined,
+    teacherModalities: Array.isArray(entry?.teacherModalities) ? entry.teacherModalities : undefined,
   }
 }
 
@@ -56,6 +59,10 @@ const adminUsersService = {
   async updateUserRoles(userId, payload) {
     const response = await api.patch(`/admin/users/${userId}/roles`, payload)
     return mapUser(response.data?.user ?? response.data)
+  },
+
+  async revokeUserSessions(userId) {
+    await api.post(`/admin/users/${userId}/revoke-sessions`)
   },
 }
 

@@ -118,7 +118,7 @@ export function resolveNotificationLink(notification, pageLink = '/student/notif
 
   switch (notification?.type) {
     case 'join_request':
-      if (base === '/teacher') return '/teacher/admission-requests'
+      if (base === '/teacher') return '/teacher/coaching'
       if (base === '/admin') return '/admin/validations'
       return '/student/coaching'
     case 'coaching':
