@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { getDashboardPath, toAppRole } from '../utils/roles'
 
 const ROLE_LABELS = {
   student: 'Aluno',
@@ -15,18 +16,14 @@ const ROLE_LABELS = {
   admin: 'Direção',
 }
 
-const ROLE_HOME = {
-  student: '/student/dashboard',
-  teacher: '/teacher/dashboard',
-  admin: '/admin/dashboard',
-}
-
 export default function RoleSwitcher({ className }) {
   const { role, roles, switchRole } = useAuth()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [pendingRole, setPendingRole] = useState(null)
   const rootRef = useRef(null)
+  const currentRole = toAppRole(role)
 
   useEffect(() => {
     if (!open) return undefined
@@ -39,29 +36,32 @@ export default function RoleSwitcher({ className }) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [open])
 
-  const [pendingNav, setPendingNav] = useState(null)
-
   useEffect(() => {
-    if (pendingNav && role === pendingNav) {
-      navigate(ROLE_HOME[role] || '/')
-      setPendingNav(null)
+    if (!pendingRole || currentRole !== pendingRole) {
+      return
     }
-  }, [role, pendingNav, navigate])
+
+    navigate(getDashboardPath(currentRole), { replace: true })
+    setPendingRole(null)
+  }, [currentRole, navigate, pendingRole])
 
   const handleSwitch = useCallback(async (nextRole) => {
-    if (busy || nextRole === role) {
+    const normalizedNextRole = toAppRole(nextRole)
+
+    if (busy || normalizedNextRole === currentRole) {
       setOpen(false)
       return
     }
     setBusy(true)
     try {
-      await switchRole(nextRole)
+      const switchedRole = await switchRole(nextRole)
+      const normalizedSwitchedRole = toAppRole(switchedRole) || normalizedNextRole
       setOpen(false)
-      setPendingNav(nextRole)
+      setPendingRole(normalizedSwitchedRole)
     } finally {
       setBusy(false)
     }
-  }, [busy, role, switchRole])
+  }, [busy, currentRole, switchRole])
 
   if (!Array.isArray(roles) || roles.length < 2) {
     return null
@@ -89,7 +89,7 @@ export default function RoleSwitcher({ className }) {
         }}
       >
         <span aria-hidden="true" style={{ fontSize: '0.85rem' }}>👤</span>
-        <span>{ROLE_LABELS[role] || role}</span>
+        <span>{ROLE_LABELS[currentRole] || role}</span>
         <span aria-hidden="true" style={{ fontSize: '0.7rem', opacity: 0.6 }}>▾</span>
       </button>
 
@@ -112,7 +112,8 @@ export default function RoleSwitcher({ className }) {
           }}
         >
           {roles.map((r) => {
-            const isActive = r === role
+            const roleValue = toAppRole(r)
+            const isActive = roleValue === currentRole
             return (
               <li key={r}>
                 <button
@@ -138,7 +139,7 @@ export default function RoleSwitcher({ className }) {
                     gap: '8px',
                   }}
                 >
-                  <span>{ROLE_LABELS[r] || r}</span>
+                  <span>{ROLE_LABELS[roleValue] || r}</span>
                   {isActive ? <span aria-hidden="true" style={{ color: '#0b9d8f' }}>✓</span> : null}
                 </button>
               </li>
