@@ -6,6 +6,7 @@
  */
 
 import axios from 'axios'
+import toast from 'react-hot-toast'
 import { getApiBaseUrl } from '../utils/network'
 import {
   clearAccessToken,
@@ -15,6 +16,8 @@ import {
 
 let unauthorizedHandler = null
 let refreshPromise = null
+let lastGlobalErrorAt = 0
+const GLOBAL_ERROR_COOLDOWN = 4000
 
 export { clearAccessToken, getAccessToken, setAccessToken }
 
@@ -71,6 +74,7 @@ api.interceptors.response.use(
     const statusCode = error?.response?.status
     const requestUrl = String(error?.config?.url || '')
     const skipAuthHandler = Boolean(error?.config?.skipAuthHandler)
+    const isRequestCanceled = error?.code === 'ERR_CANCELED'
     const isRefreshRequest = requestUrl.includes('/auth/refresh')
     const isLoginRequest = requestUrl.includes('/auth/login')
     const alreadyRetried = Boolean(error?.config?._retry)
@@ -112,6 +116,17 @@ api.interceptors.response.use(
         statusCode,
         requestUrl,
       })
+    }
+
+    if (!isRequestCanceled) {
+      const isNetworkError = !error?.response
+      const isServerError = typeof statusCode === 'number' && statusCode >= 500
+      const canToast = Date.now() - lastGlobalErrorAt > GLOBAL_ERROR_COOLDOWN
+
+      if ((isNetworkError || isServerError) && canToast) {
+        lastGlobalErrorAt = Date.now()
+        toast.error('Erro inesperado. Tenta novamente.')
+      }
     }
 
     return Promise.reject(error)
