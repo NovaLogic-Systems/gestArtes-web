@@ -5,7 +5,7 @@
  * @project GestArtes - Projeto 50+10 para Entartes
  */
 
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import studioOccupancyService from '../../services/studioOccupancyService'
 import KPICard from '../ui/KPICard'
 import StudioOccupancyCard from './StudioOccupancyCard'
@@ -55,8 +55,31 @@ function toIsoOrNull(value) {
   return parsed.toISOString()
 }
 
+function formatDateTime(value) {
+  if (!value) {
+    return '—'
+  }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return '—'
+  }
+
+  return date.toLocaleString('pt-PT', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function formatSessionOwner(session) {
+  return session?.currentUser?.fullName || 'Professor não definido'
+}
+
 export default function StudioOccupancyPanel({ initialStudioId = '' }) {
   const [data, setData] = useState(null)
+  const [forecast, setForecast] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [selectedStudioId, setSelectedStudioId] = useState('')
@@ -74,8 +97,14 @@ export default function StudioOccupancyPanel({ initialStudioId = '' }) {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await studioOccupancyService.getRealTime()
+      const now = new Date()
+      const forecastEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+      const [res, forecastRes] = await Promise.all([
+        studioOccupancyService.getRealTime(now.toISOString()),
+        studioOccupancyService.getForecast(now.toISOString(), forecastEnd.toISOString()),
+      ])
       setData(res)
+      setForecast(forecastRes)
       setError(null)
     } catch {
       setError('Erro ao carregar ocupação.')
@@ -186,9 +215,66 @@ export default function StudioOccupancyPanel({ initialStudioId = '' }) {
     }
   }
 
+  const sessionRows = useMemo(() => {
+    const referenceDate = new Date(data?.generatedAt || Date.now())
+    const activeRows = Array.isArray(data?.studios)
+      ? data.studios.flatMap((studio) => (
+          Array.isArray(studio.activeSessions)
+            ? studio.activeSessions.map((session) => ({
+                ...session,
+                studioId: studio.studioId,
+                studioName: studio.studioName,
+                timing: 'active',
+              }))
+            : []
+        ))
+      : []
+
+    const forecastRows = Array.isArray(forecast?.studios)
+      ? forecast.studios.flatMap((studio) => (
+          Array.isArray(studio.upcomingSessions)
+            ? studio.upcomingSessions.map((session) => {
+                const start = new Date(session.startTime)
+                const end = new Date(session.endTime)
+                const isActive = start <= referenceDate && end > referenceDate
+
+                return {
+                  ...session,
+                  studioId: studio.studioId,
+                  studioName: studio.studioName,
+                  timing: isActive ? 'active' : 'upcoming',
+                }
+              })
+            : []
+        ))
+      : []
+
+    const byKey = new Map()
+    ;[...activeRows, ...forecastRows].forEach((session) => {
+      const key = `${session.sessionId}-${session.studioId}-${session.timing}`
+      if (!byKey.has(key)) {
+        byKey.set(key, session)
+      }
+    })
+
+    return [...byKey.values()]
+      .sort((left, right) => {
+        if (left.timing !== right.timing) {
+          return left.timing === 'active' ? -1 : 1
+        }
+
+        return new Date(left.startTime).getTime() - new Date(right.startTime).getTime()
+      })
+  }, [data?.generatedAt, data?.studios, forecast?.studios])
+
   if (loading && !data) return <div className="occupancy-state">A carregar ocupação...</div>
   if (error) return <div className="occupancy-state occupancy-state-error">{error}</div>
   if (!data) return null
+
+  const summary = data.summary || {}
+  const forecastSummary = forecast?.summary || {}
+  const occupancyRate = Number(summary.occupancyRate || 0)
+  const utilizationRate = Number(forecastSummary.averageUtilizationRate || 0)
 
   return (
     <div className="occupancy-panel">
@@ -204,11 +290,52 @@ export default function StudioOccupancyPanel({ initialStudioId = '' }) {
       )}
 
       <div className="occupancy-kpis">
-        <KPICard title="Total estúdios" value={data.summary.totalStudios} />
-        <KPICard title="Livre" value={data.summary.availableStudios} />
-        <KPICard title="Em aula" value={data.summary.occupiedStudios} />
-        <KPICard title="Bloqueados" value={data.summary.blockedStudios} />
+        <KPICard title="Total estúdios" value={summary.totalStudios ?? 0} />
+        <KPICard title="Livres agora" value={summary.availableStudios ?? 0} />
+        <KPICard title="Em coaching" value={summary.occupiedStudios ?? 0} />
+        <KPICard title="Ocupação agora" value={`${occupancyRate.toFixed(0)}%`} />
+        <KPICard title="Utilização 7 dias" value={`${utilizationRate.toFixed(0)}%`} />
       </div>
+
+      <article className="panel occupancy-sessions-panel">
+        <div className="panel-header">
+          <h3>Sessões de coaching</h3>
+          <p>Agora e próximos 7 dias</p>
+        </div>
+
+        {sessionRows.length > 0 ? (
+          <div className="table-wrap occupancy-sessions-table-wrap">
+            <table className="occupancy-sessions-table">
+              <thead>
+                <tr>
+                  <th>Estado</th>
+                  <th>Estúdio</th>
+                  <th>Horário</th>
+                  <th>Modalidade</th>
+                  <th>Professor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sessionRows.map((session) => (
+                  <tr key={`${session.timing}-${session.sessionId}-${session.studioId}`}>
+                    <td>
+                      <span className={`occupancy-session-status ${session.timing === 'active' ? 'active' : 'upcoming'}`}>
+                        {session.timing === 'active' ? 'A decorrer' : 'Agendada'}
+                      </span>
+                    </td>
+                    <td>{session.studioName}</td>
+                    <td>{formatDateTime(session.startTime)} - {formatDateTime(session.endTime)}</td>
+                    <td>{session.modality?.modalityName || 'Coaching'}</td>
+                    <td>{formatSessionOwner(session)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="soft-box">Sem sessões de coaching a decorrer ou agendadas nos próximos 7 dias.</div>
+        )}
+      </article>
 
       <article className="panel occupancy-controls-panel">
         <div className="panel-header">

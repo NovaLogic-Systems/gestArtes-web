@@ -159,12 +159,37 @@ function MarketplaceListingActionsMenu({
   submittingAction,
 }) {
   const [open, setOpen] = useState(false)
+  const [panelPosition, setPanelPosition] = useState(null)
   const menuRef = useRef(null)
+  const triggerRef = useRef(null)
+
+  const updatePanelPosition = useCallback(() => {
+    const trigger = triggerRef.current
+    if (!trigger) {
+      return
+    }
+
+    const rect = trigger.getBoundingClientRect()
+    const panelWidth = 192
+    const gap = 8
+    const viewportPadding = 12
+    const left = Math.min(
+      Math.max(rect.right - panelWidth, viewportPadding),
+      window.innerWidth - panelWidth - viewportPadding,
+    )
+
+    setPanelPosition({
+      left,
+      top: rect.bottom + gap,
+    })
+  }, [])
 
   useEffect(() => {
     if (!open) {
       return undefined
     }
+
+    updatePanelPosition()
 
     const handlePointerDown = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -178,20 +203,27 @@ function MarketplaceListingActionsMenu({
       }
     }
 
+    const handleViewportChange = () => updatePanelPosition()
+
     document.addEventListener('mousedown', handlePointerDown)
     document.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('resize', handleViewportChange)
+    window.addEventListener('scroll', handleViewportChange, true)
 
     return () => {
       document.removeEventListener('mousedown', handlePointerDown)
       document.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('resize', handleViewportChange)
+      window.removeEventListener('scroll', handleViewportChange, true)
     }
-  }, [open])
+  }, [open, updatePanelPosition])
 
   const closeMenu = () => setOpen(false)
 
   return (
     <div className="marketplace-row-actions-menu" ref={menuRef}>
       <button
+        ref={triggerRef}
         type="button"
         className="moderation-action-btn neutral marketplace-row-actions-trigger"
         aria-haspopup="menu"
@@ -203,7 +235,12 @@ function MarketplaceListingActionsMenu({
       </button>
 
       {open ? (
-        <div className="marketplace-row-actions-panel" role="menu" aria-label="Ações do anúncio">
+        <div
+          className="marketplace-row-actions-panel"
+          role="menu"
+          aria-label="Ações do anúncio"
+          style={panelPosition ? { left: panelPosition.left, top: panelPosition.top } : undefined}
+        >
           <button
             type="button"
             className="marketplace-row-actions-item"

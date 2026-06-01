@@ -3,7 +3,7 @@ import ListingForm from '../ListingForm'
 import { createInventoryItem, updateInventoryItem } from '../../services/inventory'
 
 const DEFAULT_CATEGORIES = [
-  { categoryId: 1, categoryName: 'Vestuário (Costumes)' },
+  { categoryId: 1, categoryName: 'Vestuário' },
   { categoryId: 2, categoryName: 'Acessórios' },
   { categoryId: 3, categoryName: 'Cenografia' },
 ]

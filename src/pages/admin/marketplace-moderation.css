@@ -107,10 +107,8 @@
 }
 
 .marketplace-row-actions-panel {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 0.45rem);
-  z-index: 20;
+  position: fixed;
+  z-index: 80;
   display: grid;
   gap: 0.25rem;
   min-width: 12rem;

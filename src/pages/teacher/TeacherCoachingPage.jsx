@@ -269,6 +269,7 @@ export default function TeacherCoachingPage() {
     if (groupSaving) return
     setGroupError('')
     if (groupStudents.length < 2) { setGroupError('Seleciona pelo menos 2 alunos.'); return }
+    if (groupStudents.length > 8) { setGroupError('O máximo é 8 participantes por sessão de grupo.'); return }
     if (!groupModalityId) { setGroupError('Escolhe a modalidade.'); return }
     if (!groupStartTime || !groupEndTime) { setGroupError('Define o horário da sessão.'); return }
     if (new Date(groupEndTime) <= new Date(groupStartTime)) { setGroupError('Hora de fim deve ser depois do início.'); return }
@@ -637,6 +638,9 @@ export default function TeacherCoachingPage() {
                     {groupStudents.length === 2 ? 'Duo' : groupStudents.length === 3 ? 'Trio' : `Ensemble · ${groupStudents.length}`}
                   </span>
                 )}
+                <span style={{ fontSize: '0.75rem', color: groupStudents.length >= 8 ? 'var(--text-danger, #dc2626)' : 'var(--text-h)', marginLeft: 'auto' }}>
+                  {groupStudents.length}/8
+                </span>
               </div>
               <div className="group-student-list">
                 {groupStudents.map((s) => (
@@ -664,13 +668,18 @@ export default function TeacherCoachingPage() {
                         <div
                           key={s.userId}
                           className={`group-search-result-item${alreadyAdded ? ' already-added' : ''}`}
-                          onClick={() => !alreadyAdded && addGroupStudent(s)}
+                          onClick={() => !alreadyAdded && groupStudents.length < 8 && addGroupStudent(s)}
                         >
                           <div>
                             <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>{s.name}</div>
                             <div style={{ fontSize: '0.78rem', color: 'var(--studio-muted)' }}>{s.email}</div>
                           </div>
-                          {alreadyAdded ? <span style={{ fontSize: '0.75rem', color: 'var(--studio-muted)' }}>Já adicionado</span> : <span style={{ fontSize: '0.75rem', color: 'var(--studio-cta-start)' }}>Adicionar</span>}
+                          {alreadyAdded
+                            ? <span style={{ fontSize: '0.75rem', color: 'var(--studio-muted)' }}>Já adicionado</span>
+                            : groupStudents.length >= 8
+                              ? <span style={{ fontSize: '0.75rem', color: 'var(--studio-muted)' }}>Limite atingido</span>
+                              : <span style={{ fontSize: '0.75rem', color: 'var(--studio-cta-start)' }}>Adicionar</span>
+                          }
                         </div>
                       )
                     })}

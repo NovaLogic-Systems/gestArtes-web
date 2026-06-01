@@ -33,6 +33,26 @@ export default function StudioOccupancyCard({ studio, onBlock, onStatus, actions
     return new Date(isoString).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
   }
 
+  const formatSessionTime = (session) => {
+    const start = formatTime(session.startTime)
+    const end = formatTime(session.endTime)
+    return [start, end].filter(Boolean).join(' - ')
+  }
+
+  const activeSessions = Array.isArray(studio.activeSessions) ? studio.activeSessions : []
+  const upcomingSessions = Array.isArray(studio.upcomingSessions) ? studio.upcomingSessions : []
+  const visibleActiveSessions = activeSessions.length
+    ? activeSessions
+    : studio.activeSessionId
+      ? [{
+          sessionId: studio.activeSessionId,
+          startTime: null,
+          endTime: studio.occupiedUntil,
+          modality: null,
+          currentUser: studio.currentUser,
+        }]
+      : []
+
   return (
     <article className={`occupancy-card occupancy-card-${cardStatus}`}>
       <div className="occupancy-card-head">
@@ -54,6 +74,36 @@ export default function StudioOccupancyCard({ studio, onBlock, onStatus, actions
             Ocupado até {formatTime(studio.occupiedUntil)}
           </p>
         )}
+
+        {visibleActiveSessions.length > 0 ? (
+          <div className="occupancy-session-list">
+            <strong>Sessões a decorrer</strong>
+            {visibleActiveSessions.map((session) => (
+              <div key={session.sessionId} className="occupancy-session-row">
+                <span>{formatSessionTime(session) || 'Agora'}</span>
+                <span>
+                  {session.modality?.modalityName || 'Coaching'}
+                  {session.currentUser?.fullName ? ` · ${session.currentUser.fullName}` : ''}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        {upcomingSessions.length > 0 ? (
+          <div className="occupancy-session-list">
+            <strong>Sessões marcadas</strong>
+            {upcomingSessions.map((session) => (
+              <div key={session.sessionId} className="occupancy-session-row">
+                <span>{formatSessionTime(session)}</span>
+                <span>
+                  {session.modality?.modalityName || 'Coaching'}
+                  {session.currentUser?.fullName ? ` · ${session.currentUser.fullName}` : ''}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       <div className="occupancy-card-actions">

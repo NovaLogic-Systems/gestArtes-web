@@ -890,7 +890,7 @@ body.studio-page #root {
 .app-shell .occupancy-kpis {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .app-shell .occupancy-kpis .ui-kpi-card {
@@ -924,6 +924,15 @@ body.studio-page #root {
   color: #be123c;
 }
 
+.app-shell .occupancy-kpis .ui-kpi-card:nth-child(5) {
+  border-color: rgba(8, 120, 109, 0.24);
+  background: #f1fbfa;
+}
+
+.app-shell .occupancy-kpis .ui-kpi-card:nth-child(5)>div div:last-child {
+  color: #08786d;
+}
+
 /* Teacher Availability Interaction Styles */
 .availability-slot.pending:hover,
 .availability-slot.approved:hover {
@@ -951,6 +960,46 @@ body.studio-page #root {
   margin: 0;
   font-size: 1.1rem;
   color: var(--studio-ink);
+}
+
+.app-shell .occupancy-sessions-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.app-shell .occupancy-sessions-panel .panel-header p {
+  margin: 0;
+  color: var(--studio-muted);
+  font-size: 0.88rem;
+}
+
+.app-shell .occupancy-sessions-table-wrap {
+  max-height: 360px;
+}
+
+.app-shell .occupancy-sessions-table td {
+  white-space: nowrap;
+}
+
+.app-shell .occupancy-session-status {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.45rem 0.7rem;
+}
+
+.app-shell .occupancy-session-status.active {
+  background: #fff8ea;
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  color: #9a4f06;
+}
+
+.app-shell .occupancy-session-status.upcoming {
+  background: #f1fbfa;
+  border: 1px solid rgba(8, 120, 109, 0.24);
+  color: #08786d;
 }
 
 .app-shell .occupancy-studios-grid {
@@ -1006,6 +1055,33 @@ body.studio-page #root {
 .app-shell .occupancy-card-until {
   color: #2c253e;
   font-weight: 600;
+}
+
+.app-shell .occupancy-session-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(146, 130, 161, 0.26);
+}
+
+.app-shell .occupancy-session-row {
+  display: grid;
+  gap: 2px;
+  padding: 7px 8px;
+  border: 1px solid rgba(146, 130, 161, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.app-shell .occupancy-session-row span:first-child {
+  color: var(--studio-ink);
+  font-weight: 700;
+}
+
+.app-shell .occupancy-session-row span:last-child {
+  color: var(--studio-muted);
+  overflow-wrap: anywhere;
 }
 
 .app-shell .occupancy-card-actions {

@@ -108,7 +108,12 @@ function localizeAuditDetail(detail) {
 
 function localizeRole(role) {
   if (!role) return '—'
-  return ROLE_LABELS[String(role).toLowerCase()] || role
+  return String(role)
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => ROLE_LABELS[entry.toLowerCase()] || entry)
+    .join(', ') || '—'
 }
 
 function formatAuditTimestamp(value) {
@@ -144,7 +149,9 @@ function buildAuditCsv(rows) {
   for (const row of rows) {
     lines.push([
       formatAuditTimestamp(row.timestamp),
-      row.userName || (row.userId ? `#${row.userId}` : '—'),
+      row.userEmail && row.userName
+        ? `${formatAuditUser(row)} (${row.userEmail})`
+        : formatAuditUser(row),
       localizeRole(row.userRole),
       ACTION_LABELS[row.action] || row.action || '—',
       MODULE_LABELS[row.module] || row.module || '—',
@@ -157,6 +164,10 @@ function buildAuditCsv(rows) {
 
   // BOM para o Excel reconhecer UTF-8 corretamente
   return `﻿${lines.join('\r\n')}`
+}
+
+function formatAuditUser(row) {
+  return row.userName || (row.userId ? `#${row.userId}` : '—')
 }
 
 function downloadCsv(content, fileName) {
@@ -195,7 +206,18 @@ const TABLE_COLUMNS = [
         ? new Date(row.timestamp).toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' })
         : '—',
   },
-  { key: 'userName', header: 'Utilizador', render: (row) => row.userName || `#${row.userId ?? '?'}` },
+  {
+    key: 'userName',
+    header: 'Utilizador',
+    render: (row) => (
+      <div style={{ display: 'grid', gap: '0.15rem' }}>
+        <strong>{formatAuditUser(row)}</strong>
+        {row.userEmail ? (
+          <span style={{ color: 'var(--studio-muted)', fontSize: '0.85rem' }}>{row.userEmail}</span>
+        ) : null}
+      </div>
+    ),
+  },
   { key: 'userRole', header: 'Perfil', render: (row) => localizeRole(row.userRole) },
   {
     key: 'action',
