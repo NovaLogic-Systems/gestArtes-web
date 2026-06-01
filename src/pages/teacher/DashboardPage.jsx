@@ -387,7 +387,6 @@ export default function DashboardPage() {
                 <h3>Ações rápidas</h3>
                 <p className="panel-subtle">Operações do dia a dia.</p>
                 <div className="quick-actions">
-                  <Link className="cta" to="/teacher/schedule">Submeter disponibilidade</Link>
                   <Link className="cta" to="/teacher/sessions/confirmation">Confirmar conclusão</Link>
                   <Link className="cta secondary" to="/teacher/sessions/confirmation">Registar falta sem aviso</Link>
                 </div>
@@ -395,7 +394,6 @@ export default function DashboardPage() {
                 <h3 className="panel-subheading">Atalhos</h3>
                 <p className="panel-subtle">Acesso rápido aos módulos do professor.</p>
                 <div className="quick-actions">
-                  <Link className="cta secondary" to="/teacher/schedule">Horário</Link>
                   <Link className="cta secondary" to="/teacher/coaching">Coaching</Link>
                   <Link className="cta secondary" to="/teacher/inventory">Inventário da Escola</Link>
                   <Link className="cta secondary" to="/teacher/marketplace">Marketplace</Link>

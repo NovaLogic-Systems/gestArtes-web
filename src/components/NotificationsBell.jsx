@@ -67,7 +67,7 @@ export default function NotificationsBell({
       setUnreadCount(items.reduce((total, item) => total + (item.isRead ? 0 : 1), 0))
       setLoaded(true)
     } catch {
-      setError('Nao foi possivel carregar as notificacoes.')
+      setError('Não foi possível carregar as notificações.')
     } finally {
       setLoading(false)
     }
@@ -160,7 +160,7 @@ export default function NotificationsBell({
       await notificationService.remove(notificationId)
     } catch {
       setNotifications(previous)
-      setError('Nao foi possivel remover a notificacao.')
+      setError('Não foi possível remover a notificação.')
     }
   }
 
@@ -172,7 +172,7 @@ export default function NotificationsBell({
         className="pill notifications-pill"
         onClick={handleOpen}
         aria-expanded={controlledByParent ? undefined : open}
-        aria-label={`Notificacoes, ${displayCount} por ler`}
+        aria-label={`Notificações, ${displayCount} por ler`}
         {...buttonProps}
       >
         <span>{children}</span>

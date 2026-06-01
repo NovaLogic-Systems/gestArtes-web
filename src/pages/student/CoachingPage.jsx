@@ -7,476 +7,365 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { useAuth } from '../../hooks/useAuth'
-import Modal from '../../components/ui/Modal'
+import Badge from '../../components/ui/Badge'
 import Button from '../../components/ui/Button'
 import Toast from '../../components/ui/Toast'
 import NotificationsBell from '../../components/NotificationsBell'
-import UnavailabilityModal from '../../components/teacher/UnavailabilityModal'
-import JoinSessionButton from '../../components/JoinSessionButton'
-import { fetchAbsenceDetails } from '../../services/teacherAvailability'
-import { localizeApiError } from '../../utils/apiErrors'
-import api from '../../services/api'
+import { useAuth } from '../../hooks/useAuth'
 import {
-  createBooking,
-  getAvailableSlots,
-  getCompatibleStudios,
+  createCoachingRequest,
+  getCoachingRequestById,
+  getTeacherCoachingAvailability,
+  listCoachingModalities,
+  listCoachingTeachersByModality,
+  listMyCoachingRequests,
+  respondToTeacherSuggestion,
 } from '../../services/coaching'
+import { resolveMarketplacePhotoUrl } from '../../utils/marketplace-photo-url'
+import { localizeApiError } from '../../utils/apiErrors'
 import './coaching.css'
 import { STUDENT_NAV_ITEMS as NAV_ITEMS } from './studentNav'
 
-const DAYS_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
-const DAYS_LONG = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
-const BOOKING_DURATIONS = [30, 45, 60, 90, 120]
-const MIN_BOOKING_MINUTES = BOOKING_DURATIONS[0]
+const DAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
-function getTodayISO() {
-  const now = new Date()
-  const tzOffset = now.getTimezoneOffset() * 60000
-  return new Date(now.getTime() - tzOffset).toISOString().slice(0, 10)
+function toPositiveInt(value) {
+  const parsed = Number(value)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null
 }
 
 function getWeekMondayISO(offsetWeeks = 0) {
   const now = new Date()
-  const day = now.getUTCDay()
-  const diff = day === 0 ? -6 : 1 - day
+  const day = now.getUTCDay() || 7
   const monday = new Date(now)
-  monday.setUTCDate(now.getUTCDate() + diff + offsetWeeks * 7)
+  monday.setUTCDate(now.getUTCDate() - day + 1 + offsetWeeks * 7)
   monday.setUTCHours(0, 0, 0, 0)
   return monday.toISOString().slice(0, 10)
 }
 
-function formatDatePT(isoDate) {
-  if (!isoDate) return '—'
-  const [y, m, d] = isoDate.split('-')
-  return `${d}/${m}/${y}`
-}
-
-function resolveStatusBadge(status) {
-  const s = String(status || '').toLowerCase()
-  if (s.includes('cancel')) return { label: 'Cancelada', cls: 'danger' }
-  if (s.includes('reject')) return { label: 'Rejeitada', cls: 'danger' }
-  if (s.includes('no_show') || s.includes('noshow') || s.includes('falta')) return { label: 'Falta s/ aviso', cls: 'danger' }
-  if (s.includes('complet') || s.includes('final')) return { label: 'Finalizada', cls: 'ok' }
-  if (s.includes('teacher') || s.includes('professor')) return { label: 'Aguarda professor', cls: 'warn' }
-  if (s.includes('admin') || s.includes('direct') || s.includes('manag')) {
-    return { label: 'Aguarda direção', cls: 'info' }
-  }
-  if (s.includes('pend')) return { label: 'Aguarda aprovação', cls: 'warn' }
-  if (s.includes('valid')) return { label: 'A validar', cls: 'warn' }
-  if (s.includes('approv') || s.includes('schedul') || s.includes('agend')) {
-    return { label: 'Agendada', cls: 'ok' }
-  }
-  if (s.includes('active') || s.includes('ativa')) return { label: 'Ativa', cls: 'ok' }
-  return { label: 'Estado desconhecido', cls: 'info' }
-}
-
-function resolveSlotClass(status) {
-  const s = String(status || '').toLowerCase()
-  if (s.includes('cancel') || s.includes('reject')) return 'busy'
-  if (s.includes('teacher') || s.includes('professor')) return 'pending-teacher'
-  if (s.includes('admin') || s.includes('direct') || s.includes('manag') || s.includes('pend')) return 'pending-direction'
-  return 'busy'
-}
-
 function buildWeekDates(weekStart) {
   const dates = []
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(weekStart + 'T00:00:00Z')
-    d.setUTCDate(d.getUTCDate() + i)
-    dates.push(d.toISOString().slice(0, 10))
+  for (let i = 0; i < 6; i += 1) {
+    const date = new Date(`${weekStart}T00:00:00.000Z`)
+    date.setUTCDate(date.getUTCDate() + i)
+    dates.push(date.toISOString().slice(0, 10))
   }
   return dates
 }
 
-function combineDateTime(dateStr, timeStr) {
-  return `${dateStr}T${timeStr}:00.000Z`
+function formatDateLabel(dateValue) {
+  if (!dateValue) return '—'
+  return new Intl.DateTimeFormat('pt-PT', {
+    day: '2-digit',
+    month: '2-digit',
+  }).format(new Date(`${dateValue}T00:00:00.000Z`))
 }
 
-function addMinutesToTime(timeStr, minutes) {
-  const [h, m] = timeStr.split(':').map(Number)
-  const total = h * 60 + m + minutes
-  return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+function formatDateTimeLabel(dateValue) {
+  if (!dateValue) return '—'
+  return new Intl.DateTimeFormat('pt-PT', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(new Date(dateValue))
 }
 
-function normalizeText(text) {
-  return String(text || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
+function formatDateOnlyLabel(dateValue) {
+  if (!dateValue) return '—'
+  return new Intl.DateTimeFormat('pt-PT', {
+    dateStyle: 'short',
+  }).format(new Date(dateValue))
 }
 
-function timeToMinutes(timeStr) {
-  if (!timeStr) return null
-  const [h, m] = String(timeStr).split(':').map(Number)
-  if (!Number.isFinite(h) || !Number.isFinite(m)) return null
-  return h * 60 + m
+function formatTimeOnlyLabel(dateValue) {
+  if (!dateValue) return '—'
+  return new Intl.DateTimeFormat('pt-PT', {
+    timeStyle: 'short',
+  }).format(new Date(dateValue))
 }
 
-function computeWindowItems(win) {
-  const items = []
-  const sortedBookings = [...(win.bookedSessions || [])]
-    .filter((bs) => {
-      const bsStart = new Date(bs.startTime).toISOString().slice(11, 16)
-      return bsStart >= win.windowStart && bsStart < win.windowEnd
-    })
-    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+function parseTimeToMinutes(value) {
+  const [hours, mins] = String(value || '').split(':').map(Number)
+  if (!Number.isFinite(hours) || !Number.isFinite(mins)) return null
+  return (hours * 60) + mins
+}
 
-  let cursor = win.windowStart
+function isoDateTime(dateValue, timeValue) {
+  return `${dateValue}T${timeValue}:00.000Z`
+}
 
-  for (const bs of sortedBookings) {
-    const bsStart = new Date(bs.startTime).toISOString().slice(11, 16)
-    const bsEnd = new Date(bs.endTime).toISOString().slice(11, 16)
-    if (bsStart > cursor) {
-      items.push({ kind: 'free', start: cursor, end: bsStart })
-    }
-    items.push({ kind: 'booked', bs, start: bsStart, end: bsEnd })
-    if (bsEnd > cursor) cursor = bsEnd
+function formatDateTimeRangeLabel(startValue, endValue) {
+  if (!startValue) return '—'
+  const startDate = new Date(startValue)
+  if (Number.isNaN(startDate.getTime())) return '—'
+
+  if (!endValue) {
+    return `${formatDateTimeLabel(startValue)} - A definir`
   }
-  if (cursor < win.windowEnd) {
-    items.push({ kind: 'free', start: cursor, end: win.windowEnd })
+
+  const endDate = new Date(endValue)
+  if (Number.isNaN(endDate.getTime())) {
+    return `${formatDateTimeLabel(startValue)} - A definir`
   }
-  return items
+
+  const sameDay =
+    startDate.getFullYear() === endDate.getFullYear() &&
+    startDate.getMonth() === endDate.getMonth() &&
+    startDate.getDate() === endDate.getDate()
+
+  if (sameDay) {
+    return `${formatDateOnlyLabel(startValue)} ${formatTimeOnlyLabel(startValue)} - ${formatTimeOnlyLabel(endValue)}`
+  }
+
+  return `${formatDateTimeLabel(startValue)} - ${formatDateTimeLabel(endValue)}`
 }
 
-// ── Booking modal body (extracted to keep CoachingPage readable) ────
-function BookingModalBody({
-  bookingForm,
-  setBookingForm,
-  teachers,
-  modalities,
-  compatibleStudios,
-  studiosLoading,
-  bookingError,
-  bookingFieldErrors,
-  bookingFromGrid,
-  teacherWindows,
-}) {
-  const selectedTeacher = teachers.find((t) => String(t.teacherId) === bookingForm.teacherId)
-  const selectedModality = modalities.find((m) => String(m.modalityId) === bookingForm.modalityId)
-  const selectedStudio = compatibleStudios.find((s) => String(s.studioId) === bookingForm.studioId)
-  const endTime = bookingForm.startTime
-    ? addMinutesToTime(bookingForm.startTime, Number(bookingForm.durationMin))
-    : null
+function studentFullName(user) {
+  return [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'Aluno'
+}
 
-  const startMin = timeToMinutes(bookingForm.startTime)
-  const endMin = endTime ? timeToMinutes(endTime) : null
-  const fitsWindow = teacherWindows.length > 0 && startMin != null && endMin != null
-    ? teacherWindows.some((w) => {
-        const ws = timeToMinutes(w.windowStart)
-        const we = timeToMinutes(w.windowEnd)
-        return ws != null && we != null && startMin >= ws && endMin <= we
-      })
-    : null
+function requestStatusMeta(status) {
+  switch (String(status || '').toUpperCase()) {
+    case 'PENDING_TEACHER_REVIEW':
+      return { label: 'Aguarda resposta do professor', variant: 'warning' }
+    case 'PENDING_STUDENT_CONFIRMATION':
+      return { label: 'Aguarda a tua resposta', variant: 'warning' }
+    case 'PENDING_ADMIN_APPROVAL':
+      return { label: 'Aguarda aprovação da direção', variant: 'info' }
+    case 'APPROVED':
+      return { label: 'Aprovado', variant: 'success' }
+    case 'REJECTED':
+      return { label: 'Rejeitado', variant: 'danger' }
+    case 'CANCELLED':
+      return { label: 'Cancelado', variant: 'danger' }
+    default:
+      return { label: 'Estado', variant: 'neutral' }
+  }
+}
 
-  const hasSummary =
-    selectedTeacher && selectedModality && selectedStudio && bookingForm.date && bookingForm.startTime
+function actionLabel(actionType) {
+  switch (String(actionType || '').toUpperCase()) {
+    case 'CREATED':
+      return 'Pedido criado'
+    case 'TEACHER_APPROVED':
+      return 'Professor aprovou'
+    case 'TEACHER_SUGGESTED_TIME':
+      return 'Professor sugeriu novo horário'
+    case 'TEACHER_REJECTED':
+      return 'Professor rejeitou'
+    case 'STUDENT_ACCEPTED_SUGGESTION':
+      return 'Aluno aceitou a sugestão'
+    case 'STUDENT_REJECTED_SUGGESTION':
+      return 'Aluno rejeitou a sugestão'
+    case 'ADMIN_APPROVED':
+      return 'Direção aprovou'
+    case 'ADMIN_REJECTED':
+      return 'Direção rejeitou'
+    default:
+      return String(actionType || 'Ação')
+  }
+}
 
-  const err = bookingFieldErrors
+function initials(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean)
+  if (!parts.length) return 'PR'
+  return parts.slice(0, 2).map((part) => part[0]).join('').toUpperCase()
+}
 
-  return (
-    <div className="bk-form">
-      {bookingError ? <div className="bk-error">{bookingError}</div> : null}
+function isValidBookingTime(value) {
+  const minutes = parseTimeToMinutes(value)
+  if (minutes == null) return false
+  return minutes >= (9 * 60) && minutes <= (23 * 60)
+}
 
-      {bookingFromGrid ? (
-        <div className="bk-prefill-chip">
-          <span className="bk-prefill-dot" />
-          Horário pré-selecionado do mapa — confirme os dados abaixo
-        </div>
-      ) : null}
+function isAllowedBookingDate(dateValue) {
+  const parsed = new Date(`${dateValue}T00:00:00.000Z`)
+  const day = parsed.getUTCDay()
+  return Number.isFinite(parsed.getTime()) && day >= 1 && day <= 6
+}
 
-      {selectedTeacher && bookingForm.date && teacherWindows.length === 0 ? (
-        <div className="bk-warning" role="alert">
-          <strong>{selectedTeacher.name}</strong> não tem disponibilidade aprovada em {formatDatePT(bookingForm.date)}.
-          Escolha outro dia ou outro professor.
-        </div>
-      ) : null}
-
-      {selectedTeacher && bookingForm.date && teacherWindows.length > 0 ? (
-        <div className="bk-availability-hint">
-          <strong>Disponibilidade de {selectedTeacher.name} em {formatDatePT(bookingForm.date)}:</strong>{' '}
-          {teacherWindows.map((w, i) => (
-            <span key={i} className="bk-window-chip">{w.windowStart}–{w.windowEnd}</span>
-          ))}
-        </div>
-      ) : null}
-
-      {fitsWindow === false ? (
-        <div className="bk-warning" role="alert">
-          O intervalo escolhido ({bookingForm.startTime}–{endTime}) está fora da disponibilidade aprovada do professor.
-        </div>
-      ) : null}
-
-      {/* Section: Quem */}
-      <div className="bk-section">
-        <p className="bk-section-title">Quem</p>
-        <div className="bk-row">
-          <label className={err.teacherId ? 'err' : ''}>
-            <span>Professor <span className="bk-req">*</span></span>
-            <select
-              value={bookingForm.teacherId}
-              onChange={(e) => setBookingForm((f) => ({ ...f, teacherId: e.target.value }))}
-            >
-              <option value="">Selecionar professor</option>
-              {teachers.map((t) => (
-                <option key={t.teacherId} value={t.teacherId}>{t.name}</option>
-              ))}
-            </select>
-            {err.teacherId ? <span className="err-msg">Obrigatório</span> : null}
-          </label>
-
-          <label className={err.modalityId ? 'err' : ''}>
-            <span>Modalidade <span className="bk-req">*</span></span>
-            <select
-              value={bookingForm.modalityId}
-              onChange={(e) => setBookingForm((f) => ({ ...f, modalityId: e.target.value, studioId: '' }))}
-            >
-              <option value="">Selecionar modalidade</option>
-              {modalities.map((m) => (
-                <option key={m.modalityId} value={m.modalityId}>{m.modalityName}</option>
-              ))}
-            </select>
-            {err.modalityId ? <span className="err-msg">Obrigatório</span> : null}
-          </label>
-        </div>
-
-        {selectedTeacher && selectedTeacher.modalityIds && selectedTeacher.modalityIds.length > 0 ? (
-          <div className="bk-chips">
-            {selectedTeacher.modalityIds.map((mid) => {
-              const mod = modalities.find((m) => m.modalityId === mid)
-              if (!mod) return null
-              const isSelected = String(bookingForm.modalityId) === String(mid)
-              return (
-                <button
-                  key={mid}
-                  type="button"
-                  className={`bk-chip${isSelected ? ' selected' : ''}`}
-                  onClick={() => setBookingForm((f) => ({ ...f, modalityId: String(mid), studioId: '' }))}
-                >
-                  {mod.modalityName}
-                </button>
-              )
-            })}
-          </div>
-        ) : null}
-      </div>
-
-      <div className="bk-divider" />
-
-      {/* Section: Onde (BR-05: studios filtered by modality) */}
-      <div className="bk-section">
-        <p className="bk-section-title">Onde</p>
-        <label className={err.studioId ? 'err' : ''}>
-          <span>
-            Estúdio <span className="bk-req">*</span>
-            {!bookingForm.modalityId ? (
-              <span className="bk-hint"> — selecione primeiro a modalidade</span>
-            ) : studiosLoading ? (
-              <span className="bk-hint"> — a carregar…</span>
-            ) : null}
-          </span>
-          <select
-            value={bookingForm.studioId}
-            onChange={(e) => setBookingForm((f) => ({ ...f, studioId: e.target.value }))}
-            disabled={!bookingForm.modalityId || studiosLoading || compatibleStudios.length === 0}
-          >
-            <option value="">
-              {!bookingForm.modalityId
-                ? 'Selecione primeiro a modalidade'
-                : studiosLoading
-                  ? 'A carregar estúdios…'
-                  : compatibleStudios.length === 0
-                    ? 'Nenhum estúdio compatível com esta modalidade'
-                    : 'Selecionar estúdio'}
-            </option>
-            {compatibleStudios.map((s) => (
-              <option key={s.studioId} value={s.studioId}>
-                {s.studioName} · capacidade {s.capacity}
-              </option>
-            ))}
-          </select>
-          {err.studioId ? <span className="err-msg">Obrigatório</span> : null}
-        </label>
-      </div>
-
-      <div className="bk-divider" />
-
-      {/* Section: Quando */}
-      <div className="bk-section">
-        <p className="bk-section-title">Quando</p>
-        <div className="bk-row">
-          <label className={err.date ? 'err' : ''}>
-            <span>Data <span className="bk-req">*</span></span>
-            <input
-              type="date"
-              value={bookingForm.date}
-              min={new Date().toISOString().slice(0, 10)}
-              onChange={(e) => setBookingForm((f) => ({ ...f, date: e.target.value }))}
-            />
-            {err.date ? <span className="err-msg">Obrigatório</span> : null}
-          </label>
-
-          <label className={err.startTime ? 'err' : ''}>
-            <span>Hora de início <span className="bk-req">*</span></span>
-            <input
-              type="time"
-              value={bookingForm.startTime}
-              onChange={(e) => setBookingForm((f) => ({ ...f, startTime: e.target.value }))}
-            />
-            {err.startTime ? <span className="err-msg">Obrigatório</span> : null}
-          </label>
-        </div>
-
-        <div className="bk-row">
-          <label>
-            <span>Duração</span>
-            <select
-              value={bookingForm.durationMin}
-              onChange={(e) => setBookingForm((f) => ({ ...f, durationMin: e.target.value }))}
-            >
-              <option value="30">30 minutos</option>
-              <option value="45">45 minutos</option>
-              <option value="60">60 minutos</option>
-              <option value="90">90 minutos</option>
-              <option value="120">120 minutos</option>
-            </select>
-          </label>
-
-          {bookingForm.startTime ? (
-            <div className="bk-time-badge">
-              ⏱ {bookingForm.startTime} – {endTime}
-            </div>
-          ) : (
-            <div />
-          )}
-        </div>
-      </div>
-
-      <div className="bk-divider" />
-
-      {/* Section: Formato */}
-      <div className="bk-section">
-        <p className="bk-section-title">Formato</p>
-        <div className="bk-format-row">
-          {[
-            { key: 'individual', label: 'Individual', sub: '1 aluno', cap: 1 },
-            { key: 'duo', label: 'Duo', sub: '2 alunos', cap: 2 },
-            { key: 'group', label: 'Grupo', sub: '3+ alunos', cap: 3 },
-          ].map((opt) => {
-            const isSelected = bookingForm.format === opt.key
-            return (
-              <button
-                key={opt.key}
-                type="button"
-                className={`bk-format-card${isSelected ? ' selected' : ''}`}
-                onClick={() => setBookingForm((f) => ({
-                  ...f,
-                  format: opt.key,
-                  maxParticipants: opt.key === 'group' ? String(Math.max(Number(f.maxParticipants) || 3, 3)) : String(opt.cap),
-                }))}
-              >
-                <strong>{opt.label}</strong>
-                <small>{opt.sub}</small>
-              </button>
-            )
-          })}
-        </div>
-        {bookingForm.format === 'group' ? (
-          <label className={err.maxParticipants ? 'err' : ''}>
-            <span>Número de alunos <span className="bk-req">*</span></span>
-            <input
-              type="number"
-              min={3}
-              max={selectedStudio?.capacity ?? 40}
-              value={bookingForm.maxParticipants}
-              onChange={(e) => setBookingForm((f) => ({ ...f, maxParticipants: e.target.value }))}
-            />
-            {selectedStudio ? (
-              <small className="bk-hint">Máx. {selectedStudio.capacity} (capacidade do estúdio)</small>
-            ) : null}
-            {err.maxParticipants ? <span className="err-msg">Indique um número entre 3 e a capacidade do estúdio</span> : null}
-          </label>
-        ) : null}
-        <p className="bk-hint" style={{ margin: 0 }}>
-          Formato Duo ou Grupo permite que outros alunos peçam adesão à mesma sessão.
-        </p>
-      </div>
-
-      <div className="bk-divider" />
-
-      {/* Section: Notas */}
-      <div className="bk-section">
-        <p className="bk-section-title">Notas</p>
-        <label>
-          <span>Pedidos adicionais <span className="bk-hint">(opcional)</span></span>
-          <textarea
-            rows={3}
-            value={bookingForm.notes}
-            placeholder="Ex.: preferência por horário após as 18h30, necessidade de acompanhamento específico…"
-            onChange={(e) => setBookingForm((f) => ({ ...f, notes: e.target.value }))}
-          />
-        </label>
-      </div>
-
-      {/* Summary card — shown only when all key fields are filled */}
-      {hasSummary ? (
-        <>
-          <div className="bk-divider" />
-          <div className="bk-summary">
-            <p className="bk-summary-label">Resumo da marcação</p>
-            <div className="bk-summary-grid">
-              <span className="bk-summary-item">
-                <strong>Professor</strong>
-                {selectedTeacher.name}
-              </span>
-              <span className="bk-summary-item">
-                <strong>Modalidade</strong>
-                {selectedModality.modalityName}
-              </span>
-              <span className="bk-summary-item">
-                <strong>Estúdio</strong>
-                {selectedStudio.studioName}
-              </span>
-              <span className="bk-summary-item">
-                <strong>Data e hora</strong>
-                {formatDatePT(bookingForm.date)} · {bookingForm.startTime}–{endTime}
-                {' '}({bookingForm.durationMin} min)
-              </span>
-              <span className="bk-summary-item">
-                <strong>Formato</strong>
-                {bookingForm.format === 'individual' ? 'Individual (1 aluno)'
-                  : bookingForm.format === 'duo' ? 'Duo (2 alunos)'
-                  : `Grupo (${bookingForm.maxParticipants || '?'} alunos)`}
-              </span>
-            </div>
-            <p className="bk-summary-note">
-              O pedido será submetido para validação pela direção antes de ser confirmado.
-            </p>
-          </div>
-        </>
-      ) : null}
-    </div>
-  )
+function timeFallsInsideRange(dateValue, timeValue, startValue, endValue) {
+  if (!dateValue || !timeValue || !startValue || !endValue) return false
+  const selected = new Date(isoDateTime(dateValue, timeValue))
+  const start = new Date(startValue)
+  const end = new Date(endValue)
+  if ([selected, start, end].some((value) => Number.isNaN(value.getTime()))) return false
+  return selected >= start && selected < end
 }
 
 export default function CoachingPage() {
-  const { logout, user } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
+  const { logout, user } = useAuth()
 
   const studentName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Aluno'
 
-  // Sidebar state
+  const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false))
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth <= 1024 : false
-  )
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [weekOffset, setWeekOffset] = useState(0)
+
+  const [modalities, setModalities] = useState([])
+  const [modalitiesLoading, setModalitiesLoading] = useState(true)
+  const [modalitiesError, setModalitiesError] = useState('')
+  const [selectedModalityId, setSelectedModalityId] = useState('')
+
+  const [teachers, setTeachers] = useState([])
+  const [teachersLoading, setTeachersLoading] = useState(false)
+  const [teachersError, setTeachersError] = useState('')
+  const [selectedTeacherId, setSelectedTeacherId] = useState('')
+
+  const [selectedDate, setSelectedDate] = useState('')
+  const [selectedStartTime, setSelectedStartTime] = useState('')
+  const [requestNotes, setRequestNotes] = useState('')
+  const [requestSubmitting, setRequestSubmitting] = useState(false)
+  const [requestSubmitError, setRequestSubmitError] = useState('')
+  const [requestSubmitSuccess, setRequestSubmitSuccess] = useState('')
+  const [toast, setToast] = useState(null)
+
+  const [teacherSchedule, setTeacherSchedule] = useState(null)
+  const [teacherScheduleLoading, setTeacherScheduleLoading] = useState(false)
+  const [teacherScheduleError, setTeacherScheduleError] = useState('')
+
+  const [requests, setRequests] = useState([])
+  const [requestsLoading, setRequestsLoading] = useState(true)
+  const [requestsError, setRequestsError] = useState('')
+  const [selectedRequestId, setSelectedRequestId] = useState(null)
+  const [selectedRequest, setSelectedRequest] = useState(null)
+  const [requestDetailLoading, setRequestDetailLoading] = useState(false)
+  const [requestDetailError, setRequestDetailError] = useState('')
+
+  const [studentResponseNotes, setStudentResponseNotes] = useState('')
+  const [studentResponseSaving, setStudentResponseSaving] = useState(false)
+  const [studentResponseError, setStudentResponseError] = useState('')
+
+  const weekStart = useMemo(() => getWeekMondayISO(weekOffset), [weekOffset])
+  const weekDates = useMemo(() => buildWeekDates(weekStart), [weekStart])
 
   const sidebarHidden = isMobile || sidebarCollapsed
   const appShellClassName = ['app-shell', sidebarHidden ? 'sidebar-hidden' : ''].filter(Boolean).join(' ')
   const sidebarClassName = ['sidebar', isMobile && mobileOpen ? 'open' : ''].filter(Boolean).join(' ')
-  const sidebarToggleSymbol = isMobile ? (mobileOpen ? '✕' : '☰') : sidebarCollapsed ? '▶' : '◀'
+
+  const selectedModality = useMemo(
+    () => modalities.find((modality) => String(modality.modalityId) === String(selectedModalityId)) || null,
+    [modalities, selectedModalityId],
+  )
+
+  const selectedTeacher = useMemo(
+    () => teachers.find((teacher) => String(teacher.teacherId) === String(selectedTeacherId)) || null,
+    [teachers, selectedTeacherId],
+  )
+
+  const selectedDateUnavailabilities = useMemo(() => {
+    const day = teacherSchedule?.days?.find((item) => item.date === selectedDate)
+    return Array.isArray(day?.unavailabilities) ? day.unavailabilities : []
+  }, [teacherSchedule, selectedDate])
+
+  const selectedTimeUnavailable = useMemo(() => (
+    selectedDateUnavailabilities.some((absence) =>
+      timeFallsInsideRange(selectedDate, selectedStartTime, absence.startDate, absence.endDate)
+    )
+  ), [selectedDate, selectedDateUnavailabilities, selectedStartTime])
+
+  const stepNumber = !selectedModalityId ? 1 : !selectedTeacherId ? 2 : 3
+
+  const weekLabel = useMemo(() => {
+    if (!weekDates.length) return ''
+    return `${formatDateLabel(weekDates[0])} - ${formatDateLabel(weekDates[weekDates.length - 1])}`
+  }, [weekDates])
+
+  const loadModalities = useCallback(async () => {
+    setModalitiesLoading(true)
+    setModalitiesError('')
+    try {
+      const data = await listCoachingModalities()
+      setModalities(data)
+    } catch (error) {
+      setModalities([])
+      setModalitiesError(localizeApiError(error, 'Não foi possível carregar as modalidades.'))
+    } finally {
+      setModalitiesLoading(false)
+    }
+  }, [])
+
+  const loadTeachers = useCallback(async (modalityId) => {
+    const parsedModalityId = toPositiveInt(modalityId)
+    if (!parsedModalityId) {
+      setTeachers([])
+      return
+    }
+
+    setTeachersLoading(true)
+    setTeachersError('')
+    try {
+      const data = await listCoachingTeachersByModality(parsedModalityId)
+      setTeachers(data)
+    } catch (error) {
+      setTeachers([])
+      setTeachersError(localizeApiError(error, 'Não foi possível carregar os professores.'))
+    } finally {
+      setTeachersLoading(false)
+    }
+  }, [])
+
+  const loadRequests = useCallback(async () => {
+    setRequestsLoading(true)
+    setRequestsError('')
+    try {
+      const data = await listMyCoachingRequests()
+      setRequests(data)
+    } catch (error) {
+      setRequests([])
+      setRequestsError(localizeApiError(error, 'Não foi possível carregar os pedidos de coaching.'))
+    } finally {
+      setRequestsLoading(false)
+    }
+  }, [])
+
+  const loadTeacherSchedule = useCallback(async () => {
+    const parsedTeacherId = toPositiveInt(selectedTeacherId)
+    const parsedModalityId = toPositiveInt(selectedModalityId)
+
+    if (!parsedTeacherId || !parsedModalityId) {
+      setTeacherSchedule(null)
+      setTeacherScheduleError('')
+      return
+    }
+
+    setTeacherScheduleLoading(true)
+    setTeacherScheduleError('')
+    try {
+      const data = await getTeacherCoachingAvailability({
+        teacherId: parsedTeacherId,
+        modalityId: parsedModalityId,
+        weekStart,
+      })
+      setTeacherSchedule(data)
+    } catch (error) {
+      setTeacherSchedule(null)
+      setTeacherScheduleError(localizeApiError(error, 'Não foi possível verificar a indisponibilidade do professor.'))
+    } finally {
+      setTeacherScheduleLoading(false)
+    }
+  }, [selectedDate, selectedModalityId, selectedTeacherId, weekStart])
+
+  const loadRequestDetail = useCallback(async (requestId) => {
+    const parsedRequestId = toPositiveInt(requestId)
+    if (!parsedRequestId) {
+      setSelectedRequest(null)
+      return
+    }
+
+    setRequestDetailLoading(true)
+    setRequestDetailError('')
+    try {
+      const data = await getCoachingRequestById(parsedRequestId)
+      setSelectedRequest(data || null)
+    } catch (error) {
+      setSelectedRequest(null)
+      setRequestDetailError(localizeApiError(error, 'Não foi possível carregar o detalhe do pedido.'))
+    } finally {
+      setRequestDetailLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     const onResize = () => {
@@ -484,296 +373,154 @@ export default function CoachingPage() {
       setIsMobile(mobile)
       if (!mobile) setMobileOpen(false)
     }
+
     window.addEventListener('resize', onResize)
     onResize()
+
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
+  useEffect(() => {
+    void loadModalities()
+    void loadRequests()
+  }, [loadModalities, loadRequests])
+
+  useEffect(() => {
+    if (!selectedModalityId) {
+      setTeachers([])
+      setSelectedTeacherId('')
+      setSelectedDate('')
+      setSelectedStartTime('')
+      return
+    }
+
+    setSelectedTeacherId('')
+    setSelectedDate('')
+    setSelectedStartTime('')
+    setRequestSubmitError('')
+    setRequestSubmitSuccess('')
+    void loadTeachers(selectedModalityId)
+  }, [selectedModalityId, loadTeachers])
+
+  useEffect(() => {
+    if (!selectedModalityId || !selectedTeacherId) {
+      setSelectedDate('')
+      setSelectedStartTime('')
+      setTeacherSchedule(null)
+      setTeacherScheduleError('')
+      return
+    }
+    if (!selectedDate || !weekDates.includes(selectedDate)) {
+      setSelectedDate(weekDates[0] || '')
+    }
+  }, [selectedModalityId, selectedTeacherId, weekDates, selectedDate])
+
+  useEffect(() => {
+    void loadTeacherSchedule()
+  }, [loadTeacherSchedule])
+
+  useEffect(() => {
+    if (!selectedRequestId) {
+      setSelectedRequest(null)
+      setStudentResponseNotes('')
+      return
+    }
+
+    void loadRequestDetail(selectedRequestId)
+  }, [selectedRequestId, loadRequestDetail])
+
   const handleSidebarToggle = useCallback(() => {
-    if (isMobile) { setMobileOpen((v) => !v); return }
-    setSidebarCollapsed((v) => !v)
+    if (isMobile) {
+      setMobileOpen((value) => !value)
+      return
+    }
+
+    setSidebarCollapsed((value) => !value)
   }, [isMobile])
 
   const handleMobileNavClick = useCallback(() => {
     if (isMobile) setMobileOpen(false)
   }, [isMobile])
 
-  // ── Week grid state ────────────────────────────────────────────────
-  const [weekOffset, setWeekOffset] = useState(0)
-  const weekStart = useMemo(() => getWeekMondayISO(weekOffset), [weekOffset])
-  const weekDates = useMemo(() => buildWeekDates(weekStart), [weekStart])
+  const handleCreateRequest = useCallback(async () => {
+    if (!selectedDate || !selectedStartTime || !selectedTeacher || !selectedModality) return
 
-  const [slotsData, setSlotsData] = useState(null)
-  const [slotsLoading, setSlotsLoading] = useState(true)
-  const [slotsError, setSlotsError] = useState('')
-  const [myJoinRequests, setMyJoinRequests] = useState([])
-  const [upcomingSchedule, setUpcomingSchedule] = useState([])
-  const [upcomingLoading, setUpcomingLoading] = useState(true)
-  const [toast, setToast] = useState(null)
-  
-  const [studentProfile, setStudentProfile] = useState(null)
-
-  useEffect(() => {
-    api.get('/student/profile').then(res => setStudentProfile(res.data.profile)).catch(console.error)
-  }, [])
-
-  useEffect(() => {
-    if (!toast) return
-    const timer = setTimeout(() => setToast(null), 5000)
-    return () => clearTimeout(timer)
-  }, [toast])
-
-  // Filters - now used for client-side filtering only (no re-fetch)
-  const [filterTeacherId, setFilterTeacherId] = useState('')
-  const [filterModalityId, setFilterModalityId] = useState('')
-  const searchTerm = ''
-
-  const loadMyJoinRequests = useCallback(async () => {
-    try {
-      const { data } = await api.get('/coaching/join-requests/my')
-      // O backend devolve { requests: [...] }, mas durante algum tempo o cliente
-      // assumia que `data` já era um array — ficava sempre vazio e o badge de
-      // estado do pedido (Aprovado/Aguarda...) nunca aparecia.
-      const items = Array.isArray(data)
-        ? data
-        : Array.isArray(data?.requests)
-          ? data.requests
-          : []
-      setMyJoinRequests(items)
-    } catch {
-      setMyJoinRequests([])
+    if (!isAllowedBookingDate(selectedDate)) {
+      setRequestSubmitError('A data selecionada tem de ser entre segunda-feira e sábado.')
+      return
     }
-  }, [])
 
-  useEffect(() => { void loadMyJoinRequests() }, [loadMyJoinRequests])
-
-  const loadUpcomingSchedule = useCallback(async () => {
-    setUpcomingLoading(true)
-    try {
-      const { data } = await api.get('/student/schedule/upcoming')
-      const items = Array.isArray(data?.schedule)
-        ? data.schedule
-        : Array.isArray(data)
-          ? data
-          : []
-      setUpcomingSchedule(items)
-    } catch {
-      setUpcomingSchedule([])
-    } finally {
-      setUpcomingLoading(false)
+    if (!isValidBookingTime(selectedStartTime)) {
+      setRequestSubmitError('A hora tem de estar entre as 09:00 e as 23:00.')
+      return
     }
-  }, [])
 
-  useEffect(() => { void loadUpcomingSchedule() }, [loadUpcomingSchedule])
-
-  const myJoinRequestBySession = useMemo(() => {
-    const map = new Map()
-    // O backend devolve os pedidos por RequestedAt desc (o mais recente primeiro).
-    // Como `Map.set` sobrescreve, percorremos de trás para a frente para que
-    // o estado mais recente fique no mapa quando o aluno teve vários pedidos
-    // para a mesma sessão (e.g., rejeitado seguido de novo pedido aprovado).
-    for (let i = myJoinRequests.length - 1; i >= 0; i--) {
-      const r = myJoinRequests[i]
-      if (r?.sessionId != null) map.set(Number(r.sessionId), r.status)
+    if (selectedTimeUnavailable) {
+      const message = 'O professor não está disponível nessa hora.'
+      setRequestSubmitError(message)
+      setToast({ variant: 'danger', title: 'Professor indisponível', description: message })
+      return
     }
-    return map
-  }, [myJoinRequests])
 
-  // Load slots once per week (no re-fetch on filter change - filters are client-side now)
-  const loadSlots = useCallback(async () => {
-    setSlotsLoading(true)
-    setSlotsError('')
+    setRequestSubmitting(true)
+    setRequestSubmitError('')
+    setRequestSubmitSuccess('')
+
     try {
-      const data = await getAvailableSlots({
-        weekStart,
+      const request = await createCoachingRequest({
+        teacherId: selectedTeacher.teacherId,
+        modalityId: selectedModality.modalityId,
+        startTime: isoDateTime(selectedDate, selectedStartTime),
+        notes: requestNotes || undefined,
       })
-      setSlotsData(data)
-    } catch (err) {
-      setSlotsError(localizeApiError(err, 'Não foi possível carregar os horários.'))
+
+      setRequestSubmitSuccess('Pedido submetido com sucesso. O professor irá definir a duração.')
+      setSelectedStartTime('')
+      setRequestNotes('')
+      await loadRequests()
+
+      const requestId = toPositiveInt(request?.requestId)
+      if (requestId) {
+        setSelectedRequestId(requestId)
+      }
+    } catch (error) {
+      const message = localizeApiError(error, 'Não foi possível submeter o pedido.')
+      setRequestSubmitError(message)
+      if (message.toLowerCase().includes('professor') && message.toLowerCase().includes('dispon')) {
+        setToast({ variant: 'danger', title: 'Professor indisponível', description: message })
+      }
     } finally {
-      setSlotsLoading(false)
+      setRequestSubmitting(false)
     }
-  }, [weekStart])
+  }, [selectedDate, selectedStartTime, selectedTeacher, selectedModality, selectedTimeUnavailable, requestNotes, loadRequests])
 
-  useEffect(() => { void loadSlots() }, [loadSlots])
+  const handleStudentDecision = useCallback(async (decision) => {
+    const requestId = toPositiveInt(selectedRequest?.requestId)
+    if (!requestId) return
 
-  // ── Booking modal ──────────────────────────────────────────────────
-  const [bookingOpen, setBookingOpen] = useState(false)
-  const [bookingForm, setBookingForm] = useState({
-    teacherId: '',
-    studioId: '',
-    modalityId: '',
-    date: getTodayISO(),
-    startTime: '',
-    durationMin: '60',
-    format: 'individual',
-    maxParticipants: '1',
-    notes: '',
-  })
-  const [compatibleStudios, setCompatibleStudios] = useState([])
-  const [studiosLoading, setStudiosLoading] = useState(false)
-  const [bookingError, setBookingError] = useState('')
-  const [bookingFieldErrors, setBookingFieldErrors] = useState({})
-  const [bookingSaving, setBookingSaving] = useState(false)
-  const [bookingFromGrid, setBookingFromGrid] = useState(false)
+    setStudentResponseSaving(true)
+    setStudentResponseError('')
 
-  const handleOpenBooking = useCallback((prefill = {}) => {
-    const fromGrid = Boolean(prefill.date && prefill.startTime)
-    setBookingForm({
-      teacherId: String(prefill.teacherId ?? ''),
-      studioId: '',
-      modalityId: String(prefill.modalityId ?? filterModalityId ?? ''),
-      date: prefill.date ?? getTodayISO(),
-      startTime: prefill.startTime ?? '',
-      durationMin: prefill.durationMin ?? '60',
-      format: 'individual',
-      maxParticipants: '1',
-      notes: '',
-    })
-    setBookingError('')
-    setBookingFieldErrors({})
-    setCompatibleStudios([])
-    setBookingFromGrid(fromGrid)
-    setBookingOpen(true)
-  }, [filterModalityId])
-
-  useEffect(() => {
-    if (!bookingForm.modalityId) { setCompatibleStudios([]); return }
-    setStudiosLoading(true)
-    getCompatibleStudios(bookingForm.modalityId)
-      .then(setCompatibleStudios)
-      .catch(() => setCompatibleStudios([]))
-      .finally(() => setStudiosLoading(false))
-  }, [bookingForm.modalityId])
-
-  const handleBookingSubmit = useCallback(async () => {
-    const { teacherId, studioId, modalityId, date, startTime, durationMin, format, maxParticipants, notes } = bookingForm
-    const fieldErrors = {}
-    if (!teacherId) fieldErrors.teacherId = true
-    if (!modalityId) fieldErrors.modalityId = true
-    if (!studioId) fieldErrors.studioId = true
-    if (!date) fieldErrors.date = true
-    if (!startTime) fieldErrors.startTime = true
-    const parsedMax = Number(maxParticipants)
-    if (format === 'group' && (!Number.isInteger(parsedMax) || parsedMax < 3)) {
-      fieldErrors.maxParticipants = true
-    }
-    if (Object.keys(fieldErrors).length > 0) {
-      setBookingFieldErrors(fieldErrors)
-      setBookingError('Preencha todos os campos obrigatórios.')
-      return
-    }
-    setBookingFieldErrors({})
-
-    const startDate = new Date(`${date}T${startTime}:00`)
-    if (startDate.getTime() <= Date.now()) {
-      setBookingError('Não é possível marcar para uma hora que já passou.')
-      return
-    }
-
-    const teacherWindows = (slotsData?.availabilityWindows ?? []).filter(
-      (w) => w.date === date && Number(w.teacherId) === Number(teacherId)
-    )
-    const endStr = addMinutesToTime(startTime, Number(durationMin))
-    const [sh, sm] = startTime.split(':').map(Number)
-    const [eh, em] = endStr.split(':').map(Number)
-    const startMin = sh * 60 + sm
-    const endMin = eh * 60 + em
-    const fits = teacherWindows.some((w) => {
-      const [wsh, wsm] = w.windowStart.split(':').map(Number)
-      const [weh, wem] = w.windowEnd.split(':').map(Number)
-      return startMin >= wsh * 60 + wsm && endMin <= weh * 60 + wem
-    })
-    if (!fits) {
-      setBookingError(
-        teacherWindows.length === 0
-          ? 'O professor selecionado não tem disponibilidade aprovada neste dia.'
-          : 'O horário escolhido está fora da disponibilidade aprovada do professor.'
-      )
-      return
-    }
-
-    const startISO = combineDateTime(date, startTime)
-    const endISO = combineDateTime(date, endStr)
-
-    setBookingSaving(true)
-    setBookingError('')
     try {
-      const resolvedMax = format === 'individual' ? 1 : format === 'duo' ? 2 : parsedMax
-      await createBooking({
-        teacherId: Number(teacherId),
-        studioId: Number(studioId),
-        modalityId: Number(modalityId),
-        startTime: startISO,
-        endTime: endISO,
-        maxParticipants: resolvedMax,
-        notes: notes || undefined,
+      await respondToTeacherSuggestion(requestId, {
+        decision,
+        notes: studentResponseNotes || undefined,
       })
-      setBookingOpen(false)
-      await loadSlots()
-    } catch (err) {
-      setBookingError(localizeApiError(err, 'Não foi possível submeter a marcação.'))
+
+      setStudentResponseNotes('')
+      await loadRequests()
+      await loadRequestDetail(requestId)
+    } catch (error) {
+      setStudentResponseError(localizeApiError(error, 'Não foi possível atualizar a tua resposta.'))
     } finally {
-      setBookingSaving(false)
+      setStudentResponseSaving(false)
     }
-  }, [bookingForm, loadSlots, slotsData])
+  }, [selectedRequest, studentResponseNotes, loadRequests, loadRequestDetail])
 
-  // ── Teacher unavailability modal (mounted under schedule map)
-  const [unavailOpen, setUnavailOpen] = useState(false)
-  const [unavailSlot, setUnavailSlot] = useState(null)
-
-  // ── Grid rendering ─────────────────────────────────────────────────
-  const teachers = useMemo(() => slotsData?.teachers ?? [], [slotsData?.teachers])
-  const modalities = useMemo(() => slotsData?.modalities ?? [], [slotsData?.modalities])
-
-  // Client-side filtering: teacher + modality + search term
-  const filteredTeachers = useMemo(() => {
-    let result = teachers
-
-    // Filter by teacher ID
-    if (filterTeacherId) {
-      result = result.filter((t) => String(t.teacherId) === String(filterTeacherId))
-    }
-
-    // Filter by modality: show teachers who have this modality
-    if (filterModalityId) {
-      result = result.filter((t) =>
-        t.modalityIds?.includes(Number(filterModalityId))
-      )
-    }
-
-    // Filter by search term (name)
-    const term = normalizeText(searchTerm.trim())
-    if (term) {
-      result = result.filter((t) => normalizeText(t.name).includes(term))
-    }
-
-    return result
-  }, [teachers, filterTeacherId, filterModalityId, searchTerm])
-
-  // Build a map: date → teacherId → windows
-  const windowMap = useMemo(() => {
-    const map = new Map()
-    for (const win of slotsData?.availabilityWindows ?? []) {
-      const key = `${win.date}__${win.teacherId}`
-      if (!map.has(key)) map.set(key, [])
-      map.get(key).push(win)
-    }
-    return map
-  }, [slotsData?.availabilityWindows])
-
-  // Visible days Mon-Fri (indices 0-4 = Mon-Fri in the weekDates array starting Mon)
-  const visibleDates = weekDates.slice(0, 5)
-
-  const weekLabel = useMemo(() => {
-    if (visibleDates.length === 0) return ''
-    const first = formatDatePT(visibleDates[0])
-    const last = formatDatePT(visibleDates[4])
-    return `${first} – ${last}`
-  }, [visibleDates])
+  const currentTimeline = Array.isArray(selectedRequest?.actions) ? selectedRequest.actions : []
 
   return (
-    <div className="coaching-page">
+    <div className="coaching-page coaching-redesign-page">
       <div className={appShellClassName}>
         {isMobile && mobileOpen ? (
           <button
@@ -807,10 +554,14 @@ export default function CoachingPage() {
                 </Link>
               )
             })}
+
             <button
               className="nav-link"
               type="button"
-              onClick={async () => { await logout(); navigate('/login?reason=logged-out', { replace: true }) }}
+              onClick={async () => {
+                await logout()
+                navigate('/login?reason=logged-out', { replace: true })
+              }}
             >
               Terminar Sessão
             </button>
@@ -823,342 +574,386 @@ export default function CoachingPage() {
               <button
                 type="button"
                 className="sidebar-toggle-btn"
-                aria-label="Toggle sidebar"
+                aria-label="Alternar navegação"
                 onClick={handleSidebarToggle}
               >
-                {sidebarToggleSymbol}
+                {isMobile ? (mobileOpen ? '✕' : '☰') : sidebarCollapsed ? '▶' : '◀'}
               </button>
               <div>
-                <h2>Coachings</h2>
+                <h2>Coaching</h2>
               </div>
             </div>
+
             <div className="topbar-right">
               <NotificationsBell pageLink="/student/notifications" />
             </div>
           </header>
 
-          <div className="content-grid">
-            {/* ── Schedule grid panel ── */}
-            <article className="panel">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <h3 style={{ margin: 0 }}>Agendar sessão</h3>
-                
-              </div>
-
-              <div className="filters-bar">
-                <div className="week-nav">
-                  <button type="button" className="week-nav-btn" onClick={() => setWeekOffset((w) => w - 1)}>‹</button>
-                  <span className="week-label">{weekLabel}</span>
-                  <button type="button" className="week-nav-btn" onClick={() => setWeekOffset((w) => w + 1)}>›</button>
+          <section className="content-grid coaching-redesign-grid">
+            <article className="panel coaching-flow-panel">
+              <div className="flow-steps" aria-label="Etapas do pedido de coaching">
+                <div className={`flow-step${stepNumber >= 1 ? ' active' : ''}`}>
+                  <span>1</span>
+                  <strong>Modalidade</strong>
                 </div>
-
-                <select
-                  className="filter-select"
-                  value={filterTeacherId}
-                  onChange={(e) => setFilterTeacherId(e.target.value)}
-                  aria-label="Filtrar por professor"
-                >
-                  <option value="">Todos os professores</option>
-                  {teachers.map((t) => (
-                    <option key={t.teacherId} value={t.teacherId}>{t.name}</option>
-                  ))}
-                </select>
-
-                <select
-                  className="filter-select"
-                  value={filterModalityId}
-                  onChange={(e) => setFilterModalityId(e.target.value)}
-                  aria-label="Filtrar por modalidade"
-                >
-                  <option value="">Todas as modalidades</option>
-                  {modalities.map((m) => (
-                    <option key={m.modalityId} value={m.modalityId}>{m.modalityName}</option>
-                  ))}
-                </select>
-
-                <button type="button" className="cta" onClick={() => handleOpenBooking()}>
-                  + Nova marcação
-                </button>
+                <div className={`flow-step${stepNumber >= 2 ? ' active' : ''}`}>
+                  <span>2</span>
+                  <strong>Professor</strong>
+                </div>
+                <div className={`flow-step${stepNumber >= 3 ? ' active' : ''}`}>
+                  <span>3</span>
+                  <strong>Horário</strong>
+                </div>
               </div>
 
-              <div className="legend-row">
-                <span className="legend-item"><span className="legend-dot busy" />Ocupado / pendente</span>
-                <span className="legend-item"><span className="legend-dot pending-teacher" />Aguarda professor</span>
-                <span className="legend-item"><span className="legend-dot pending-direction" />Aguarda direção</span>
-                <span className="legend-item"><span className="legend-dot free" />Disponível</span>
+              <div className="flow-block">
+                <h3>1. Escolhe a modalidade</h3>
+                {modalitiesError ? <p className="error-banner">{modalitiesError}</p> : null}
+                <select
+                  className="filter-select coaching-main-select"
+                  value={selectedModalityId}
+                  onChange={(event) => setSelectedModalityId(event.target.value)}
+                  disabled={modalitiesLoading}
+                >
+                  <option value="">{modalitiesLoading ? 'A carregar modalidades...' : 'Seleciona uma modalidade'}</option>
+                  {modalities.map((modality) => (
+                    <option key={modality.modalityId} value={modality.modalityId}>
+                      {modality.modalityName}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              {slotsError ? (
-                <div className="error-banner">
-                  {slotsError}
-                  <button type="button" className="ghost-btn" onClick={loadSlots}>Tentar novamente</button>
+              {selectedModalityId ? (
+                <div className="flow-block">
+                  <h3>2. Seleciona um professor</h3>
+                  {teachersError ? <p className="error-banner">{teachersError}</p> : null}
+
+                  {teachersLoading ? (
+                    <p className="panel-subtle">A carregar professores...</p>
+                  ) : teachers.length === 0 ? (
+                    <p className="empty-state">Não existem professores ativos para esta modalidade.</p>
+                  ) : (
+                    <div className="teacher-grid" role="list" aria-label="Professores disponíveis">
+                      {teachers.map((teacher) => {
+                        const isSelected = String(teacher.teacherId) === String(selectedTeacherId)
+                        const photoUrl = resolveMarketplacePhotoUrl(teacher.photo || '')
+                        return (
+                          <article
+                            key={teacher.teacherId}
+                            role="listitem"
+                            className={`teacher-card${isSelected ? ' selected' : ''}`}
+                          >
+                            <div className="teacher-card-header">
+                              {photoUrl ? (
+                                <img className="teacher-avatar" src={photoUrl} alt={teacher.name} />
+                              ) : (
+                                <div className="teacher-avatar teacher-avatar-fallback" aria-hidden="true">
+                                  {initials(teacher.name)}
+                                </div>
+                              )}
+                              <div>
+                                <strong>{teacher.name}</strong>
+                                <small>{teacher.email || 'Email não disponível'}</small>
+                              </div>
+                            </div>
+
+                            <Button
+                              variant={isSelected ? 'ctaSecondary' : 'secondary'}
+                              size="sm"
+                              onClick={() => {
+                                setSelectedTeacherId(String(teacher.teacherId))
+                                setSelectedDate('')
+                                setSelectedStartTime('')
+                                setRequestSubmitError('')
+                                setRequestSubmitSuccess('')
+                              }}
+                            >
+                              {isSelected ? 'Selecionado' : 'Selecionar'}
+                            </Button>
+                          </article>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               ) : null}
 
-              {slotsLoading ? (
-                <div>
-                  {[1, 2, 3].map((i) => <div key={i} className="skeleton-row" style={{ marginBottom: 8, height: 20 }} />)}
-                </div>
-              ) : (
-                <div className="schedule-wrap">
-                  <table className="schedule-grid">
-                    <thead>
-                      <tr>
-                        <th style={{ width: 130 }}>Professor</th>
-                        {visibleDates.map((date) => {
-                          const dow = new Date(date + 'T00:00:00Z').getUTCDay()
-                          return (
-                            <th key={date} style={{ minWidth: 160 }}>
-                              {DAYS_SHORT[dow]}<br />
-                              <span style={{ fontWeight: 400, fontSize: '0.76rem' }}>{formatDatePT(date)}</span>
-                            </th>
-                          )
-                        })}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredTeachers.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="empty-state">{searchTerm ? 'Nenhum professor encontrado.' : 'Nenhum professor disponível com os filtros selecionados.'}</td>
-                        </tr>
-                      ) : (
-                        filteredTeachers.map((teacher) => (
-                          <tr key={teacher.teacherId}>
-                            <td style={{ fontWeight: 600, fontSize: '0.85rem', color: '#374151', padding: '12px 10px', borderRight: '1px solid #e2d9eb', verticalAlign: 'top', whiteSpace: 'nowrap', backgroundColor: '#fdf9ff' }}>{teacher.name}</td>
-                            {visibleDates.map((date) => {
-                              const key = `${date}__${teacher.teacherId}`
-                              const windows = windowMap.get(key) ?? []
+              {selectedTeacher ? (
+                <div className="flow-block">
+                  <div className="schedule-header-row">
+                    <h3>3. Escolhe a data e hora</h3>
+                    <div className="week-nav">
+                      <button type="button" className="week-nav-btn" onClick={() => setWeekOffset((value) => value - 1)}>
+                        ‹
+                      </button>
+                      <span className="week-label">{weekLabel}</span>
+                      <button type="button" className="week-nav-btn" onClick={() => setWeekOffset((value) => value + 1)}>
+                        ›
+                      </button>
+                    </div>
+                  </div>
 
-                              if (windows.length === 0) {
-                                return (
-                                  <td key={date} style={{ backgroundColor: '#fcfafc' }}>
-                                    <span className="slot-empty" style={{ display: 'block', textAlign: 'center', opacity: 0.5 }}>—</span>
-                                  </td>
-                                )
-                              }
+                  <div className="request-composer">
+                    <div className="request-detail-grid">
+                      <label>
+                        Data
+                        <select
+                          value={selectedDate}
+                          onChange={(event) => {
+                            setSelectedDate(event.target.value)
+                            setRequestSubmitError('')
+                            setRequestSubmitSuccess('')
+                          }}
+                          disabled={!weekDates.length}
+                        >
+                          {weekDates.map((date) => (
+                            <option key={date} value={date}>
+                              {DAY_LABELS[new Date(`${date}T00:00:00.000Z`).getUTCDay()]} · {formatDateLabel(date)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
 
-                              return (
-                                <td key={date} style={{ padding: '4px' }}>
-                                  {windows.map((win, wi) => {
-                                    const items = computeWindowItems(win)
-                                    return (
-                                    <div key={wi} style={{ marginBottom: wi < windows.length - 1 ? 6 : 0 }}>
-                                      {items.map((item, ii) => {
-                                        if (item.kind === 'free') {
-                                          const segEndDate = new Date(`${date}T${item.end}:00`)
-                                          const isPast = segEndDate.getTime() <= Date.now()
-                                          const segLen = (timeToMinutes(item.end) || 0) - (timeToMinutes(item.start) || 0)
-                                          const tooShort = segLen < MIN_BOOKING_MINUTES
-                                          const bookable = !isPast && !tooShort
-                                          const fittingDuration = BOOKING_DURATIONS.filter((d) => d <= segLen).slice(-1)[0]
-                                          return (
-                                            <div key={`free-${ii}`} className={`slot ${bookable ? 'free' : 'busy'}`} style={{ marginTop: ii > 0 ? 6 : 0, opacity: bookable ? 1 : 0.7 }}>
-                                              <strong>{item.start}–{item.end}</strong>
-                                              <small style={{ fontSize: '0.75rem' }}>
-                                                {isPast ? 'Expirado' : (tooShort ? 'Janela curta' : 'Livre para marcação')}
-                                              </small>
-                                              {bookable ? (
-                                                <div className="slot-actions" style={{ marginTop: 6 }}>
-                                                  <button
-                                                    type="button"
-                                                    className="slot-btn primary"
-                                                    style={{ width: '100%', padding: '6px' }}
-                                                    onClick={() => handleOpenBooking({
-                                                      teacherId: teacher.teacherId,
-                                                      date,
-                                                      startTime: item.start,
-                                                      modalityId: filterModalityId || (teacher.modalityIds?.[0] ?? ''),
-                                                      durationMin: String(fittingDuration),
-                                                    })}
-                                                  >
-                                                    Marcar horário
-                                                  </button>
-                                                </div>
-                                              ) : null}
-                                            </div>
-                                          )
-                                        }
-                                        const bs = item.bs
-                                        const slotCls = resolveSlotClass(bs.status)
-                                        const statusBadge = resolveStatusBadge(bs.status)
-                                        const startStr = item.start
-                                        const endStr = item.end
-                                        const hasSpots = bs.maxParticipants && bs.enrolledCount < bs.maxParticipants
-                                        const isLockedOut = studentProfile?.isModalityLocked && !studentProfile?.allowedModalities?.includes(bs.modalityId)
-                                        return (
-                                          <div key={bs.sessionId} className={`slot ${slotCls}`} style={{ marginTop: ii > 0 ? 6 : 0 }}>
-                                            <strong>{startStr}–{endStr}</strong>
-                                            {bs.modalityName ? (
-                                              <small style={{ fontWeight: 600, color: '#4338ca' }}>{bs.modalityName}</small>
-                                            ) : null}
-                                            <small>{statusBadge.label}</small>
-                                            <small>
-                                              {bs.maxParticipants ? ` ${bs.enrolledCount}/${bs.maxParticipants} inscritos` : ''}
-                                            </small>
-                                            {hasSpots && bs.maxParticipants > 1 ? (
-                                              <div style={{ marginTop: 6 }}>
-                                                {isLockedOut ? (
-                                                  <div style={{ fontSize: '0.8rem', color: 'var(--text-danger)', marginTop: '0.25rem' }}>
-                                                    Sessão bloqueada à sua conta
-                                                  </div>
-                                                ) : (
-                                                  <JoinSessionButton
-                                                    sessionId={bs.sessionId}
-                                                    sessionStatus={bs.status}
-                                                    sessionStartTime={bs.startTime}
-                                                    sessionEndTime={bs.endTime}
-                                                    currentParticipants={bs.enrolledCount}
-                                                    maxParticipants={bs.maxParticipants}
-                                                    userIsEnrolled={bs.userIsEnrolled}
-                                                    initialRequestStatus={myJoinRequestBySession.get(Number(bs.sessionId)) ?? null}
-                                                    onSuccess={(result) => {
-                                                    void loadMyJoinRequests()
-                                                    void loadSlots()
-                                                    setToast(result?.alreadyExisted
-                                                      ? { variant: 'info', title: 'Pedido já existente', description: 'Já tens um pedido de adesão pendente para esta sessão.' }
-                                                      : { variant: 'success', title: 'Pedido de adesão enviado', description: 'O professor recebe o pedido e a direção valida a seguir.' })
-                                                  }}
-                                                  onError={(err) => {
-                                                    const status = err?.response?.status
-                                                    if (status !== 409) {
-                                                      setToast({ variant: 'danger', title: 'Erro', description: localizeApiError(err, 'Não foi possível enviar o pedido.') })
-                                                    }
-                                                  }}
-                                                />
-                                                )}
-                                              </div>
-                                            ) : null}
-                                            {slotCls === 'pending-teacher' ? (
-                                              <div style={{ marginTop: 8 }}>
-                                                <button type="button" className="slot-btn" onClick={async () => {
-                                                  let details = null
-                                                  try {
-                                                    details = await fetchAbsenceDetails(teacher.teacherId, { start: bs.startTime })
-                                                  } catch {
-                                                    details = null
-                                                  }
-                                                  setUnavailSlot({ ...bs, teacherId: teacher.teacherId, details })
-                                                  setUnavailOpen(true)
-                                                }}>
-                                                  Ver indisponibilidade
-                                                </button>
-                                              </div>
-                                            ) : null}
-                                          </div>
-                                        )
-                                      })}
-                                    </div>
-                                    )
-                                  })}
-                                </td>
-                              )
-                            })}
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+                      <label>
+                        Hora
+                        <input
+                          type="time"
+                          min="09:00"
+                          max="23:00"
+                          step="300"
+                          className="coaching-time-input"
+                          value={selectedStartTime}
+                          onChange={(event) => {
+                            setSelectedStartTime(event.target.value)
+                            setRequestSubmitError('')
+                            setRequestSubmitSuccess('')
+                          }}
+                        />
+                      </label>
+                    </div>
+
+                    <p className="bk-hint" style={{ margin: 0 }}>
+                      Horário livre entre segunda e sábado, das 09:00 às 23:00.
+                    </p>
+
+                    {teacherScheduleLoading ? (
+                      <p className="bk-hint" style={{ margin: 0 }}>
+                        A verificar indisponibilidades do professor...
+                      </p>
+                    ) : null}
+
+                    {teacherScheduleError ? (
+                      <p className="teacher-unavailability-warning">{teacherScheduleError}</p>
+                    ) : null}
+
+                    {selectedDateUnavailabilities.length > 0 ? (
+                      <div className="teacher-unavailability-warning" role="status">
+                        <strong>Professor indisponível neste dia:</strong>
+                        <ul>
+                          {selectedDateUnavailabilities.map((absence) => (
+                            <li key={absence.absenceId}>
+                              {absence.label || formatDateTimeRangeLabel(absence.startDate, absence.endDate)}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+
+                    <div>
+                      <strong>Pedido atual</strong>
+                      <p>
+                        {selectedDate && selectedStartTime
+                          ? `${selectedModality?.modalityName} · ${selectedTeacher.name} · ${formatDateLabel(selectedDate)} ${selectedStartTime}`
+                          : 'Escreve a hora para criar o pedido. A duração será definida pelo professor.'}
+                      </p>
+                    </div>
+
+                    <label>
+                      Notas para o professor
+                      <textarea
+                        rows={2}
+                        value={requestNotes}
+                        onChange={(event) => setRequestNotes(event.target.value)}
+                        placeholder=""
+                      />
+                    </label>
+
+                    {requestSubmitError ? <p className="error-banner">{requestSubmitError}</p> : null}
+                    {requestSubmitSuccess ? <p className="success-banner">{requestSubmitSuccess}</p> : null}
+
+                    <div className="request-composer-actions">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setSelectedStartTime('')}
+                        disabled={!selectedDate || !selectedStartTime || requestSubmitting}
+                      >
+                        Limpar hora
+                      </Button>
+                      <Button
+                        variant="cta"
+                        size="sm"
+                        onClick={() => void handleCreateRequest()}
+                        disabled={!selectedDate || !selectedStartTime || requestSubmitting}
+                      >
+                        {requestSubmitting ? 'A submeter...' : 'Submeter pedido'}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              )}
+              ) : null}
             </article>
 
-            {/* ── Próximas aulas (sessões em que o aluno está inscrito) ── */}
-            <article className="panel">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <h3 style={{ margin: 0 }}>Próximas aulas</h3>
-                <small style={{ color: 'var(--text)' }}>Sessões em que estás inscrito</small>
+            <article className="panel coaching-requests-panel">
+              <div className="requests-header">
+                <div>
+                  <h3>Os meus pedidos de coaching</h3>
+                  <p>Acompanhamento do estado, respostas e Linha Temporal</p>
+                </div>
+                <Button variant="secondary" size="sm" onClick={() => void loadRequests()}>
+                  Atualizar
+                </Button>
               </div>
 
-              {upcomingLoading ? (
-                <p className="panel-subtle">A carregar sessões...</p>
-              ) : upcomingSchedule.length === 0 ? (
-                <p className="empty">Ainda não estás inscrito em nenhuma sessão futura.</p>
+              {requestsError ? <p className="error-banner">{requestsError}</p> : null}
+
+              {requestsLoading ? (
+                <p className="panel-subtle">A carregar pedidos...</p>
+              ) : requests.length === 0 ? (
+                <p className="empty-state">Ainda não tens pedidos de coaching.</p>
               ) : (
-                <div className="table-scroll" role="region" aria-label="Próximas aulas">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th scope="col">Data</th>
-                        <th scope="col">Hora</th>
-                        <th scope="col">Professor</th>
-                        <th scope="col">Estúdio</th>
-                        <th scope="col">Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {upcomingSchedule.slice(0, 8).map((row) => {
-                        const badge = resolveStatusBadge(row.status)
-                        return (
-                          <tr key={`${row.sessionId}-${row.date}-${row.time}`}>
-                            <td>{formatDatePT(row.date) || '—'}</td>
-                            <td>{row.time || '—'}</td>
-                            <td>{row.teacher || 'Por atribuir'}</td>
-                            <td>{row.studio || '—'}</td>
-                            <td><span className={`badge ${badge.cls}`}>{badge.label}</span></td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
+                <div className="request-list" role="list" aria-label="Pedidos de coaching">
+                  {requests.map((request) => {
+                    const meta = requestStatusMeta(request.status)
+                    const active = Number(request.requestId) === Number(selectedRequestId)
+                    return (
+                      <button
+                        key={request.requestId}
+                        type="button"
+                        role="listitem"
+                        className={`request-list-item${active ? ' selected' : ''}`}
+                        onClick={() => setSelectedRequestId(request.requestId)}
+                      >
+                        <div>
+                          <strong>#{request.requestId} · {request.modalityName || 'Modalidade'}</strong>
+                          <small>{studentFullName(request.teacher)} · {formatDateTimeLabel(request.currentStartTime)}</small>
+                        </div>
+                        <Badge size="sm" variant={meta.variant}>{meta.label}</Badge>
+                      </button>
+                    )
+                  })}
                 </div>
               )}
+
+              <div className="request-detail">
+                <h4>Detalhe do pedido</h4>
+
+                {requestDetailError ? <p className="error-banner">{requestDetailError}</p> : null}
+
+                {requestDetailLoading ? (
+                  <p className="panel-subtle">A carregar detalhe...</p>
+                ) : !selectedRequest ? (
+                  <p className="empty-state">Seleciona um pedido para ver o detalhe completo.</p>
+                ) : (
+                  <>
+                    <div className="request-detail-header">
+                      <div>
+                        <strong>Pedido #{selectedRequest.requestId}</strong>
+                        <p>{selectedRequest.modalityName} · {studentFullName(selectedRequest.teacher)}</p>
+                      </div>
+                      <Badge variant={requestStatusMeta(selectedRequest.status).variant}>
+                        {requestStatusMeta(selectedRequest.status).label}
+                      </Badge>
+                    </div>
+
+                    <div className="request-detail-grid">
+                      <span>
+                        <strong>Horário atual</strong>
+                        {formatDateTimeRangeLabel(selectedRequest.currentStartTime, selectedRequest.currentEndTime)}
+                      </span>
+                      <span>
+                        <strong>Pedido inicial</strong>
+                        {formatDateTimeRangeLabel(selectedRequest.preferredStartTime, selectedRequest.preferredEndTime)}
+                      </span>
+                      <span>
+                        <strong>Criado em</strong>
+                        {formatDateTimeLabel(selectedRequest.requestedAt)}
+                      </span>
+                      <span>
+                        <strong>Estúdio</strong>
+                        {selectedRequest.studioName || 'A definir na aprovação final'}
+                      </span>
+                    </div>
+
+                    {selectedRequest.status === 'PENDING_STUDENT_CONFIRMATION' ? (
+                      <div className="suggestion-box">
+                        <h5>O professor sugeriu um novo horário</h5>
+                        <p>
+                          {selectedRequest.suggestedStartTime
+                            ? formatDateTimeRangeLabel(selectedRequest.suggestedStartTime, selectedRequest.suggestedEndTime)
+                            : 'Sem horário sugerido.'}
+                        </p>
+                        <label>
+                          Resposta para o professor
+                          <textarea
+                            rows={2}
+                            value={studentResponseNotes}
+                            onChange={(event) => setStudentResponseNotes(event.target.value)}
+                            placeholder="Ex.: este horário funciona para mim"
+                          />
+                        </label>
+                        {studentResponseError ? <p className="error-banner">{studentResponseError}</p> : null}
+                        <div className="request-composer-actions">
+                          <Button variant="danger" size="sm" onClick={() => void handleStudentDecision('reject')} disabled={studentResponseSaving}>
+                            Rejeitar
+                          </Button>
+                          <Button variant="cta" size="sm" onClick={() => void handleStudentDecision('accept')} disabled={studentResponseSaving}>
+                            {studentResponseSaving ? 'A guardar...' : 'Aceitar'}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="request-timeline">
+                      <h5>Linha Temporal</h5>
+                      {currentTimeline.length === 0 ? (
+                        <p className="panel-subtle">Ainda não há ações registadas.</p>
+                      ) : (
+                        <ol>
+                          {currentTimeline.map((action) => (
+                            <li key={action.requestActionId}>
+                              <div className="timeline-head">
+                                <strong>{actionLabel(action.actionType)}</strong>
+                                <small>{formatDateTimeLabel(action.createdAt)}</small>
+                              </div>
+                              <p>{studentFullName(action.actor)}</p>
+                              {action.message ? <p>{action.message}</p> : null}
+                              {action.proposedStartTime && action.proposedEndTime ? (
+                                <small>
+                                  {formatDateTimeRangeLabel(action.proposedStartTime, action.proposedEndTime)}
+                                </small>
+                              ) : null}
+                            </li>
+                          ))}
+                        </ol>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
             </article>
-          </div>
+          </section>
         </main>
       </div>
-
-      {/* ── Booking modal ── */}
-      <Modal
-        open={bookingOpen}
-        title="Nova marcação de coaching"
-        size="lg"
-        className="coaching-modal"
-        onClose={() => setBookingOpen(false)}
-        footer={
-          <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-            <Button variant="secondary" onClick={() => setBookingOpen(false)}>Cancelar</Button>
-            <Button variant="cta" disabled={bookingSaving} onClick={handleBookingSubmit}>
-              {bookingSaving ? 'A submeter…' : 'Submeter pedido'}
-            </Button>
-          </div>
-        }
-      >
-        <BookingModalBody
-          bookingForm={bookingForm}
-          setBookingForm={setBookingForm}
-          teachers={teachers}
-          modalities={modalities}
-          compatibleStudios={compatibleStudios}
-          studiosLoading={studiosLoading}
-          bookingError={bookingError}
-          bookingFieldErrors={bookingFieldErrors}
-          bookingFromGrid={bookingFromGrid}
-          teacherWindows={bookingForm.teacherId && bookingForm.date
-            ? (windowMap.get(`${bookingForm.date}__${Number(bookingForm.teacherId)}`) ?? [])
-            : []}
-        />
-      </Modal>
-
-      {/* ── Teacher unavailability modal (shared component) ── */}
-      <UnavailabilityModal
-        isOpen={unavailOpen}
-        onClose={() => setUnavailOpen(false)}
-        onSubmit={() => setUnavailOpen(false)}
-        slotData={unavailSlot}
-        viewOnly={true}
-        details={unavailSlot?.details}
-      />
-
       {toast ? (
-        <div style={{ position: 'fixed', right: '1.5rem', bottom: '1.5rem', zIndex: 1000 }}>
-          <Toast
-            open
-            variant={toast.variant}
-            title={toast.title}
-            description={toast.description}
-            onClose={() => setToast(null)}
-          />
-        </div>
+        <Toast
+          open
+          variant={toast.variant}
+          title={toast.title}
+          description={toast.description}
+          onClose={() => setToast(null)}
+        />
       ) : null}
     </div>
   )

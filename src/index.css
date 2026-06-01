@@ -13,6 +13,11 @@
   --shadow:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
+  /* Studio pill variables fallback for SPA scope leaks */
+  --studio-pill-bg: #fff3ee;
+  --studio-pill-border: #f2c2af;
+  --studio-pill-ink: #8c402a;
+
   --sans: 'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif;
   --heading: var(--sans);
   --mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
@@ -134,7 +139,7 @@ a.pill:visited {
 
 /* Notifications pill in topbar */
 .notifications-pill {
-  background: linear-gradient(180deg, #fff3ee, #fff6f0);
+  background: #fff3ee;
   border: 1px solid #f2c2af;
   color: #8c402a;
   border-radius: 999px;

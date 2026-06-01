@@ -1,6 +1,7 @@
 .moderation-action-btn {
   border-radius: 10px;
   cursor: pointer;
+  font-family: inherit;
   font-weight: 600;
   font-size: 0.88rem;
   letter-spacing: 0.01em;

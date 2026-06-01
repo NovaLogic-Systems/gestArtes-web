@@ -1,0 +1,1283 @@
+.student-timetable-page,
+.teacher-timetable-page {
+  --bg: #f8f4fb;
+  --ink: #1f1c2e;
+  --muted: #6d6480;
+  --line: #e2d9eb;
+  --panel: #ffffff;
+  --teal: #0b9d8f;
+  --teal-dark: #08786d;
+  --coral: #f08a5d;
+  --iris: #6f5ca5;
+  --lavender: #f5edfb;
+  --soft-shadow: 0 14px 36px rgba(31, 28, 46, 0.12);
+  --radius: 16px;
+  color: var(--ink);
+  font-family: inherit;
+  min-height: 100svh;
+  width: 100%;
+  background: linear-gradient(150deg, #fdf7f5 0%, #f7f0fb 45%, #effaf8 100%);
+}
+
+.student-timetable-page {
+  overflow-x: hidden;
+}
+
+.student-timetable-page .app-shell,
+.teacher-timetable-page .app-shell {
+  min-height: 100svh;
+  display: grid;
+  grid-template-columns: 290px 1fr;
+}
+
+.student-timetable-page .app-shell.sidebar-hidden,
+.teacher-timetable-page .app-shell.sidebar-hidden {
+  grid-template-columns: 1fr;
+}
+
+.student-timetable-page .sidebar,
+.teacher-timetable-page .sidebar {
+  border-right: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(8px);
+  padding: 18px;
+  text-align: left;
+}
+
+.student-timetable-page .sidebar-overlay,
+.teacher-timetable-page .sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.32);
+  z-index: 35;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
+.student-timetable-page .brand,
+.teacher-timetable-page .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.student-timetable-page .brand-dot,
+.teacher-timetable-page .brand-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--teal), var(--coral));
+  flex-shrink: 0;
+}
+
+.student-timetable-page .brand h1,
+.teacher-timetable-page .brand h1 {
+  margin: 0;
+  font-size: 1rem;
+  color: #000;
+}
+
+.student-timetable-page .brand p,
+.teacher-timetable-page .brand p {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.student-timetable-page .nav-group h2,
+.teacher-timetable-page .nav-group h2 {
+  margin: 12px 0 6px;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #5f5480;
+}
+
+.student-timetable-page .nav-link,
+.teacher-timetable-page .nav-link {
+  display: block;
+  text-decoration: none;
+  border-radius: 10px;
+  padding: 9px 14px;
+  color: #2e2942;
+  margin-bottom: 4px;
+  text-align: left;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.student-timetable-page button.nav-link,
+.teacher-timetable-page button.nav-link {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.student-timetable-page .nav-link:hover,
+.student-timetable-page .nav-link.active,
+.teacher-timetable-page .nav-link:hover,
+.teacher-timetable-page .nav-link.active {
+  background: var(--lavender);
+}
+
+.student-timetable-page .main,
+.teacher-timetable-page .main {
+  padding: 18px 20px 24px;
+  min-width: 0;
+}
+
+.student-timetable-page .topbar,
+.teacher-timetable-page .topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.student-timetable-page .topbar-left,
+.teacher-timetable-page .topbar-left {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.student-timetable-page .topbar-left h2,
+.teacher-timetable-page .topbar-left h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.student-timetable-page .topbar-left p,
+.teacher-timetable-page .topbar-left p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.student-timetable-page .topbar-right,
+.teacher-timetable-page .topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.student-timetable-page .sidebar-toggle-btn,
+.teacher-timetable-page .sidebar-toggle-btn {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--ink);
+  flex-shrink: 0;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.student-timetable-page .sidebar-toggle-btn:hover,
+.teacher-timetable-page .sidebar-toggle-btn:hover {
+  background: var(--lavender);
+  transform: translateY(-1px);
+}
+
+.student-timetable-page .sidebar-toggle-btn:focus-visible,
+.teacher-timetable-page .sidebar-toggle-btn:focus-visible {
+  outline: 2px solid var(--iris);
+  outline-offset: 2px;
+}
+
+.student-timetable-page .content-grid,
+.teacher-timetable-page .content-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.student-timetable-page .panel,
+.teacher-timetable-page .panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--soft-shadow);
+  padding: 16px;
+  min-width: 0;
+}
+
+.student-timetable-page .panel h3,
+.teacher-timetable-page .panel h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.student-timetable-page .panel p,
+.teacher-timetable-page .panel p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.student-timetable-page .error-banner,
+.teacher-timetable-page .error-banner {
+  border: 1px solid #f3c6cc;
+  background: #fff3f5;
+  color: #8b2e39;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+}
+
+.student-timetable-page .panel-subtle,
+.teacher-timetable-page .panel-subtle {
+  margin-top: 0;
+  color: var(--muted);
+}
+
+.student-timetable-page .empty-state,
+.teacher-timetable-page .empty-state {
+  padding: 16px 8px;
+  color: #766d89;
+  font-size: 0.9rem;
+}
+
+.student-timetable-page .timetable-layout {
+  grid-template-columns: 1fr;
+}
+
+.teacher-timetable-page .timetable-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.student-timetable-page .timetable-section-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.student-timetable-page .timetable-intro-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.student-timetable-page .timetable-intro-panel h3 {
+  margin: 0 0 6px;
+}
+
+.student-timetable-page .timetable-intro-panel p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.student-timetable-page .timetable-modality-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.student-timetable-page .timetable-modality-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.student-timetable-page .timetable-modality-head h3 {
+  margin: 0 0 6px;
+  font-size: 1.05rem;
+}
+
+.student-timetable-page .timetable-modality-head p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.student-timetable-page .timetable-week-grid,
+.teacher-timetable-page .timetable-week-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.student-timetable-page .timetable-day-column,
+.teacher-timetable-page .timetable-day-column {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fff 0%, #fbf9ff 100%);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.student-timetable-page .timetable-day-column-head,
+.teacher-timetable-page .timetable-day-column-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #efe8f7;
+  color: #4d4063;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.student-timetable-page .timetable-day-column-head span,
+.teacher-timetable-page .timetable-day-column-head span {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.student-timetable-page .timetable-slot-list,
+.teacher-timetable-page .timetable-slot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.student-timetable-page .timetable-slot-item,
+.teacher-timetable-page .timetable-slot-item {
+  border-left: 4px solid var(--slot-accent, var(--teal));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--slot-accent, var(--teal)) 10%, #fff 90%);
+  padding: 10px 12px;
+  display: grid;
+  gap: 2px;
+}
+
+.student-timetable-page .timetable-slot-item strong,
+.teacher-timetable-page .timetable-slot-item strong {
+  color: #221d35;
+  font-size: 0.9rem;
+}
+
+.student-timetable-page .timetable-slot-item p,
+.teacher-timetable-page .timetable-slot-item p {
+  margin: 0;
+  color: var(--teal-dark);
+  font-size: 0.84rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.student-timetable-page .timetable-slot-item small,
+.teacher-timetable-page .timetable-slot-item small {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.student-timetable-page .timetable-slot-empty,
+.teacher-timetable-page .timetable-slot-empty {
+  border: 1px dashed #dacfe5;
+  border-radius: 12px;
+  background: #faf7fd;
+  color: var(--muted);
+  padding: 14px 12px;
+  text-align: center;
+  font-size: 0.88rem;
+}
+
+.student-timetable-page .timetable-modality-panel-loading {
+  overflow: hidden;
+}
+
+.student-timetable-page .timetable-hero-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(270px, 340px);
+  gap: 18px;
+  background: linear-gradient(135deg, #fffdfb 0%, #f5f0ff 45%, #eefbf9 100%);
+  border-color: #d9cee8;
+}
+
+.student-timetable-page .timetable-hero-copy {
+  min-width: 0;
+}
+
+.student-timetable-page .timetable-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  background: #fff3ee;
+  border: 1px solid #f2c2af;
+  color: #8c402a;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  text-transform: uppercase;
+}
+
+.student-timetable-page .timetable-hero-copy h3 {
+  margin: 12px 0 10px;
+  font-size: 1.6rem;
+  line-height: 1.05;
+  color: var(--ink);
+}
+
+.student-timetable-page .timetable-hero-copy p {
+  max-width: 72ch;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.student-timetable-page .timetable-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.student-timetable-page .timetable-stat-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.student-timetable-page .timetable-stat-card span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.student-timetable-page .timetable-stat-card strong {
+  color: var(--teal-dark);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.student-timetable-page .timetable-stat-card small {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.student-timetable-page .timetable-hero-controls {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.student-timetable-page .timetable-hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.student-timetable-page .timetable-select-field,
+.teacher-timetable-page .timetable-select-field {
+  display: grid;
+  gap: 6px;
+}
+
+.student-timetable-page .timetable-select-field span,
+.teacher-timetable-page .timetable-select-field span {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.student-timetable-page .timetable-select-field select,
+.teacher-timetable-page .timetable-select-field select {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  padding: 12px 14px;
+  background: #fff;
+  color: var(--text-h, var(--ink));
+  font: inherit;
+  box-shadow: 0 6px 18px rgba(31, 28, 46, 0.04);
+}
+
+.student-timetable-page .timetable-select-field select:focus,
+.teacher-timetable-page .timetable-select-field select:focus {
+  outline: none;
+  border-color: rgba(11, 157, 143, 0.55);
+  box-shadow: 0 0 0 3px rgba(11, 157, 143, 0.12);
+}
+
+.student-timetable-page .timetable-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.student-timetable-page .timetable-retry-btn,
+.teacher-timetable-page .timetable-retry-btn {
+  border: 1px solid #0b9d8f;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #0b9d8f;
+  padding: 0.5rem 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  line-height: 1.2;
+  transition: all 160ms ease;
+  text-decoration: none;
+}
+
+.student-timetable-page .timetable-retry-btn:hover,
+.teacher-timetable-page .timetable-retry-btn:hover {
+  background: #f1f8f7;
+  border-color: #08786d;
+  color: #08786d;
+  transform: translateY(-1px);
+}
+
+.student-timetable-page .timetable-retry-btn:active,
+.teacher-timetable-page .timetable-retry-btn:active {
+  transform: translateY(0);
+}
+
+/* Beautiful Individual Pill Toggles with platform's teal theme */
+.student-timetable-page .timetable-toggle-btn {
+  border: 1px solid #d7ccdf;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #6d6480;
+  padding: 0.5rem 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 160ms ease;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.student-timetable-page .timetable-toggle-btn:hover {
+  background: #faf7fd;
+  border-color: #b8a8c8;
+  color: #4a3f60;
+  transform: translateY(-1px);
+}
+
+.student-timetable-page .timetable-toggle-btn:active {
+  transform: translateY(0);
+}
+
+.student-timetable-page .timetable-toggle-btn.active {
+  background: #0b9d8f;
+  color: #ffffff;
+  border-color: #0b9d8f;
+  box-shadow: 0 4px 12px rgba(11, 157, 143, 0.22);
+}
+
+.student-timetable-page .timetable-toggle-btn.active:hover {
+  background: #08786d;
+  border-color: #08786d;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.student-timetable-page .timetable-workspace {
+  display: grid;
+  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.student-timetable-page .timetable-panel-head,
+.teacher-timetable-page .timetable-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.student-timetable-page .timetable-panel-head h3,
+.teacher-timetable-page .timetable-panel-head h3 {
+  margin: 0 0 6px;
+}
+
+.student-timetable-page .timetable-panel-head p,
+.teacher-timetable-page .timetable-panel-head p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.student-timetable-page .timetable-list,
+.teacher-timetable-page .timetable-list {
+  display: grid;
+  gap: 12px;
+}
+
+.student-timetable-page .timetable-card,
+.teacher-timetable-page .timetable-card {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbf9ff 100%);
+  padding: 14px;
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease, background 140ms ease;
+  display: grid;
+  gap: 12px;
+}
+
+.teacher-timetable-page .timetable-card {
+  font-size: 0.9rem;
+}
+
+.teacher-timetable-page .timetable-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.teacher-timetable-page .timetable-card-head strong {
+  display: block;
+  color: var(--ink);
+  font-size: 0.98rem;
+}
+
+.teacher-timetable-page .timetable-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.student-timetable-page .timetable-card:hover,
+.student-timetable-page .timetable-card.active,
+.teacher-timetable-page .timetable-card:hover,
+.teacher-timetable-page .timetable-card.active {
+  border-color: rgba(11, 157, 143, 0.34);
+  box-shadow: 0 14px 28px rgba(31, 28, 46, 0.08);
+  transform: translateY(-1px);
+}
+
+.student-timetable-page .timetable-card-top,
+.teacher-timetable-page .timetable-card-top {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.student-timetable-page .timetable-card-copy,
+.teacher-timetable-page .timetable-card-copy {
+  min-width: 0;
+}
+
+.student-timetable-page .timetable-card-copy strong,
+.teacher-timetable-page .timetable-card-copy strong {
+  display: block;
+  color: var(--ink);
+  font-size: 0.98rem;
+}
+
+.student-timetable-page .timetable-card-copy p,
+.teacher-timetable-page .timetable-card-copy p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.student-timetable-page .timetable-card-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.student-timetable-page .timetable-card-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  color: var(--ink);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.student-timetable-page .timetable-card-action {
+  color: var(--teal-dark);
+}
+
+.student-timetable-page .timetable-card-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.student-timetable-page .timetable-chip {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid #e5def0;
+  border-radius: 12px;
+  background: #f8f6fe;
+  color: #46395f;
+  min-width: 74px;
+  padding: 8px 10px;
+}
+
+.student-timetable-page .timetable-chip strong {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.student-timetable-page .timetable-chip small {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.student-timetable-page .timetable-card-skeleton {
+  cursor: default;
+}
+
+.student-timetable-page .timetable-card-skeleton:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--line);
+}
+
+.student-timetable-page .timetable-day-strip {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.student-timetable-page .timetable-day-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fff 0%, #faf7ff 100%);
+  padding: 10px;
+  display: grid;
+  gap: 4px;
+}
+
+.student-timetable-page .timetable-day-card span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.student-timetable-page .timetable-day-card strong {
+  font-size: 1.08rem;
+  color: var(--teal-dark);
+}
+
+.student-timetable-page .timetable-day-card small {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.student-timetable-page .timetable-day-card.empty {
+  opacity: 0.82;
+}
+
+.student-timetable-page .timetable-main-panel {
+  min-width: 0;
+}
+
+.student-timetable-page .timetable-empty-state {
+  border: 1px dashed #dacfe5;
+  border-radius: 14px;
+  background: #faf7fd;
+  padding: 16px;
+}
+
+.student-timetable-page .timetable-table-shell {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(31, 28, 46, 0.06);
+}
+
+.student-timetable-page .timetable-table {
+  width: 100%;
+  min-width: 840px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.student-timetable-page .timetable-table caption {
+  caption-side: top;
+  text-align: left;
+  color: var(--muted);
+  padding: 12px 14px 10px;
+  font-size: 0.86rem;
+}
+
+.student-timetable-page .timetable-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f8f1fc;
+  color: #4d4063;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 1px solid #e7deef;
+}
+
+.student-timetable-page .timetable-table tbody td {
+  border-bottom: 1px solid #f0eaf7;
+  padding: 13px 14px;
+  vertical-align: top;
+  color: #2e2942;
+}
+
+.student-timetable-page .timetable-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.student-timetable-page .timetable-row {
+  transition: background 140ms ease, box-shadow 140ms ease;
+}
+
+.student-timetable-page .timetable-row:hover td {
+  background: color-mix(in srgb, var(--slot-accent, var(--teal)) 6%, #fff 94%);
+}
+
+.student-timetable-page .timetable-row td:first-child {
+  position: relative;
+  padding-left: 18px;
+}
+
+.student-timetable-page .timetable-row td:first-child::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 4px;
+  border-radius: 999px;
+  background: var(--slot-accent, var(--teal));
+}
+
+.student-timetable-page .timetable-day-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--lavender);
+  color: #4b3d6a;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 5px 10px;
+}
+
+.student-timetable-page .timetable-time-cell {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.student-timetable-page .timetable-slot-title {
+  display: block;
+  font-size: 0.92rem;
+  margin-bottom: 4px;
+  color: #221d35;
+}
+
+.student-timetable-page .timetable-slot-note {
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.student-timetable-page .timetable-slot-note.muted {
+  opacity: 0.8;
+}
+
+.student-timetable-page .timetable-table-skeleton {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.student-timetable-page .timetable-table-skeleton-row {
+  display: grid;
+  grid-template-columns: 1.1fr 0.7fr 0.7fr 1.6fr 1.7fr 0.7fr;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 10px;
+  border: 1px solid #efe8f7;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fff 0%, #fbf9ff 100%);
+}
+
+.student-timetable-page .timetable-table-skeleton-row span {
+  border-radius: 999px;
+}
+
+.student-timetable-page .timetable-board,
+.teacher-timetable-page .timetable-board {
+  border: 1px solid #d7d2d9;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(28, 24, 42, 0.05);
+}
+
+.student-timetable-page .timetable-board-banner,
+.teacher-timetable-page .timetable-board-banner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(260px, 320px) auto;
+  gap: 18px;
+  align-items: start;
+  padding: 18px 20px 16px;
+  background: linear-gradient(180deg, #f6f8ef 0%, #eef3ea 100%);
+  border-bottom: 1px solid #cfd8cf;
+}
+
+.student-timetable-page .timetable-board-banner-copy,
+.teacher-timetable-page .timetable-board-banner-copy {
+  min-width: 0;
+}
+
+.student-timetable-page .timetable-board-kicker,
+.teacher-timetable-page .timetable-board-kicker {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #617366;
+}
+
+.student-timetable-page .timetable-board-banner h3,
+.teacher-timetable-page .timetable-board-banner h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+}
+
+.student-timetable-page .timetable-board-banner p,
+.teacher-timetable-page .timetable-board-banner p {
+  margin: 10px 0 0;
+  color: #4d5870;
+  font-size: 0.98rem;
+}
+
+.student-timetable-page .timetable-board-banner-select,
+.teacher-timetable-page .timetable-board-banner-select {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+  min-width: 280px;
+  padding-top: 2px;
+}
+
+.student-timetable-page .timetable-board-banner-badge,
+.teacher-timetable-page .timetable-board-banner-badge {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 132px;
+  padding-top: 2px;
+}
+
+.student-timetable-page .timetable-board-banner-select .timetable-select-field,
+.teacher-timetable-page .timetable-board-banner-select .timetable-select-field {
+  min-width: 260px;
+}
+
+.student-timetable-page .timetable-board-banner-select .timetable-select-field span,
+.teacher-timetable-page .timetable-board-banner-select .timetable-select-field span {
+  color: #5c6680;
+  font-size: 0.9rem;
+}
+
+.student-timetable-page .timetable-board-banner-select .timetable-select-field select,
+.teacher-timetable-page .timetable-board-banner-select .timetable-select-field select {
+  min-height: 52px;
+  border-radius: 18px;
+  border-color: #c7e2d4;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.student-timetable-page .timetable-board-banner-select .timetable-select-field select:focus,
+.teacher-timetable-page .timetable-board-banner-select .timetable-select-field select:focus {
+  border-color: rgba(86, 160, 124, 0.65);
+  box-shadow: 0 0 0 3px rgba(86, 160, 124, 0.12);
+}
+
+.student-timetable-page .timetable-board-banner-badge .timetable-pill,
+.teacher-timetable-page .timetable-board-banner-badge .timetable-pill {
+  margin-top: 24px;
+  background: transparent;
+  color: #5b6b7c;
+  padding: 0;
+  border-radius: 0;
+  font-size: 0.92rem;
+}
+
+.student-timetable-page .timetable-board-status,
+.teacher-timetable-page .timetable-board-status {
+  margin: 14px 20px 0;
+}
+
+.student-timetable-page .timetable-board-grid,
+.teacher-timetable-page .timetable-board-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  border-top: 1px solid #8d8d8d;
+}
+
+.student-timetable-page .timetable-board-column,
+.teacher-timetable-page .timetable-board-column {
+  min-width: 0;
+  border-right: 1px solid #8d8d8d;
+  background: #fff;
+}
+
+.student-timetable-page .timetable-board-column:last-child,
+.teacher-timetable-page .timetable-board-column:last-child {
+  border-right: 0;
+}
+
+.student-timetable-page .timetable-board-column-head,
+.teacher-timetable-page .timetable-board-column-head {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: #b8d2ba;
+  color: #1f2f22;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  border-bottom: 1px solid #8d8d8d;
+}
+
+.student-timetable-page .timetable-board-column-body,
+.teacher-timetable-page .timetable-board-column-body {
+  padding: 0;
+  min-height: 420px;
+  background:
+    repeating-linear-gradient(to bottom,
+      #fff 0,
+      #fff 63px,
+      #d8d8d8 63px,
+      #d8d8d8 64px);
+}
+
+.student-timetable-page .timetable-board-column.empty .timetable-board-column-body,
+.teacher-timetable-page .timetable-board-column.empty .timetable-board-column-body {
+  background:
+    repeating-linear-gradient(to bottom,
+      #fff 0,
+      #fff 63px,
+      #d8d8d8 63px,
+      #d8d8d8 64px);
+}
+
+.student-timetable-page .timetable-slot-card-board,
+.teacher-timetable-page .timetable-slot-card-board {
+  position: relative;
+  margin: 0;
+  border-left: 6px solid var(--slot-accent, #0b9d8f);
+  background: color-mix(in srgb, var(--slot-accent, #0b9d8f) 20%, #fff 80%);
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-radius: 0;
+  border-top: 1px solid #6f6f6f;
+  border-bottom: 1px solid #6f6f6f;
+  border-right: 1px solid #6f6f6f;
+}
+
+.student-timetable-page .timetable-slot-card-board strong,
+.teacher-timetable-page .timetable-slot-card-board strong {
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.student-timetable-page .timetable-slot-card-board p,
+.teacher-timetable-page .timetable-slot-card-board p {
+  font-weight: 700;
+  color: #30283c;
+}
+
+.student-timetable-page .timetable-slot-card-board small,
+.teacher-timetable-page .timetable-slot-card-board small {
+  color: #534a61;
+}
+
+.student-timetable-page .timetable-slot-empty,
+.teacher-timetable-page .timetable-slot-empty {
+  min-height: 63px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+}
+
+.student-timetable-page .timetable-pill,
+.teacher-timetable-page .timetable-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.76rem;
+  background: var(--lavender);
+  color: #3b3550;
+}
+
+.student-timetable-page .timetable-board-column-body,
+.teacher-timetable-page .timetable-board-column-body {
+  min-height: 420px;
+}
+
+@media (max-width: 1180px) {
+  .student-timetable-page .timetable-hero-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .student-timetable-page .timetable-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .student-timetable-page .timetable-week-grid,
+  .teacher-timetable-page .timetable-week-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .teacher-timetable-page .timetable-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1024px) {
+
+  .student-timetable-page .app-shell,
+  .teacher-timetable-page .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .student-timetable-page .sidebar,
+  .teacher-timetable-page .sidebar {
+    display: none;
+    position: fixed;
+    inset: 0 auto 0 0;
+    height: 100%;
+    width: min(290px, 85vw);
+    box-shadow: 4px 0 32px rgba(0, 0, 0, 0.18);
+    z-index: 40;
+    overflow-y: auto;
+  }
+
+  .student-timetable-page .sidebar.open,
+  .teacher-timetable-page .sidebar.open {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .student-timetable-page .main,
+  .teacher-timetable-page .main {
+    padding: 12px 14px 20px;
+  }
+
+  .student-timetable-page .topbar,
+  .teacher-timetable-page .topbar {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding-top: 0;
+    min-height: 0;
+  }
+
+  .student-timetable-page .topbar-left,
+  .teacher-timetable-page .topbar-left {
+    display: flex;
+    width: 100%;
+  }
+
+  .student-timetable-page .topbar-right,
+  .teacher-timetable-page .topbar-right {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .student-timetable-page .timetable-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .student-timetable-page .timetable-day-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .student-timetable-page .timetable-table {
+    min-width: 760px;
+  }
+
+  .student-timetable-page .timetable-intro-panel,
+  .student-timetable-page .timetable-modality-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .teacher-timetable-page .timetable-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+
+  .student-timetable-page .timetable-stat-grid,
+  .student-timetable-page .timetable-day-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .student-timetable-page .timetable-table-skeleton-row {
+    min-width: 760px;
+  }
+
+  .student-timetable-page .timetable-table-shell {
+    border-radius: 14px;
+  }
+
+  .student-timetable-page .timetable-week-grid,
+  .teacher-timetable-page .timetable-week-grid {
+    grid-template-columns: 1fr;
+  }
+}

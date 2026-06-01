@@ -298,7 +298,6 @@ export default function SessionConfirmationPage() {
                 </button>
                 <h2>Confirmação de sessões concluídas</h2>
               </div>
-              <p>Valida a presença dos alunos e confirma apenas sessões que já terminaram</p>
             </div>
             <div className="topbar-right">
               <input

@@ -122,6 +122,26 @@ function CreateCoachingPage() {
 
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }))
 
+  // Pré-preenche a hora de fim (início + 60 min) quando ainda não foi definida.
+  const addMinutesToTime = (time, minutes) => {
+    if (!time) return ''
+    const [h, m] = time.split(':').map(Number)
+    if (!Number.isFinite(h) || !Number.isFinite(m)) return ''
+    const total = h * 60 + m + minutes
+    const hh = String(Math.floor((total % 1440) / 60)).padStart(2, '0')
+    const mm = String(total % 60).padStart(2, '0')
+    return `${hh}:${mm}`
+  }
+
+  const handleStartTimeChange = (e) => {
+    const startTime = e.target.value
+    setForm((f) => ({
+      ...f,
+      startTime,
+      endTime: f.endTime ? f.endTime : addMinutesToTime(startTime, 60),
+    }))
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
@@ -235,7 +255,7 @@ function CreateCoachingPage() {
                     </label>
                     <label style={labelStyle}>
                       Hora de início *
-                      <input type="time" value={form.startTime} onChange={set('startTime')} required style={inputStyle} step="1800" />
+                      <input type="time" value={form.startTime} onChange={handleStartTimeChange} required style={inputStyle} step="1800" />
                     </label>
                     <label style={labelStyle}>
                       Hora de fim

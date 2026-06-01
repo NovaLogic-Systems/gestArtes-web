@@ -1,0 +1,334 @@
+.timetable-admin-alert {
+  margin-bottom: 14px;
+}
+
+.timetable-admin-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.timetable-admin-muted {
+  color: var(--studio-muted);
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* ── Lista de mapas ── */
+.timetable-admin-maps {
+  background: var(--studio-panel);
+  border: 1px solid var(--studio-line);
+  border-radius: 16px;
+  box-shadow: var(--studio-shadow);
+  padding: 16px;
+  position: sticky;
+  top: 12px;
+}
+
+.timetable-admin-maps-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.timetable-admin-maps-head h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.timetable-admin-map-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.timetable-admin-map-item {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--studio-line);
+  border-radius: 12px;
+  background: var(--studio-field-bg);
+  padding: 11px 12px;
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.timetable-admin-map-item:hover {
+  border-color: color-mix(in srgb, var(--studio-cta-start) 40%, var(--studio-line) 60%);
+  transform: translateY(-1px);
+}
+
+.timetable-admin-map-item.selected {
+  border-color: var(--studio-cta-start);
+  background: color-mix(in srgb, var(--studio-cta-start) 8%, #ffffff 92%);
+}
+
+.timetable-admin-map-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--studio-ink);
+}
+
+.timetable-admin-map-count {
+  font-size: 0.8rem;
+  color: var(--studio-muted);
+}
+
+.timetable-admin-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--studio-pill-bg);
+  border: 1px solid var(--studio-pill-border);
+  color: var(--studio-pill-ink);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  text-transform: uppercase;
+}
+
+/* ── Editor ── */
+.timetable-admin-editor {
+  background: var(--studio-panel);
+  border: 1px solid var(--studio-line);
+  border-radius: 16px;
+  box-shadow: var(--studio-shadow);
+  padding: 16px;
+  min-width: 0;
+}
+
+.timetable-admin-empty {
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--studio-muted);
+}
+
+.timetable-admin-editor-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.timetable-admin-editor-head h3 {
+  margin: 0 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.2rem;
+}
+
+.timetable-admin-editor-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.timetable-admin-board {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(150px, 1fr));
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.timetable-admin-day {
+  min-width: 0;
+  border: 1px solid var(--studio-line);
+  border-radius: 14px;
+  background: var(--studio-soft-bg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.timetable-admin-day-head {
+  background: var(--studio-hover);
+  color: var(--studio-ink);
+  font-weight: 600;
+  font-size: 0.86rem;
+  text-align: center;
+  padding: 9px 6px;
+  border-bottom: 1px solid var(--studio-line);
+}
+
+.timetable-admin-day-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  flex: 1;
+}
+
+.timetable-admin-day-empty {
+  margin: 0;
+  color: var(--studio-muted);
+  font-size: 0.82rem;
+  text-align: center;
+  padding: 8px 0;
+}
+
+.timetable-admin-slot {
+  position: relative;
+  border-left: 4px solid var(--slot-accent, var(--studio-cta-start));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--slot-accent, #0b9d8f) 12%, #ffffff 88%);
+}
+
+.timetable-admin-slot-main {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 9px 28px 9px 10px;
+  display: grid;
+  gap: 2px;
+  color: var(--studio-ink);
+}
+
+.timetable-admin-slot-main strong {
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--slot-accent, #0b9d8f) 65%, #000000 35%);
+}
+
+.timetable-admin-slot-main span {
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.timetable-admin-slot-main small {
+  font-size: 0.76rem;
+  color: var(--studio-muted);
+}
+
+.timetable-admin-slot-delete {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--studio-muted);
+  cursor: pointer;
+  font-size: 0.78rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.timetable-admin-slot-delete:hover {
+  background: var(--studio-danger-bg);
+  color: var(--studio-danger-ink);
+}
+
+.timetable-admin-add-slot {
+  border: 1px dashed var(--studio-ghost-line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--studio-ghost-ink);
+  padding: 8px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-top: auto;
+}
+
+.timetable-admin-add-slot:hover {
+  background: var(--studio-hover);
+}
+
+/* ── Formulários nos modais ── */
+.timetable-admin-form {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.timetable-admin-form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.timetable-admin-form-wide {
+  grid-column: 1 / -1;
+}
+
+.timetable-admin-form textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+
+.timetable-admin-form input[type='color'] {
+  height: 42px;
+  padding: 4px;
+}
+
+.timetable-admin-check {
+  display: flex !important;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  color: var(--studio-ink);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.timetable-admin-check input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: var(--studio-cta-start);
+  cursor: pointer;
+}
+
+.timetable-admin-optional {
+  color: var(--studio-muted);
+  font-weight: 400;
+  font-size: 0.82em;
+}
+
+.timetable-admin-primary {
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--studio-cta-start), var(--studio-cta-end));
+  color: #ffffff;
+  font-weight: 600;
+  padding: 9px 16px;
+  cursor: pointer;
+}
+
+.timetable-admin-primary:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+@media (max-width: 1024px) {
+  .timetable-admin-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .timetable-admin-maps {
+    position: static;
+  }
+
+  .timetable-admin-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

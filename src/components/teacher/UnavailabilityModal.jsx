@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import './UnavailabilityModal.css';
 
 export default function UnavailabilityModal({ isOpen, onClose, onSubmit, onCancel, slotData, viewOnly = false, details = null }) {
   const [reason, setReason] = useState('');
   const [manualDate, setManualDate] = useState('');
+  const [manualDateDisplay, setManualDateDisplay] = useState('');
   const [manualStart, setManualStart] = useState('');
   const [manualEnd, setManualEnd] = useState('');
+  const [formError, setFormError] = useState('');
+  const dateInputRef = useRef(null);
 
   if (!isOpen) return null;
 
@@ -13,6 +16,91 @@ export default function UnavailabilityModal({ isOpen, onClose, onSubmit, onCance
   const isPending = status === 'pending';
   const isApproved = status === 'approved';
   const isManual = !slotData && !viewOnly;
+  const todayIso = new Date().toISOString().slice(0, 10);
+
+  const formatDisplayDate = (value) => {
+    if (!value) {
+      return '';
+    }
+
+    const [year, month, day] = value.split('-');
+    if (!year || !month || !day) {
+      return '';
+    }
+
+    return `${day}-${month}-${year}`;
+  };
+
+  const parseDisplayDate = (value) => {
+    const match = value.trim().match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/);
+    if (!match) {
+      return '';
+    }
+
+    const [, day, month, year] = match;
+    const parsed = new Date(Number(year), Number(month) - 1, Number(day));
+
+    if (
+      Number.isNaN(parsed.getTime()) ||
+      parsed.getFullYear() !== Number(year) ||
+      parsed.getMonth() !== Number(month) - 1 ||
+      parsed.getDate() !== Number(day)
+    ) {
+      return '';
+    }
+
+    return `${year}-${month}-${day}`;
+  };
+
+  const openNativeDatePicker = () => {
+    const input = dateInputRef.current;
+
+    if (!input) {
+      return;
+    }
+
+    if (typeof input.showPicker === 'function') {
+      input.showPicker();
+      return;
+    }
+
+    input.click();
+  };
+
+  const handleManualDateChange = (event) => {
+    const nextValue = event.target.value;
+    setManualDateDisplay(nextValue);
+
+    const parsed = parseDisplayDate(nextValue);
+    setManualDate(parsed);
+
+    if (dateInputRef.current && parsed) {
+      dateInputRef.current.value = parsed;
+    }
+  };
+
+  const handleNativeDateChange = (event) => {
+    const nextValue = event.target.value;
+    setManualDate(nextValue);
+    setManualDateDisplay(formatDisplayDate(nextValue));
+  };
+
+  const handleManualDateBlur = () => {
+    if (!manualDateDisplay) {
+      setManualDate('');
+      return;
+    }
+
+    const parsed = parseDisplayDate(manualDateDisplay);
+    if (!parsed) {
+      setManualDate('');
+      setManualDateDisplay('');
+      return;
+    }
+
+    setManualDate(parsed);
+    setManualDateDisplay(formatDisplayDate(parsed));
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -20,13 +108,15 @@ export default function UnavailabilityModal({ isOpen, onClose, onSubmit, onCance
     let finalSlotData = slotData;
     
     if (isManual) {
-      const start = new Date(`${manualDate}T${manualStart}:00`);
-      const end = new Date(`${manualDate}T${manualEnd}:00`);
-      
+      if (!manualDate || manualDate < todayIso || !manualStart || !manualEnd) {
+        setFormError('Escolha uma data futura e um intervalo horário válido.');
+        return
+      }
+
       finalSlotData = {
         mode: 'semester',
-        startDateTime: start.toISOString(),
-        endDateTime: end.toISOString()
+        startDateTime: `${manualDate}T${manualStart}:00.000Z`,
+        endDateTime: `${manualDate}T${manualEnd}:00.000Z`
       };
     }
 
@@ -62,8 +152,10 @@ export default function UnavailabilityModal({ isOpen, onClose, onSubmit, onCance
   const resetForm = () => {
     setReason('');
     setManualDate('');
+    setManualDateDisplay('');
     setManualStart('');
     setManualEnd('');
+    setFormError('');
   };
 
   const handleClose = () => {
@@ -157,7 +249,35 @@ export default function UnavailabilityModal({ isOpen, onClose, onSubmit, onCance
                 <div className="manual-fields">
                   <div className="form-group">
                     <label>Data da Ausência</label>
-                    <input type="date" required value={manualDate} onChange={e => setManualDate(e.target.value)} />
+                    <div className="date-picker-field">
+                      <input
+                        type="text"
+                        required
+                        inputMode="numeric"
+                        placeholder="DD-MM-AAAA"
+                        value={manualDateDisplay}
+                        onChange={handleManualDateChange}
+                        onBlur={handleManualDateBlur}
+                      />
+                      <button
+                        type="button"
+                        className="date-picker-button"
+                        onClick={openNativeDatePicker}
+                        aria-label="Abrir calendário"
+                      >
+                        <span aria-hidden="true">📅</span>
+                      </button>
+                      <input
+                        ref={dateInputRef}
+                        className="native-date-input"
+                        type="date"
+                        min={todayIso}
+                        tabIndex={-1}
+                        aria-hidden="true"
+                        value={manualDate}
+                        onChange={handleNativeDateChange}
+                      />
+                    </div>
                   </div>
                   <div className="time-row">
                     <div className="form-group">
@@ -185,6 +305,8 @@ export default function UnavailabilityModal({ isOpen, onClose, onSubmit, onCance
                 />
               </div>
 
+              {formError ? <p className="modal-form-error">{formError}</p> : null}
+
               <div className="modal-footer" style={{ justifyContent: 'flex-end', marginTop: '24px' }}>
                 <button type="button" className="cta secondary" onClick={handleClose}>
                   Cancelar
@@ -200,4 +322,3 @@ export default function UnavailabilityModal({ isOpen, onClose, onSubmit, onCance
     </div>
   );
 }
-

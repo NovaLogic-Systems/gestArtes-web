@@ -231,7 +231,7 @@
   font: inherit;
   font-size: 0.88rem;
   background: #fff;
-  
+
   min-width: 140px;
 }
 
@@ -292,10 +292,21 @@
   flex-shrink: 0;
 }
 
-.coaching-page .legend-dot.busy { background: #f9a8a8; }
-.coaching-page .legend-dot.pending-teacher { background: #fde68a; }
-.coaching-page .legend-dot.pending-direction { background: #93c5fd; }
-.coaching-page .legend-dot.free { background: #6ee7b7; }
+.coaching-page .legend-dot.busy {
+  background: #f9a8a8;
+}
+
+.coaching-page .legend-dot.pending-teacher {
+  background: #fde68a;
+}
+
+.coaching-page .legend-dot.pending-direction {
+  background: #93c5fd;
+}
+
+.coaching-page .legend-dot.free {
+  background: #6ee7b7;
+}
 
 /* Schedule grid */
 .coaching-page .schedule-wrap {
@@ -547,8 +558,13 @@
 }
 
 @keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* Responsive */
@@ -658,7 +674,7 @@
   min-width: 0;
 }
 
-.coaching-modal .bk-form label > span:first-child {
+.coaching-modal .bk-form label>span:first-child {
   color: #4c4666;
   font-size: 0.86rem;
   font-weight: 600;
@@ -856,8 +872,8 @@
 }
 
 /* Per-field validation */
-.coaching-modal label.err > input,
-.coaching-modal label.err > select {
+.coaching-modal label.err>input,
+.coaching-modal label.err>select {
   border-color: #ef4444;
   background: #fff5f5;
 }
@@ -977,5 +993,521 @@
 
   .coaching-modal .bk-summary-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+.coaching-redesign-page .topbar-left {
+  align-items: flex-start;
+}
+
+.coaching-redesign-page .topbar-left>div p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.coaching-redesign-page .coaching-redesign-grid {
+  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.95fr);
+  align-items: start;
+}
+
+.coaching-redesign-page .coaching-flow-panel,
+.coaching-redesign-page .coaching-requests-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.coaching-redesign-page .flow-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.coaching-redesign-page .flow-step {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbf7ff 100%);
+  display: grid;
+  gap: 6px;
+}
+
+.coaching-redesign-page .flow-step span {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #efe7ff;
+  color: #5b4488;
+  font-weight: 700;
+}
+
+.coaching-redesign-page .flow-step.active {
+  border-color: rgba(11, 157, 143, 0.22);
+  box-shadow: 0 10px 24px rgba(11, 157, 143, 0.08);
+}
+
+.coaching-redesign-page .flow-step.active span {
+  background: linear-gradient(135deg, #0b9d8f, #10b2a3);
+  color: #fff;
+}
+
+.coaching-redesign-page .flow-step strong {
+  color: var(--text-h);
+}
+
+.coaching-redesign-page .flow-block {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fff;
+}
+
+.coaching-redesign-page .flow-block h3,
+.coaching-redesign-page .request-detail h4,
+.coaching-redesign-page .requests-header h3 {
+  margin: 0;
+}
+
+.coaching-redesign-page .requests-header h3 {
+  font-family: var(--heading);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.coaching-redesign-page .coaching-main-select {
+  min-width: 220px;
+  max-width: 420px;
+}
+
+.coaching-redesign-page .teacher-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.coaching-redesign-page .teacher-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+  background: linear-gradient(180deg, #fff 0%, #fbfcff 100%);
+  display: grid;
+  gap: 12px;
+}
+
+.coaching-redesign-page .teacher-card.selected {
+  border-color: rgba(11, 157, 143, 0.32);
+  box-shadow: 0 10px 20px rgba(11, 157, 143, 0.08);
+}
+
+.coaching-redesign-page .teacher-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.coaching-redesign-page .teacher-card-header>div {
+  min-width: 0;
+}
+
+.coaching-redesign-page .teacher-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.coaching-redesign-page .teacher-avatar-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0b9d8f, #6f5ca5);
+  color: #fff;
+  font-weight: 700;
+}
+
+.coaching-redesign-page .teacher-card-header strong,
+.coaching-redesign-page .teacher-card-header small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.coaching-redesign-page .teacher-card-header small {
+  margin-top: 2px;
+  color: var(--muted);
+}
+
+.coaching-redesign-page .schedule-header-row,
+.coaching-redesign-page .requests-header,
+.coaching-redesign-page .request-detail-header,
+.coaching-redesign-page .timeline-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.coaching-redesign-page .legend-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.coaching-redesign-page .legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.coaching-redesign-page .legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.coaching-redesign-page .legend-dot.free {
+  background: #0b9d8f;
+}
+
+.coaching-redesign-page .legend-dot.busy {
+  background: #f59e0b;
+}
+
+.coaching-redesign-page .schedule-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.coaching-redesign-page .coaching-slot-grid {
+  min-width: 760px;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.coaching-redesign-page .coaching-slot-grid th,
+.coaching-redesign-page .coaching-slot-grid td {
+  border-bottom: 1px solid var(--line);
+}
+
+.coaching-redesign-page .coaching-slot-grid thead th {
+  background: #faf7ff;
+  padding: 12px 10px;
+  text-align: center;
+}
+
+.coaching-redesign-page .coaching-slot-grid thead th span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.coaching-redesign-page .coaching-slot-grid .time-col {
+  background: #faf7ff;
+  width: 72px;
+  min-width: 72px;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.coaching-redesign-page .slot-cell {
+  padding: 6px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.coaching-redesign-page .slot-cell-empty {
+  background: #fcfcfd;
+}
+
+.coaching-redesign-page .slot-cell-booked {
+  background: #fff3f1;
+}
+
+.coaching-redesign-page .slot-cell-past {
+  background: #f8fafc;
+}
+
+.coaching-redesign-page .slot-pick-btn {
+  width: 100%;
+  border: 1px solid rgba(11, 157, 143, 0.22);
+  border-radius: 12px;
+  padding: 10px 8px;
+  background: #f0fdf8;
+  color: #0f766e;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.coaching-redesign-page .slot-pick-btn.active {
+  background: linear-gradient(135deg, #0b9d8f, #10b2a3);
+  color: #fff;
+  border-color: transparent;
+}
+
+.coaching-redesign-page .request-composer,
+.coaching-redesign-page .request-detail,
+.coaching-redesign-page .suggestion-box {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+  padding: 16px;
+}
+
+.coaching-redesign-page .request-composer p,
+.coaching-redesign-page .request-detail p,
+.coaching-redesign-page .suggestion-box p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.coaching-redesign-page .request-composer textarea,
+.coaching-redesign-page .request-detail textarea,
+.coaching-redesign-page .suggestion-box textarea {
+  width: 100%;
+  min-height: 86px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  padding: 12px;
+  font: inherit;
+  resize: vertical;
+}
+
+.coaching-redesign-page .request-composer select,
+.coaching-redesign-page .request-detail select,
+.coaching-redesign-page .suggestion-box select,
+.coaching-redesign-page .request-detail-grid select,
+.coaching-redesign-page .coaching-time-input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+}
+
+.coaching-redesign-page .coaching-time-input {
+  min-height: 46px;
+  letter-spacing: 0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.coaching-redesign-page .coaching-time-input::-webkit-calendar-picker-indicator {
+  opacity: 0.55;
+  cursor: pointer;
+}
+
+.coaching-redesign-page .coaching-time-input:hover::-webkit-calendar-picker-indicator,
+.coaching-redesign-page .coaching-time-input:focus::-webkit-calendar-picker-indicator {
+  opacity: 0.85;
+}
+
+.coaching-redesign-page .request-detail-grid label,
+.coaching-redesign-page .request-composer label,
+.coaching-redesign-page .suggestion-box label {
+  display: grid;
+  gap: 8px;
+  color: var(--text-h);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.coaching-redesign-page .request-composer textarea:focus,
+.coaching-redesign-page .request-detail textarea:focus,
+.coaching-redesign-page .suggestion-box textarea:focus,
+.coaching-redesign-page .request-composer select:focus,
+.coaching-redesign-page .request-detail select:focus,
+.coaching-redesign-page .suggestion-box select:focus,
+.coaching-redesign-page .request-detail-grid select:focus,
+.coaching-redesign-page .coaching-main-select:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(11, 157, 143, 0.14);
+  outline: none;
+}
+
+.coaching-redesign-page .request-composer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.coaching-redesign-page .request-list {
+  display: grid;
+  gap: 10px;
+}
+
+.coaching-redesign-page .request-list-item,
+.coaching-redesign-page .request-detail,
+.coaching-redesign-page .request-timeline li {
+  font-family: var(--sans);
+  font-size: 0.9rem;
+}
+
+.coaching-redesign-page .request-list-item small,
+.coaching-redesign-page .request-detail p,
+.coaching-redesign-page .request-timeline li p,
+.coaching-redesign-page .request-timeline li small {
+  font-size: 0.86rem;
+}
+
+.coaching-redesign-page .request-list-item {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+  background: #fff;
+  cursor: pointer;
+}
+
+.coaching-redesign-page .request-list-item.selected {
+  border-color: rgba(11, 157, 143, 0.32);
+  background: #f7fffd;
+}
+
+.coaching-redesign-page .request-list-item strong,
+.coaching-redesign-page .request-list-item small {
+  display: block;
+}
+
+.coaching-redesign-page .request-list-item small {
+  margin-top: 4px;
+  color: var(--muted);
+}
+
+.coaching-redesign-page .request-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.coaching-redesign-page .request-detail-grid span {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+}
+
+.coaching-redesign-page .request-detail-grid strong {
+  color: var(--text-h);
+  font-size: 0.82rem;
+}
+
+.coaching-redesign-page .request-timeline ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.coaching-redesign-page .request-timeline li {
+  border-left: 3px solid var(--teal);
+  padding: 10px 0 10px 14px;
+  display: grid;
+  gap: 4px;
+}
+
+.coaching-redesign-page .request-timeline li p,
+.coaching-redesign-page .request-timeline li small {
+  margin: 0;
+  color: var(--muted);
+}
+
+.coaching-redesign-page .error-banner,
+.coaching-redesign-page .success-banner,
+.coaching-redesign-page .empty-state,
+.coaching-redesign-page .panel-subtle {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+}
+
+.coaching-redesign-page .error-banner {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.coaching-redesign-page .success-banner {
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.coaching-redesign-page .teacher-unavailability-warning {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  color: #b91c1c;
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 12px 14px;
+}
+
+.coaching-redesign-page .teacher-unavailability-warning ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.coaching-redesign-page .empty-state,
+.coaching-redesign-page .panel-subtle {
+  background: #fafafa;
+  color: var(--muted);
+}
+
+@media (max-width: 1180px) {
+  .coaching-redesign-page .coaching-redesign-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 860px) {
+
+  .coaching-redesign-page .teacher-grid,
+  .coaching-redesign-page .request-detail-grid,
+  .coaching-redesign-page .flow-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .coaching-redesign-page .schedule-header-row,
+  .coaching-redesign-page .requests-header,
+  .coaching-redesign-page .request-detail-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 640px) {
+
+  .coaching-redesign-page .request-list-item,
+  .coaching-redesign-page .request-composer-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .coaching-redesign-page .coaching-main-select {
+    max-width: none;
+    width: 100%;
   }
 }

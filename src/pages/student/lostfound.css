@@ -1,192 +1,226 @@
 .lostfound-page {
-	--lostfound-line: #e2d9eb;
-	--lostfound-muted: #6d6480;
-	background: linear-gradient(150deg, #fdf7f5 0%, #f7f0fb 45%, #effaf8 100%);
-	min-height: 100svh;
-	width: 100%;
-	overflow-x: hidden;
+  --lostfound-line: #e2d9eb;
+  --lostfound-muted: #6d6480;
+  background: linear-gradient(150deg, #fdf7f5 0%, #f7f0fb 45%, #effaf8 100%);
+  min-height: 100svh;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 .lostfound-page .main {
-	padding-bottom: 28px;
-	min-width: 0;
-	overflow-x: hidden;
+  padding-bottom: 28px;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .lostfound-banner {
-	align-items: center;
-	display: flex;
-	justify-content: space-between;
-	gap: 1rem;
-	margin-bottom: 14px;
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 14px;
 }
 
 .lostfound-banner h3 {
-	margin: 0;
-	font-size: 1.15rem;
+  margin: 0;
+  font-size: 1.15rem;
 }
 
 .lostfound-banner p {
-	color: var(--lostfound-muted);
-	margin: 0.3rem 0 0;
+  color: var(--lostfound-muted);
+  margin: 0.3rem 0 0;
 }
 
 .lostfound-feed h3 {
-	margin: 0;
+  margin: 0;
 }
 
 .lostfound-toolbar-pill {
-	text-decoration: none;
+  text-decoration: none;
 }
 
 .lostfound-toolbar-button {
-	background: #0b9d8f;
-	border: 1px solid #0b9d8f;
-	border-radius: 999px;
-	color: #fff;
-	cursor: pointer;
-	font: inherit;
-	font-size: 0.88rem;
-	padding: 0.55rem 0.85rem;
-	transition: background-color 160ms ease, border-color 160ms ease;
+  background: #0b9d8f;
+  border: 1px solid #0b9d8f;
+  border-radius: 999px;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 0.55rem 0.85rem;
+  transition: background-color 160ms ease, border-color 160ms ease;
 }
 
 .lostfound-toolbar-button:hover,
 .lostfound-toolbar-button:focus-visible {
-	background: #099680;
-	border-color: #099680;
-	outline: none;
+  background: #099680;
+  border-color: #099680;
+  outline: none;
 }
 
 .lostfound-feed {
-	display: grid;
-	gap: 0.9rem;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.lostfound-feed .inventory-feed-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.lostfound-feed .inventory-feed-header p {
+  color: var(--lostfound-muted);
+  margin: 0.2rem 0 0;
+}
+
+.lostfound-search {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.lostfound-search-input {
+  min-width: 220px;
 }
 
 .lostfound-table-shell {
-	overflow-x: auto;
-	-webkit-overflow-scrolling: touch;
-	min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  min-width: 0;
 }
 
 .lostfound-table {
-	border-collapse: collapse;
-	min-width: 720px;
-	width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+  width: 100%;
 }
 
 .lostfound-table th,
 .lostfound-table td {
-	border-bottom: 1px solid #efe8f7;
-	color: var(--ink, #1f1c2e);
-	font-size: 0.9rem;
-	padding: 0.9rem 0.8rem;
-	text-align: left;
-	vertical-align: top;
+  border-bottom: 1px solid #efe8f7;
+  color: var(--ink, #1f1c2e);
+  font-size: 0.9rem;
+  padding: 0.9rem 0.8rem;
+  text-align: left;
+  vertical-align: middle;
 }
 
 .lostfound-table th {
-	color: #6d6480;
-	font-size: 0.78rem;
-	letter-spacing: 0.06em;
-	text-transform: uppercase;
+  color: #6d6480;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .lostfound-table th:nth-child(2),
 .lostfound-table th:nth-child(3),
 .lostfound-table td:nth-child(2),
 .lostfound-table td:nth-child(3) {
-	text-align: center;
+  text-align: center;
 }
 
 .lostfound-table tbody tr:nth-child(even) {
-	background: #faf7fd;
+  background: #faf7fd;
 }
 
 .lostfound-item-cell {
-	display: flex;
-	gap: 0.85rem;
-	align-items: flex-start;
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
 }
 
 .lostfound-photo {
-	background: #f5edfb;
-	border: 1px solid #e7dcee;
-	border-radius: 14px;
-	color: var(--lostfound-muted);
-	flex: 0 0 auto;
-	height: 4.75rem;
-	overflow: hidden;
-	width: 4.75rem;
-	align-items: center;
-	display: grid;
-	justify-items: center;
-	font-size: 0.76rem;
-	font-weight: 700;
+  background: #f5edfb;
+  border: 1px solid #e7dcee;
+  border-radius: 14px;
+  color: var(--lostfound-muted);
+  flex: 0 0 auto;
+  height: 4.75rem;
+  overflow: hidden;
+  width: 4.75rem;
+  align-items: center;
+  display: grid;
+  justify-items: center;
+  font-size: 0.76rem;
+  font-weight: 700;
 }
 
 .lostfound-photo img {
-	height: 100%;
-	object-fit: cover;
-	width: 100%;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
 }
 
 .lostfound-item-copy {
-	min-width: 0;
-	display: grid;
-	gap: 0.35rem;
+  min-width: 0;
+  display: grid;
+  gap: 0.35rem;
 }
 
 .lostfound-item-copy strong {
-	font-size: 0.97rem;
+  font-size: 0.97rem;
 }
 
 .lostfound-item-copy p {
-	color: var(--lostfound-muted);
-	font-size: 0.88rem;
-	line-height: 1.45;
-	margin: 0;
+  color: var(--lostfound-muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  margin: 0;
 }
 
 .lostfound-skeleton-item {
-	display: flex;
-	gap: 0.85rem;
-	align-items: flex-start;
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
 }
 
 .lostfound-skeleton-lines {
-	flex: 1;
-	display: grid;
-	gap: 0.5rem;
+  flex: 1;
+  display: grid;
+  gap: 0.5rem;
 }
 
 .lostfound-page .inventory-empty-state {
-	margin-top: 0;
+  margin-top: 0;
 }
 
 @media (max-width: 900px) {
-	.lostfound-layout {
-		grid-template-columns: 1fr;
-		min-width: 0;
-	}
+  .lostfound-layout {
+    grid-template-columns: 1fr;
+    min-width: 0;
+  }
 
-	.lostfound-banner {
-		align-items: flex-start;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
+  .lostfound-banner {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
 
-	.lostfound-item-cell,
-	.lostfound-skeleton-item {
-		gap: 0.7rem;
-	}
+  .lostfound-item-cell,
+  .lostfound-skeleton-item {
+    gap: 0.7rem;
+  }
 
-	.lostfound-photo {
-		height: 4.1rem;
-		width: 4.1rem;
-	}
+  .lostfound-photo {
+    height: 4.1rem;
+    width: 4.1rem;
+  }
 
-	.lostfound-page .main {
-		padding: 12px 14px 20px;
-	}
+  .lostfound-page .main {
+    padding: 12px 14px 20px;
+  }
+}
+
+@media (max-width: 720px) {
+  .lostfound-search {
+    width: 100%;
+  }
+
+  .lostfound-search-input {
+    flex: 1;
+    min-width: 0;
+  }
 }

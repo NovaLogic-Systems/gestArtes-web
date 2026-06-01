@@ -172,11 +172,19 @@ function parseOptionsPayload(data) {
     ?? data?.studioFormats,
   )
 
-  const modalities = formatOptionValues(
-    data?.modalities
-    ?? data?.availableModalities
-    ?? data?.studioModalities,
-  )
+  const rawModalities = data?.modalities ?? data?.availableModalities ?? data?.studioModalities
+
+  // Keep modality objects with IDs when available (from GET /admin/studios/options)
+  const modalityObjects = Array.isArray(rawModalities)
+    ? rawModalities
+        .filter((m) => m && typeof m === 'object' && m.modalityId)
+        .map((m) => ({ id: m.modalityId, name: String(m.modalityName || m.name || '').trim() }))
+        .filter((m) => m.name)
+    : []
+
+  const modalities = modalityObjects.length > 0
+    ? modalityObjects
+    : formatOptionValues(rawModalities)
 
   return {
     formats,
@@ -247,12 +255,29 @@ const studioManagementService = {
       throw new Error('Nome inválido.')
     }
 
-    await api.post('/admin/studios/options', {
+    const response = await api.post('/admin/studios/options', {
       type: normalizedType,
       name: normalizedName,
     })
 
-    return normalizedName
+    return response.data?.modalityId
+      ? { id: response.data.modalityId, name: response.data.modalityName || normalizedName }
+      : normalizedName
+  },
+
+  async deleteStudioOption({ type, id }) {
+    if (type !== 'modalities') {
+      throw new Error('Apenas modalidades podem ser apagadas.')
+    }
+    await api.delete(`/admin/studios/options/${id}`, { params: { type } })
+  },
+
+  async listModalitiesWithIds() {
+    const response = await api.get('/admin/studios/options')
+    const raw = response.data?.modalities ?? []
+    return Array.isArray(raw)
+      ? raw.map((m) => ({ id: m.modalityId, name: m.modalityName || m.name || '' })).filter((m) => m.id && m.name)
+      : []
   },
 }
 

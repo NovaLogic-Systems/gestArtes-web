@@ -17,8 +17,13 @@ import {
   getMarketplaceOptions,
   listMarketplaceListings,
 } from '../../services/marketplace'
+import {
+  listInventoryItems,
+  createInventoryRental
+} from '../../services/inventory'
 import ListingForm from '../../components/ListingForm'
 import Modal from '../../components/ui/Modal'
+import Button from '../../components/ui/Button'
 import './DashboardPage.css'
 import './marketplace.css'
 import { STUDENT_NAV_ITEMS as NAV_ITEMS } from './studentNav'
@@ -66,6 +71,7 @@ function parseFiltersFromURL(params) {
     location: params.get('location') || '',
     minPrice: params.get('minPrice') || '',
     maxPrice: params.get('maxPrice') || '',
+    origin: params.get('origin') || 'all',
   }
 }
 
@@ -82,8 +88,25 @@ function buildURLFromFilters(filters) {
   if (filters.location) params.set('location', filters.location)
   if (filters.minPrice) params.set('minPrice', filters.minPrice)
   if (filters.maxPrice) params.set('maxPrice', filters.maxPrice)
+  if (filters.origin && filters.origin !== 'all') params.set('origin', filters.origin)
 
   return params.toString()
+}
+
+const PAYMENT_METHOD_OPTIONS = [
+  { id: 1, label: 'MB Way' },
+  { id: 2, label: 'Cartão' },
+  { id: 3, label: 'Referência Multibanco' },
+]
+
+function toIsoDate(dateString) {
+  if (!dateString) return null
+  return `${dateString}T00:00:00.000Z`
+}
+
+function formatCurrency(value) {
+  if (value === null || value === undefined) return '—'
+  return new Intl.NumberFormat('pt-PT', { currency: 'EUR', style: 'currency' }).format(Number(value))
 }
 
 export default function MarketplacePage() {
@@ -101,6 +124,12 @@ export default function MarketplacePage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [searchHistory, setSearchHistory] = useState(loadSearchHistory)
+
+  // Rental modal states
+  const [rentalModal, setRentalModal] = useState({ open: false, item: null })
+  const [rentalForm, setRentalForm] = useState({ startDate: '', endDate: '', paymentMethodId: PAYMENT_METHOD_OPTIONS[0].id })
+  const [submittingRental, setSubmittingRental] = useState(false)
+  const [rentalError, setRentalError] = useState('')
 
   // Initialize filters from URL parameters
   const [filters, setFilters] = useState(() => {
@@ -140,17 +169,40 @@ export default function MarketplacePage() {
       setLoading(true)
       setError('')
 
-      const [listingsResult, optionsResult] = await Promise.allSettled([
+      const [listingsResult, inventoryResult, optionsResult] = await Promise.allSettled([
         listMarketplaceListings(),
+        listInventoryItems({ onlyAvailable: false }),
         getMarketplaceOptions(),
       ])
 
+      let loadedListings = []
+      let loadedInventory = []
+
       if (listingsResult.status === 'fulfilled') {
-        setListings(listingsResult.value)
+        loadedListings = listingsResult.value.map(item => ({
+          ...item,
+          id: `community-${item.listingId}`,
+          origin: 'community'
+        }))
       } else {
-        setListings([])
-        setError(listingsResult.localizeApiError(reason, 'Não foi possível carregar o marketplace.'))
+        setError(localizeApiError(listingsResult.reason, 'Não foi possível carregar o marketplace.'))
       }
+
+      if (inventoryResult.status === 'fulfilled') {
+        loadedInventory = inventoryResult.value.map(item => ({
+          ...item,
+          id: `school-${item.itemId}`,
+          origin: 'school',
+          title: item.itemName,
+          price: item.symbolicFee,
+          condition: { conditionName: item.conditionLabel || 'Verificado' },
+          location: 'Escola'
+        }))
+      } else {
+        setError(prev => prev || localizeApiError(inventoryResult.reason, 'Não foi possível carregar o inventário.'))
+      }
+
+      setListings([...loadedListings, ...loadedInventory])
 
       if (optionsResult.status === 'fulfilled') {
         setCategories(optionsResult.value.categories ?? [])
@@ -175,16 +227,19 @@ export default function MarketplacePage() {
       return listings
     }
 
-    return listings.filter((listing) => String(listing?.sellerId || listing?.seller?.userId || '') !== String(currentUserId))
+    return listings.filter((listing) => {
+      if (listing.origin === 'community') {
+        return String(listing?.sellerId || listing?.seller?.userId || '') !== String(currentUserId)
+      }
+      return true
+    })
   }, [currentUserId, listings])
 
   // Debounce effect: sync filters to URL after 300ms of inactivity
-  // This prevents excessive URL updates and potential API calls during rapid filter changes
   useEffect(() => {
     const queryString = buildURLFromFilters(filters)
     const newUrl = queryString ? `/student/marketplace?${queryString}` : '/student/marketplace'
 
-    // Only navigate if the URL actually changed to avoid unnecessary updates
     if (location.pathname + location.search !== newUrl) {
       const timeoutId = setTimeout(() => {
         navigate(newUrl, { replace: true })
@@ -194,13 +249,33 @@ export default function MarketplacePage() {
     }
   }, [filters, navigate, location.pathname, location.search])
 
+  const combinedCategories = useMemo(() => {
+    const map = new Map()
+    for (const cat of categories) {
+      if (cat.categoryId) {
+        map.set(String(cat.categoryId), cat.categoryName)
+      }
+    }
+    for (const item of listings) {
+      if (item.origin === 'school' && item.category?.categoryId) {
+        map.set(String(item.category.categoryId), item.category.categoryName)
+      }
+    }
+    return Array.from(map.entries()).map(([id, name]) => ({ categoryId: id, categoryName: name }))
+  }, [categories, listings])
+
   const filteredListings = useMemo(() => {
     const search = filters.search.trim().toLowerCase()
     const locationTerm = filters.location.trim().toLowerCase()
     const minPrice = filters.minPrice === '' ? null : Number(filters.minPrice)
     const maxPrice = filters.maxPrice === '' ? null : Number(filters.maxPrice)
+    const originFilter = filters.origin || 'all'
 
     return visibleListings.filter((listing) => {
+      if (originFilter !== 'all' && listing.origin !== originFilter) {
+        return false
+      }
+
       const listingSearchable = [
         listing.title,
         listing.description,
@@ -223,11 +298,12 @@ export default function MarketplacePage() {
         return false
       }
 
-      if (minPrice !== null && Number(listing.price) < minPrice) {
+      const price = listing.origin === 'school' ? Number(listing.symbolicFee || 0) : Number(listing.price || 0)
+      if (minPrice !== null && price < minPrice) {
         return false
       }
 
-      if (maxPrice !== null && Number(listing.price) > maxPrice) {
+      if (maxPrice !== null && price > maxPrice) {
         return false
       }
 
@@ -243,7 +319,7 @@ export default function MarketplacePage() {
   }
 
   function clearFilters() {
-    setFilters({ search: '', category: '', location: '', minPrice: '', maxPrice: '' })
+    setFilters({ search: '', category: '', location: '', minPrice: '', maxPrice: '', origin: 'all' })
   }
 
   function storeSearchInHistory(value) {
@@ -268,13 +344,23 @@ export default function MarketplacePage() {
   }
 
   async function handleOpenListing(listing) {
-    try {
-      const fresh = await getMarketplaceListingById(listing.listingId)
-      setSelectedListing(fresh || listing)
-      setIsDetailOpen(true)
-    } catch {
+    if (listing.origin === 'school') {
       setSelectedListing(listing)
       setIsDetailOpen(true)
+      return
+    }
+    // Open modal instantly with what we have in memory
+    setSelectedListing(listing)
+    setIsDetailOpen(true)
+    
+    // In background, fetch full listing details (like seller info)
+    try {
+      const fresh = await getMarketplaceListingById(listing.listingId)
+      if (fresh) {
+        setSelectedListing(fresh)
+      }
+    } catch {
+      // Keep existing listing if background fetch fails
     }
   }
 
@@ -286,6 +372,49 @@ export default function MarketplacePage() {
       await loadData()
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  // School Rental modal handlers
+  function openRentalModal(item) {
+    setIsDetailOpen(false)
+    setSelectedListing(null)
+    const today = new Date().toISOString().slice(0, 10)
+    setRentalForm({ startDate: today, endDate: '', paymentMethodId: PAYMENT_METHOD_OPTIONS[0].id })
+    setRentalError('')
+    setRentalModal({ open: true, item })
+  }
+
+  function closeRentalModal() {
+    if (submittingRental) return
+    setRentalModal({ open: false, item: null })
+    setRentalError('')
+  }
+
+  async function submitRental(event) {
+    event.preventDefault()
+    if (!rentalModal.item) return
+    if (!rentalForm.startDate) { setRentalError('A data de início é obrigatória.'); return }
+    if (rentalForm.endDate && rentalForm.endDate < rentalForm.startDate) {
+      setRentalError('A data de fim não pode ser anterior à data de início.')
+      return
+    }
+    try {
+      setSubmittingRental(true)
+      setRentalError('')
+      await createInventoryRental({
+        inventoryItemId: rentalModal.item.itemId || Number(rentalModal.item.id.replace('school-', '')),
+        startDate: toIsoDate(rentalForm.startDate),
+        endDate: rentalForm.endDate ? toIsoDate(rentalForm.endDate) : undefined,
+        paymentMethodId: Number(rentalForm.paymentMethodId),
+      })
+      setRentalModal({ open: false, item: null })
+      await loadData()
+      navigate('/student/inventory/rentals')
+    } catch (err) {
+      setRentalError(localizeApiError(err, 'Não foi possível criar a reserva.'))
+    } finally {
+      setSubmittingRental(false)
     }
   }
 
@@ -326,7 +455,7 @@ export default function MarketplacePage() {
             <div className="topbar-left">
               <button type="button" className="sidebar-toggle-btn" aria-label={toggleLabel} aria-controls="sidebar" aria-expanded={mobileOpen} onClick={handleToggle}>{toggleSymbol}</button>
               <div>
-                <h2>Marketplace da Comunidade</h2>
+                <h2>Marketplace</h2>
               </div>
             </div>
 
@@ -359,10 +488,19 @@ export default function MarketplacePage() {
               </div>
 
               <label>
+                <span>Origem</span>
+                <select value={filters.origin} onChange={(event) => updateFilter('origin', event.target.value)}>
+                  <option value="all">Todas as origens</option>
+                  <option value="school">Escola (Aluguer)</option>
+                  <option value="community">Comunidade (Venda/Troca)</option>
+                </select>
+              </label>
+
+              <label>
                 <span>Categoria</span>
                 <select value={filters.category} onChange={(event) => updateFilter('category', event.target.value)}>
                   <option value="">Todas</option>
-                  {categories.map((category) => (
+                  {combinedCategories.map((category) => (
                     <option key={category.categoryId} value={category.categoryId}>
                       {category.categoryName}
                     </option>
@@ -381,7 +519,7 @@ export default function MarketplacePage() {
 
               <div className="market-price-row">
                 <label>
-                  <span>Preco minimo</span>
+                  <span>Preço mínimo</span>
                   <input
                     type="number"
                     min="0"
@@ -390,7 +528,7 @@ export default function MarketplacePage() {
                   />
                 </label>
                 <label>
-                  <span>Preco maximo</span>
+                  <span>Preço máximo</span>
                   <input
                     type="number"
                     min="0"
@@ -408,7 +546,7 @@ export default function MarketplacePage() {
 
               <div className="market-history-box">
                 <div className="market-history-head">
-                  <h4>Historico de pesquisa</h4>
+                  <h4>Histórico de pesquisa</h4>
                   <button type="button" className="market-link-button" onClick={clearSearchHistory}>
                     Limpar
                   </button>
@@ -434,27 +572,34 @@ export default function MarketplacePage() {
 
             <article className="panel">
               <div className="market-feed-header">
-                <h3>Feed de anúncios</h3>
-                {!loading && visibleListings.length > 0 ? (
+                <h3>Catálogo de Artigos</h3>
+                {!loading && listings.length > 0 ? (
                   <p className="market-count-info">
-                    {filteredListings.length} de {visibleListings.length} anúncio{visibleListings.length !== 1 ? 's' : ''}
+                    {filteredListings.length} de {listings.length} artigo{listings.length !== 1 ? 's' : ''}
                   </p>
                 ) : null}
               </div>
 
               {error ? <p className="error-banner">{error}</p> : null}
-              {loading ? <p className="panel-subtle">A carregar anúncios...</p> : null}
+              {loading ? <p className="panel-subtle">A carregar artigos...</p> : null}
 
               {!loading && filteredListings.length === 0 ? (
-                <p className="empty">Não encontramos anúncios com os filtros atuais.</p>
+                <p className="empty">Não encontramos artigos com os filtros atuais.</p>
               ) : (
                 <div className="market-listing-grid">
                   {filteredListings.map((listing) => (
                     <ListingCard
-                      key={listing.listingId}
+                      key={listing.id}
                       listing={listing}
                       onOpen={handleOpenListing}
-                      onBuy={handleOpenListing}
+                      onBuy={listing.origin === 'school' ? openRentalModal : handleOpenListing}
+                      originLabel={
+                        listing.origin === 'school'
+                          ? 'Escola'
+                          : listing.seller
+                          ? [listing.seller.firstName, listing.seller.lastName].filter(Boolean).join(' ')
+                          : 'Comunidade'
+                      }
                     />
                   ))}
                 </div>
@@ -471,6 +616,7 @@ export default function MarketplacePage() {
           setIsDetailOpen(false)
           setSelectedListing(null)
         }}
+        onRent={openRentalModal}
       />
 
       <Modal
@@ -489,6 +635,74 @@ export default function MarketplacePage() {
           onSubmit={handleCreateListing}
           onCancel={() => setIsCreateOpen(false)}
         />
+      </Modal>
+
+      {/* Modal: Alugar (School Rental Modal) */}
+      <Modal
+        open={rentalModal.open}
+        title={rentalModal.item ? `Alugar "${rentalModal.item.title || rentalModal.item.itemName}"` : 'Alugar artigo'}
+        description="Seleciona o período de aluguer e o método de pagamento."
+        size="md"
+        className="student-inventory-modal"
+        onClose={closeRentalModal}
+        closeOnBackdrop={!submittingRental}
+        footer={
+          <div className="modal-footer-actions" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+            <Button type="button" variant="secondary" onClick={closeRentalModal} disabled={submittingRental}>
+              Cancelar
+            </Button>
+            <Button form="rental-form" type="submit" variant="cta" disabled={submittingRental}>
+              {submittingRental ? 'A enviar pedido…' : 'Enviar pedido à direção'}
+            </Button>
+          </div>
+        }
+      >
+        <form id="rental-form" className="modal-form" onSubmit={submitRental}>
+          {rentalModal.item ? (
+            <div className="rental-summary" style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '8px', background: '#f5edfb' }}>
+              <p style={{ margin: '0 0 0.25rem' }}>Artigo: <strong>{rentalModal.item.title || rentalModal.item.itemName}</strong></p>
+              <p style={{ margin: '0 0 0.25rem' }}>Taxa simbólica: <strong>{formatCurrency(rentalModal.item.price || rentalModal.item.symbolicFee)}</strong></p>
+              <p style={{ margin: '0' }}>Disponível: <strong>{rentalModal.item.availableQuantity} / {rentalModal.item.totalQuantity}</strong></p>
+            </div>
+          ) : null}
+
+          <label className="form-label" style={{ display: 'grid', gap: '0.35rem', marginBottom: '0.85rem' }}>
+            <span style={{ fontWeight: 600, color: '#4c4666' }}>Data de início</span>
+            <input
+              type="date"
+              required
+              className="form-input"
+              style={{ padding: '0.56rem 0.7rem', border: '1px solid #d7ccdf', borderRadius: '10px', width: '100%' }}
+              value={rentalForm.startDate}
+              onChange={(e) => setRentalForm((f) => ({ ...f, startDate: e.target.value }))}
+            />
+          </label>
+          <label className="form-label" style={{ display: 'grid', gap: '0.35rem', marginBottom: '0.85rem' }}>
+            <span style={{ fontWeight: 600, color: '#4c4666' }}>Data de fim (opcional)</span>
+            <input
+              type="date"
+              className="form-input"
+              style={{ padding: '0.56rem 0.7rem', border: '1px solid #d7ccdf', borderRadius: '10px', width: '100%' }}
+              value={rentalForm.endDate}
+              onChange={(e) => setRentalForm((f) => ({ ...f, endDate: e.target.value }))}
+            />
+          </label>
+          <label className="form-label" style={{ display: 'grid', gap: '0.35rem', marginBottom: '0.85rem' }}>
+            <span style={{ fontWeight: 600, color: '#4c4666' }}>Método de pagamento</span>
+            <select
+              className="form-select"
+              style={{ padding: '0.56rem 0.7rem', border: '1px solid #d7ccdf', borderRadius: '10px', width: '100%' }}
+              value={rentalForm.paymentMethodId}
+              onChange={(e) => setRentalForm((f) => ({ ...f, paymentMethodId: e.target.value }))}
+            >
+              {PAYMENT_METHOD_OPTIONS.map((opt) => (
+                <option key={opt.id} value={opt.id}>{opt.label}</option>
+              ))}
+            </select>
+          </label>
+
+          {rentalError ? <p className="modal-error" style={{ color: '#b52142', margin: '0.5rem 0 0', fontWeight: 600 }}>{rentalError}</p> : null}
+        </form>
       </Modal>
     </div>
   )

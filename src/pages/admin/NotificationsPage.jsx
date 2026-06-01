@@ -48,7 +48,7 @@ export default function AdminNotificationsPage() {
     try {
       setNotifications(await notificationService.list())
     } catch {
-      setError('Nao foi possivel carregar as notificacoes.')
+      setError('Não foi possível carregar as notificações.')
     } finally {
       setLoading(false)
     }
@@ -94,7 +94,7 @@ export default function AdminNotificationsPage() {
       setNotifications((current) =>
         current.map((item) => (item.id === notification.id ? { ...item, isRead: false } : item)),
       )
-      setError('Nao foi possivel marcar a notificacao como lida.')
+      setError('Não foi possível marcar a notificação como lida.')
     }
   }
 
@@ -106,7 +106,7 @@ export default function AdminNotificationsPage() {
       await notificationService.remove(notification.id)
     } catch {
       setNotifications(previous)
-      setError('Nao foi possivel apagar a notificacao.')
+      setError('Não foi possível apagar a notificação.')
     }
   }
 
@@ -120,8 +120,7 @@ export default function AdminNotificationsPage() {
 
   return (
     <AdminShell
-      title="Notificacoes"
-      subtitle="Alertas de coaching, sistema e marketplace"
+      title="Notificações"
       activePath="/admin/notifications"
     >
       <section className="content-grid admin-notifications-page">

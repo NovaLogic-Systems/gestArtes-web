@@ -33,7 +33,7 @@
   gap: 1rem;
 }
 
-.teacher-coaching-page .panel-header > div {
+.teacher-coaching-page .panel-header>div {
   min-width: 0;
 }
 
@@ -111,40 +111,74 @@
   background: var(--studio-soft-bg);
 }
 
-.teacher-coaching-page .decision-toggle button {
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--studio-ghost-ink);
+/* Global rules (portal-safe) for the 3-option coaching decision toggle */
+.coaching-decision-toggle {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.coaching-decision-toggle button {
+  padding: 0.85rem 0.6rem;
+  border-radius: 12px;
+  border: 1.5px solid var(--studio-field-line);
+  background: #fff;
+  color: var(--studio-ink);
   cursor: pointer;
   font: inherit;
   font-weight: 600;
-  padding: 0.6rem 0.95rem;
+  font-size: 0.9rem;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
-.teacher-coaching-page .decision-toggle button.active.approve {
-  background: linear-gradient(135deg, rgba(11, 157, 143, 0.18), rgba(16, 178, 163, 0.1));
-  border-color: color-mix(in srgb, var(--studio-cta-start) 32%, #ffffff 68%);
-  color: #0a7a70;
+.coaching-decision-toggle button:hover:not(:disabled) {
+  background: var(--studio-soft-bg);
+  border-color: var(--studio-ghost-ink);
 }
 
-.teacher-coaching-page .decision-toggle button.active.reject {
-  background: var(--studio-danger-bg);
-  border-color: var(--studio-danger-line);
-  color: var(--studio-danger-ink);
+.coaching-decision-toggle button.active-approve {
+  background: #ecfdf5;
+  border-color: #10b981;
+  color: #065f46;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.18);
 }
 
-.teacher-coaching-page .observations-field {
+.coaching-decision-toggle button.active-suggest {
+  background: var(--studio-soft-bg);
+  border-color: var(--studio-ghost-ink);
+  color: var(--studio-ink);
+  box-shadow: 0 2px 8px rgba(67, 51, 95, 0.1);
+}
+
+.coaching-decision-toggle button.active-reject {
+  background: #fef2f2;
+  border-color: #ef4444;
+  color: #991b1b;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.12);
+}
+
+@media (max-width: 520px) {
+  .coaching-decision-toggle {
+    grid-template-columns: 1fr;
+  }
+}
+
+.teacher-coaching-modal .observations-field {
   display: grid;
   gap: 0.45rem;
 }
 
-.teacher-coaching-page .observations-field span {
+.teacher-coaching-modal .observations-field span {
   color: var(--studio-ink);
   font-weight: 600;
 }
 
-.teacher-coaching-page .observations-field textarea {
+.teacher-coaching-modal .observations-field textarea {
   background: #fff;
   border: 1px solid var(--studio-field-line);
   border-radius: 1rem;
@@ -156,24 +190,85 @@
   width: 100%;
 }
 
-.teacher-coaching-page .observations-meta {
+.teacher-coaching-modal .observations-field textarea:focus,
+.teacher-coaching-modal .coaching-modal-input:focus {
+  outline: none;
+  border-color: var(--studio-cta-start);
+  box-shadow: 0 0 0 3px rgba(11, 157, 143, 0.14);
+}
+
+.teacher-coaching-modal .observations-meta {
   display: flex;
   justify-content: flex-end;
   color: var(--studio-muted);
 }
 
-.teacher-coaching-page .request-modal-content {
+.teacher-coaching-modal .coaching-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.teacher-coaching-modal .coaching-modal-field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.teacher-coaching-modal .coaching-modal-field label {
+  font-size: 0.9rem;
+  color: var(--studio-muted);
+  font-weight: 600;
+}
+
+.teacher-coaching-modal .coaching-modal-input {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 11px;
+  border-radius: 10px;
+  border: 1px solid var(--studio-field-line);
+  background: var(--studio-field-bg);
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--studio-ink);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.teacher-coaching-modal .coaching-modal-input[type='datetime-local'] {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+.teacher-coaching-modal .coaching-modal-input::-webkit-calendar-picker-indicator {
+  opacity: 0.7;
+}
+
+.teacher-coaching-modal .coaching-modal-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+.teacher-coaching-modal .coaching-modal-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--studio-muted);
+}
+
+.teacher-coaching-modal .coaching-duration-preview {
+  color: var(--studio-muted);
+  font-size: 0.82rem;
+}
+
+.teacher-coaching-modal .request-modal-content {
   display: grid;
   gap: 1rem;
 }
 
-.teacher-coaching-page .request-meta-grid {
+.teacher-coaching-modal .request-meta-grid {
   display: grid;
   gap: 0.75rem;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
-.teacher-coaching-page .request-meta-card {
+.teacher-coaching-modal .request-meta-card {
   background: var(--studio-soft-bg);
   border: 1px solid var(--studio-soft-line);
   border-radius: 1rem;
@@ -182,45 +277,141 @@
   padding: 0.85rem 0.95rem;
 }
 
-.teacher-coaching-page .request-meta-card strong {
+.teacher-coaching-modal .request-meta-card strong {
   color: var(--studio-muted);
   font-size: 0.78rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-.teacher-coaching-page .request-meta-card span {
+.teacher-coaching-modal .request-meta-card span {
   color: var(--studio-ink);
   font-weight: 700;
 }
 
-.teacher-coaching-page .request-meta-card small {
+.teacher-coaching-modal .request-meta-card small {
   color: var(--studio-muted);
 }
 
-.teacher-coaching-page .modal-warning,
-.teacher-coaching-page .modal-error {
+.teacher-coaching-modal .modal-warning,
+.teacher-coaching-modal .modal-error {
   border-radius: 0.9rem;
   padding: 0.85rem 0.95rem;
 }
 
-.teacher-coaching-page .modal-warning {
+.teacher-coaching-modal .modal-warning {
   background: var(--studio-soft-bg);
   border: 1px solid var(--studio-soft-line);
   color: var(--studio-ink);
 }
 
-.teacher-coaching-page .modal-error {
+.teacher-coaching-modal .modal-error {
   background: var(--studio-error-bg);
   border: 1px solid var(--studio-error-line);
   color: var(--studio-error-ink);
 }
 
-.teacher-coaching-page .modal-footer-actions {
+.teacher-coaching-modal .modal-footer-actions {
   display: flex;
   gap: 0.5rem;
   justify-content: flex-end;
   flex-wrap: wrap;
+}
+
+/* Group proposal student chips */
+.group-student-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.group-student-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.65rem 0.3rem 0.5rem;
+  border: 1px solid var(--studio-field-line);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--studio-ink);
+}
+
+.group-student-chip button {
+  background: none;
+  border: none;
+  color: var(--studio-muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0 0.1rem;
+  transition: color 0.12s;
+}
+
+.group-student-chip button:hover {
+  color: var(--studio-danger-ink);
+}
+
+.group-search-results {
+  border: 1px solid var(--studio-field-line);
+  border-radius: 0.85rem;
+  background: #fff;
+  max-height: 220px;
+  overflow-y: auto;
+  margin-top: 0.25rem;
+}
+
+.group-search-result-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid var(--studio-soft-line);
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.group-search-result-item:last-child {
+  border-bottom: none;
+}
+
+.group-search-result-item:hover {
+  background: var(--studio-soft-bg);
+}
+
+.group-search-result-item.already-added {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.group-pending-card {
+  background: var(--studio-soft-bg);
+  border: 1px solid var(--studio-soft-line);
+  border-radius: 1rem;
+  padding: 0.85rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.group-pending-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.group-pending-card-info strong {
+  display: block;
+  color: var(--studio-ink);
+}
+
+.group-pending-card-info small {
+  color: var(--studio-muted);
+  font-size: 0.8rem;
 }
 
 @media (max-width: 720px) {
@@ -228,7 +419,7 @@
     flex-direction: column;
   }
 
-  .teacher-coaching-page .actions-row > * {
+  .teacher-coaching-page .actions-row>* {
     width: 100%;
   }
 
@@ -240,7 +431,7 @@
     flex: 1 1 0;
   }
 
-  .teacher-coaching-page .modal-footer-actions > * {
+  .teacher-coaching-page .modal-footer-actions>* {
     flex: 1 1 100%;
   }
 }

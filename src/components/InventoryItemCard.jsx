@@ -35,6 +35,7 @@ export default function InventoryItemCard({ item, onOpenDetails, onRent }) {
 			<div className="inventory-card-body">
 				<div className="inventory-card-header">
 					<div>
+						<span style={{ display: 'inline-block', fontSize: '0.72rem', fontWeight: 700, color: '#0b9d8f' }}>de Entartes</span>
 						<p className="inventory-card-category">{item?.category?.categoryName || 'Inventário da escola'}</p>
 						<button type="button" className="inventory-card-title" onClick={() => onOpenDetails?.(item)}>
 							{item?.itemName || 'Artigo sem nome'}

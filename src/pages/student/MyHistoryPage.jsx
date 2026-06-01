@@ -73,7 +73,7 @@ function resolveStatusBadge(status) {
   if (s.includes('cancel')) return { key: 'cancelled', label: 'Cancelada', variant: 'danger' }
   if (s.includes('reject') || s === 'notapproved') return { key: 'rejected', label: 'Rejeitada', variant: 'danger' }
   if (s.includes('finalizationvalidationpending') || s.includes('awaitingcompletion') || s.includes('awaitingconfirmation')) {
-    return { key: 'awaitingConfirmation', label: 'Aguarda confirmação', variant: 'warning' }
+    return { key: 'awaitingConfirmation', label: 'Aguarda a tua confirmação', variant: 'warning' }
   }
   if (s.includes('teacherapproved') || s.includes('pendingadmin') || s.includes('awaitingdirection')) {
     return { key: 'awaitingDirection', label: 'Aguarda direção', variant: 'info' }
@@ -86,8 +86,8 @@ function resolveStatusBadge(status) {
     return { key: 'active', label: 'Ativa', variant: 'success' }
   }
   if (s.includes('pendingapproval') || s.includes('pend')) return { key: 'pending', label: 'Pendente', variant: 'warning' }
-  if (s.includes('await') || s.includes('aguarda')) return { key: 'awaitingConfirmation', label: 'Aguarda confirmação', variant: 'warning' }
-  return { key: 'other', label: 'Estado desconhecido', variant: 'neutral' }
+  if (s.includes('await') || s.includes('aguarda')) return { key: 'awaitingConfirmation', label: 'Aguarda a tua confirmação', variant: 'warning' }
+  return { key: 'other', label: 'Em processamento', variant: 'neutral' }
 }
 
 function matchesStatusFilter(session, filterValue) {
