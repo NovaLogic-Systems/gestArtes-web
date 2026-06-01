@@ -2,23 +2,21 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import NotificationsBell from '../../components/NotificationsBell'
 import { useAuth } from '../../hooks/useAuth'
-import notificationService, { formatNotificationDate } from '../../services/notificationService'
+import notificationService, { formatNotificationDate, invalidateNotificationCache, resolveNotificationLink } from '../../services/notificationService'
 import { subscribeToNotifications } from '../../services/realtimeNotifications'
-import '../student/DashboardPage.css'
+import '../admin-studios.css'
 import './NotificationsPage.css'
-
-const NAV_ITEMS = [
-  { label: 'Painel', href: '/teacher/dashboard' },
-  { label: 'Pedidos de Admissão', href: '/teacher/admission-requests' },
-  { label: 'Confirmação de Sessões', href: '/teacher/sessions/confirmation' },
-  { label: 'Chat do Marketplace', href: '/teacher/marketplace/conversas' },
-]
+import { TEACHER_NAV_ITEMS as NAV_ITEMS } from './teacherNav'
 
 const FILTERS = [
   { label: 'Todas', value: 'all' },
   { label: 'Coaching', value: 'coaching' },
-  { label: 'Sistema', value: 'system' },
+  { label: 'Adesões', value: 'join_request' },
+  { label: 'Agenda', value: 'schedule' },
+  { label: 'Inventário', value: 'inventory' },
   { label: 'Marketplace', value: 'marketplace' },
+  { label: 'Conta', value: 'account' },
+  { label: 'Sistema', value: 'system' },
 ]
 
 export default function NotificationsPage() {
@@ -32,7 +30,23 @@ export default function NotificationsPage() {
   const [error, setError] = useState('')
   const [activeFilter, setActiveFilter] = useState('all')
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false))
+
+  const handleSidebarToggle = useCallback(() => {
+    if (isMobile) {
+      setMobileOpen((v) => !v)
+      return
+    }
+    setSidebarCollapsed((v) => !v)
+  }, [isMobile])
+
+  const sidebarHidden = isMobile || sidebarCollapsed
+  const appShellClassName = ['app-shell', sidebarHidden ? 'sidebar-hidden' : ''].filter(Boolean).join(' ')
+  const sidebarClassName = ['sidebar', isMobile && mobileOpen ? 'open' : ''].filter(Boolean).join(' ')
+  const sidebarToggleSymbol = isMobile
+    ? (mobileOpen ? '✕' : '☰')
+    : (sidebarCollapsed ? '▶' : '◀')
 
   const loadNotifications = useCallback(async () => {
     setLoading(true)
@@ -53,6 +67,7 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     return subscribeToNotifications((notification) => {
+      invalidateNotificationCache()
       setNotifications((current) => [notification, ...current.filter((item) => item.id !== notification.id)])
     })
   }, [])
@@ -71,6 +86,11 @@ export default function NotificationsPage() {
     onResize()
 
     return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  useEffect(() => {
+    document.body.classList.add('studio-page')
+    return () => document.body.classList.remove('studio-page')
   }, [])
 
   const filteredNotifications = useMemo(() => {
@@ -112,10 +132,26 @@ export default function NotificationsPage() {
     }
   }
 
+  const handleNotificationClick = (notification) => {
+    void handleMarkAsRead(notification)
+    const target = resolveNotificationLink(notification, '/teacher/notifications')
+    if (target && target !== '/teacher/notifications') {
+      navigate(target)
+    }
+  }
+
   return (
-    <div className="student-dashboard teacher-dashboard teacher-notifications-page">
-      <div className="app-shell">
-        <aside className={`sidebar${mobileOpen ? ' open' : ''}`} id="sidebar">
+    <div className="teacher-dashboard teacher-notifications-page">
+      <div className={appShellClassName}>
+        {isMobile && mobileOpen ? (
+          <button
+            type="button"
+            className="sidebar-overlay"
+            aria-label="Fechar navegação lateral"
+            onClick={() => setMobileOpen(false)}
+          />
+        ) : null}
+        <aside className={sidebarClassName} id="sidebar">
           <div className="brand">
             <span className="brand-dot" />
             <div>
@@ -161,21 +197,22 @@ export default function NotificationsPage() {
           <header className="topbar">
             <div className="topbar-left">
               <button
-                className="menu-toggle"
                 type="button"
+                className="sidebar-toggle-btn"
                 aria-controls="sidebar"
                 aria-expanded={mobileOpen}
-                aria-label={mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'}
-                onClick={() => setMobileOpen((current) => !current)}
+                aria-label={isMobile ? (mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral') : (sidebarCollapsed ? 'Mostrar barra lateral' : 'Esconder barra lateral')}
+                onClick={handleSidebarToggle}
               >
-                ☰ Menu
+                {sidebarToggleSymbol}
               </button>
-              <h2>Notificações</h2>
-              <p>Alertas de coaching, sistema e marketplace</p>
+              <div>
+                <h2>Notificações</h2>
+              </div>
             </div>
 
             <div className="topbar-right">
-              <NotificationsBell />
+              <NotificationsBell pageLink="/teacher/notifications" />
             </div>
           </header>
 
@@ -220,7 +257,12 @@ export default function NotificationsPage() {
                 <ul className="notification-page-list">
                   {filteredNotifications.map((notification) => (
                     <li key={notification.id} className={notification.isRead ? '' : 'unread'}>
-                      <button type="button" className="notification-main" onClick={() => handleMarkAsRead(notification)}>
+                      <button
+                        type="button"
+                        className="notification-main"
+                        onClick={() => handleNotificationClick(notification)}
+                        title="Abrir página relacionada"
+                      >
                         <span className="notification-type">{notification.typeLabel}</span>
                         <strong>{notification.title}</strong>
                         {notification.message ? <p>{notification.message}</p> : null}

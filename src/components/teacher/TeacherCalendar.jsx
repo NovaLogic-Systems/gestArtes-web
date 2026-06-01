@@ -39,18 +39,20 @@ export default function TeacherCalendar ({ slots = [], proposed = new Set(), onT
       btnText = 'Indisponível'
       btnDisabled = true
     } else if (slot) {
-      if (slot.status === 'blocked') {
+      const status = String(slot.status || '').toLowerCase();
+      
+      if (status === 'blocked') {
         className += ' unavailable'
         isUnavailable = true
         btnText = 'Indisponível'
         btnDisabled = true
       }
-      if (slot.status === 'pending') {
+      if (status === 'pending') {
         className += ' pending'
         btnText = 'Pendente'
         isApprovedOrPending = true
       }
-      if (slot.status === 'approved') {
+      if (status === 'approved') {
         className += ' approved'
         btnText = 'Aprovado'
         isApprovedOrPending = true

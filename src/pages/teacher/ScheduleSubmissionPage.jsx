@@ -1,37 +1,17 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import notificationPreviewService from '../../services/notificationPreviewService'
 import TeacherCalendar from '../../components/teacher/TeacherCalendar.jsx'
 import Toast from '../../components/ui/Toast'
 import NotificationsBell from '../../components/NotificationsBell'
-import { fetchTeacherAvailability, submitTeacherAvailability } from '../../services/teacherAvailability'
+import { fetchTeacherAvailability, submitTeacherAvailability, reportTeacherAbsence } from '../../services/teacherAvailability'
+import api from '../../services/api'
 import UnavailabilityModal from '../../components/teacher/UnavailabilityModal'
+import '../admin-studios.css'
 import './AdmissionRequestsPage.css'
 import './ScheduleSubmissionPage.css'
-
-const NAV_ITEMS = [
-  { label: 'Painel', href: '/teacher/dashboard' },
-  { label: 'Disponibilidade', href: '/teacher/availability' },
-  { label: 'Pedidos de admissão', href: '/teacher/admission-requests' },
-  { label: 'Confirmação de sessões', href: '/teacher/sessions/confirmation' },
-  { label: 'Marketplace', href: '/teacher/marketplace' },
-  { label: 'Minha Conta', href: '/teacher/account' },
-]
-
-function formatNotificationDate(value) {
-  if (!value) return ''
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return ''
-  const now = new Date()
-  const diffMs = now - parsed
-  const diffMins = Math.floor(diffMs / 60000)
-  if (diffMins < 1) return 'agora mesmo'
-  if (diffMins < 60) return `há ${diffMins} min`
-  const diffHours = Math.floor(diffMins / 60)
-  if (diffHours < 24) return `há ${diffHours}h`
-  return new Intl.DateTimeFormat('pt-PT', { dateStyle: 'short' }).format(parsed)
-}
+import { TEACHER_NAV_ITEMS as NAV_ITEMS } from './teacherNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 export default function ScheduleSubmissionPage() {
   const { logout, user } = useAuth()
@@ -55,15 +35,6 @@ export default function ScheduleSubmissionPage() {
   const [error, setError] = useState('')
   const [toast, setToast] = useState(null)
 
-  const [notificationsOpen, setNotificationsOpen] = useState(false)
-  const [notificationsLoaded, setNotificationsLoaded] = useState(false)
-  const [notificationsLoading, setNotificationsLoading] = useState(false)
-  const [notificationsError, setNotificationsError] = useState('')
-  const [notifications, setNotifications] = useState([])
-  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0)
-  const notificationCloseTimerRef = useRef(null)
-  const notificationBoxRef = useRef(null)
-
   const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'Professor'
 
   const sidebarHidden = isMobile || sidebarCollapsed
@@ -81,6 +52,11 @@ export default function ScheduleSubmissionPage() {
   const handleMobileNavClick = useCallback(() => {
     if (isMobile) setMobileOpen(false)
   }, [isMobile])
+
+  useEffect(() => {
+    document.body.classList.add('studio-page')
+    return () => document.body.classList.remove('studio-page')
+  }, [])
 
   useEffect(() => {
     const onResize = () => {
@@ -106,14 +82,14 @@ export default function ScheduleSubmissionPage() {
           const hourParts = item.slot.startTime.split(':')
           const hour = parseInt(hourParts[0], 10)
           const minute = parseInt(hourParts[1], 10)
-          mappedSlots.push({ day, hour, minute, status: item.status?.toLowerCase() })
+          mappedSlots.push({ id: item.id, reason: item.notes, day, hour, minute, status: item.status?.toLowerCase() })
         } else if (item.mode === 'semester' && item.slot) {
           const date = new Date(item.slot.startDateTime)
           const jsDay = date.getDay()
           const day = jsDay === 0 ? 6 : jsDay - 1
           const hour = date.getHours()
           const minute = date.getMinutes()
-          mappedSlots.push({ day, hour, minute, status: item.status?.toLowerCase() })
+          mappedSlots.push({ id: item.id, reason: item.notes, day, hour, minute, status: item.status?.toLowerCase() })
         }
       }
       setSlots(mappedSlots)
@@ -127,67 +103,6 @@ export default function ScheduleSubmissionPage() {
   useEffect(() => {
     load()
   }, [load])
-
-  useEffect(() => {
-    notificationPreviewService.getPreview({ limit: 0, includeUnreadCount: true })
-      .then((preview) => setNotificationUnreadCount(preview.unreadCount))
-      .catch(() => {})
-  }, [])
-
-  useEffect(() => {
-    if (!notificationsOpen) return
-    const onClick = (e) => {
-      if (notificationBoxRef.current && !notificationBoxRef.current.contains(e.target)) {
-        setNotificationsOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', onClick)
-    return () => document.removeEventListener('mousedown', onClick)
-  }, [notificationsOpen])
-
-  const loadNotifications = useCallback(async () => {
-    if (notificationsLoaded || notificationsLoading) return
-    setNotificationsLoading(true)
-    setNotificationsError('')
-    try {
-      const preview = await notificationPreviewService.getPreview({ limit: 4, includeUnreadCount: true })
-      setNotifications(preview.items)
-      setNotificationsLoaded(true)
-      setNotificationUnreadCount(preview.unreadCount)
-    } catch {
-      setNotificationsError('Não foi possível carregar as notificações.')
-    } finally {
-      setNotificationsLoading(false)
-    }
-  }, [notificationsLoaded, notificationsLoading])
-
-  const openNotificationsOnHover = useCallback(() => {
-    if (notificationCloseTimerRef.current) {
-      window.clearTimeout(notificationCloseTimerRef.current)
-      notificationCloseTimerRef.current = null
-    }
-    setNotificationsOpen(true)
-    if (!notificationsLoaded) {
-      loadNotifications()
-    }
-  }, [loadNotifications, notificationsLoaded])
-
-  const closeNotificationsOnHover = useCallback(() => {
-    if (notificationCloseTimerRef.current) {
-      window.clearTimeout(notificationCloseTimerRef.current)
-    }
-    notificationCloseTimerRef.current = window.setTimeout(() => {
-      setNotificationsOpen(false)
-      notificationCloseTimerRef.current = null
-    }, 120)
-  }, [])
-
-  const handleNotificationsToggle = useCallback(() => {
-    setNotificationsOpen((v) => {
-      if (!v) loadNotifications()
-      return !v
-    })
-  }, [loadNotifications])
 
   async function handleLogout() {
     await logout()
@@ -205,38 +120,48 @@ export default function ScheduleSubmissionPage() {
   }, [])
 
   const handleRequestException = useCallback((day, hour, minute, slot) => {
-    setModalSlot({ day, hour, minute, slot })
+    setModalSlot({ day, hour, minute, slot, id: slot?.id, reason: slot?.reason })
     setModalOpen(true)
   }, [])
 
   const submitException = async ({ reason, slotData }) => {
     setSaving(true)
+    setError('')
     try {
-      // Create punctual exception request
-      const dayOfWeek = slotData.day === 6 ? 0 : slotData.day + 1
-      const date = new Date()
-      date.setDate(date.getDate() + ((dayOfWeek + 7 - date.getDay()) % 7) || 7)
-      
-      const startDateTime = new Date(date)
-      startDateTime.setHours(slotData.hour, slotData.minute, 0, 0)
-      
-      const endDateTime = new Date(date)
-      endDateTime.setHours(slotData.hour, slotData.minute + 30, 0, 0)
+      let startDateTimeStr = slotData?.startDateTime;
+      let endDateTimeStr = slotData?.endDateTime;
 
-      await submitTeacherAvailability({ 
-        slots: [{
-          mode: 'semester',
-          startDateTime: startDateTime.toISOString(),
-          endDateTime: endDateTime.toISOString()
-        }],
-        notes: reason
+      if (!startDateTimeStr || !endDateTimeStr) {
+        if (!slotData || slotData.day === undefined) {
+          throw new Error('Dados de ausência em falta.')
+        }
+        const dayOfWeek = slotData.day === 6 ? 0 : slotData.day + 1
+        const date = new Date()
+        date.setDate(date.getDate() + ((dayOfWeek + 7 - date.getDay()) % 7) || 7)
+
+        const startDateTime = new Date(date)
+        startDateTime.setHours(slotData.hour, slotData.minute, 0, 0)
+
+        const endDateTime = new Date(date)
+        endDateTime.setHours(slotData.hour, slotData.minute + 30, 0, 0)
+
+        startDateTimeStr = startDateTime.toISOString();
+        endDateTimeStr = endDateTime.toISOString();
+      }
+
+      await reportTeacherAbsence({
+        startDateTime: startDateTimeStr,
+        endDateTime: endDateTimeStr,
+        reason,
       })
 
-      setToast({ variant: 'success', title: 'Pedido enviado', description: 'O pedido de indisponibilidade foi submetido.' })
+      setToast({ variant: 'success', title: 'Ausência reportada', description: 'O pedido de ausência foi submetido para validação.' })
       setModalOpen(false)
       await load()
-    } catch {
-      setError('Erro ao enviar pedido de indisponibilidade.')
+    } catch (err) {
+      const message = localizeApiError(err, 'Erro ao reportar ausência.')
+      setError(message)
+      setToast({ variant: 'danger', title: 'Erro', description: message })
     } finally {
       setSaving(false)
     }
@@ -299,6 +224,26 @@ export default function ScheduleSubmissionPage() {
     }
   }
 
+  const cancelException = async (availabilityId) => {
+    try {
+      await api.delete(`/teacher/availability/${availabilityId}`)
+
+      setToast({
+        variant: 'success',
+        title: 'Pedido cancelado',
+        description: 'A sua disponibilidade foi revertida com sucesso.'
+      })
+      setModalOpen(false)
+      load()
+    } catch (err) {
+      setToast({
+        variant: 'danger',
+        title: 'Erro ao cancelar',
+        description: localizeApiError(err, 'Erro ao cancelar a ausência.')
+      })
+    }
+  }
+
   const sidebarToggleSymbol = isMobile
     ? (mobileOpen ? '✕' : '☰')
     : (sidebarCollapsed ? '▶' : '◀')
@@ -319,7 +264,7 @@ export default function ScheduleSubmissionPage() {
             <span className="brand-dot" aria-hidden="true" />
             <div>
               <h1>gestArtes</h1>
-              <p>Professor</p>
+              <p>{displayName}</p>
             </div>
           </div>
 
@@ -335,12 +280,8 @@ export default function ScheduleSubmissionPage() {
                 {item.label}
               </Link>
             ))}
-          </div>
-
-          <div className="sidebar-footer">
-            <span className="sidebar-user">{displayName}</span>
-            <button type="button" className="nav-link logout-link" onClick={handleLogout}>
-              Terminar sessão
+            <button className="nav-link" type="button" onClick={handleLogout}>
+              Terminar Sessão
             </button>
           </div>
         </aside>
@@ -348,55 +289,22 @@ export default function ScheduleSubmissionPage() {
         <main className="main">
           <header className="topbar">
             <div className="topbar-left">
-              <button
-                type="button"
-                className="menu-toggle"
-                aria-label={isMobile ? (mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral') : (sidebarCollapsed ? 'Mostrar barra lateral' : 'Esconder barra lateral')}
-                onClick={handleSidebarToggle}
-              >
-                {sidebarToggleSymbol}
-              </button>
-              <div>
+              <div className="topbar-heading">
+                <button
+                  type="button"
+                  className="sidebar-toggle-btn"
+                  aria-label={isMobile ? (mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral') : (sidebarCollapsed ? 'Mostrar barra lateral' : 'Esconder barra lateral')}
+                  aria-controls="sidebar"
+                  aria-expanded={mobileOpen}
+                  onClick={handleSidebarToggle}
+                >
+                  {sidebarToggleSymbol}
+                </button>
                 <h2>Disponibilidade Interativa</h2>
-                <p>Selecione blocos pontuais e recorrência: dias úteis das 18:00 às 21:30 e sábado das 09:00 às 13:00.</p>
               </div>
             </div>
-            <div className="topbar-right" ref={notificationBoxRef} style={{ position: 'relative' }}>
-              <span className="pill" id="availabilitySummary">{proposed.size} slots selecionados</span>
-              <div
-                className="notifications-hover-area"
-                onMouseEnter={openNotificationsOnHover}
-                onMouseLeave={closeNotificationsOnHover}
-              >
-                <NotificationsBell
-                  onClick={handleNotificationsToggle}
-                  count={notificationUnreadCount}
-                  onMouseEnter={openNotificationsOnHover}
-                />
-
-                {notificationsOpen && (
-                  <div className="notif-dropdown" role="dialog" aria-label="Painel de notificações" onMouseEnter={openNotificationsOnHover} onMouseLeave={closeNotificationsOnHover}>
-                    <div className="notif-dropdown-header">
-                      <div className="notifications-popover-sub">Últimas notificações</div>
-                      <button type="button" className="icon-btn" onClick={() => setNotificationsOpen(false)} aria-label="Fechar notificações">✕</button>
-                    </div>
-                    <div className="notif-dropdown-body">
-                      {notificationsLoading && <p className="notif-empty">A carregar…</p>}
-                      {notificationsError && <p className="notif-empty notif-error">{notificationsError}</p>}
-                      {!notificationsLoading && !notificationsError && notifications.length === 0 && (
-                        <p className="notif-empty">Ainda não tens notificações.</p>
-                      )}
-                      {notifications.map((n) => (
-                        <div key={n.id} className={['notif-item', n.isRead ? '' : 'notif-item--unread'].filter(Boolean).join(' ')}>
-                          <p className="notif-title">{n.title}</p>
-                          {n.message && <p className="notif-message">{n.message}</p>}
-                          <p className="notif-date">{formatNotificationDate(n.createdAt)}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+            <div className="topbar-right">
+              <NotificationsBell pageLink="/teacher/notifications" />
             </div>
           </header>
 
@@ -419,23 +327,56 @@ export default function ScheduleSubmissionPage() {
 
               {error && <p className="submission-error">{error}</p>}
 
+              <div className="calendar-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <p style={{ margin: 0, fontSize: '0.9rem', color: '#6b7280' }}>
+                  Clique num horário branco para selecionar ou num <strong>amarelo para retirar o pedido</strong>.
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  <span className="pill" id="availabilitySummary">{proposed.size} slots selecionados</span>
+                  <div className="calendar-legend" style={{ display: 'flex', gap: '12px', fontSize: '0.8rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ width: '10px', height: '10px', background: '#6366f1', borderRadius: '2px' }}></span> Selecionado
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ width: '10px', height: '10px', background: '#fef9c3', border: '1px solid #fde047', borderRadius: '2px' }}></span> Pendente
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ width: '10px', height: '10px', background: '#dcfce7', border: '1px solid #86efac', borderRadius: '2px' }}></span> Aprovado
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="schedule-board">
                 <TeacherCalendar slots={slots} proposed={proposed} onToggle={toggleSlot} onRequestException={handleRequestException} />
               </div>
 
-              <div className="quick-actions" style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div className="quick-actions" style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                 <button
                   className="cta"
                   type="button"
                   onClick={submit}
                   disabled={!proposed.size || saving}
                 >
-                  {saving ? 'A submeter...' : 'Submeter disponibilidade'}
+                  {saving ? 'A submeter...' : 'Submeter'}
                 </button>
+                
+                <button
+                  className="cta secondary"
+                  type="button"
+                  onClick={() => {
+                    setModalSlot(null);
+                    setModalOpen(true);
+                  }}
+                >
+                  Reportar Ausência
+                </button>
+
                 <button
                   className="cta secondary"
                   type="button"
                   onClick={() => setProposed(new Set())}
+                  style={{ marginLeft: 'auto' }}
                 >
                   Limpar seleção
                 </button>
@@ -448,6 +389,7 @@ export default function ScheduleSubmissionPage() {
           isOpen={modalOpen} 
           onClose={() => setModalOpen(false)} 
           onSubmit={submitException}
+          onCancel={cancelException}
           slotData={modalSlot}
         />
         {toast && (
@@ -463,3 +405,6 @@ export default function ScheduleSubmissionPage() {
     </div>
   )
 }
+
+
+

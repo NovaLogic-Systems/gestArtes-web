@@ -12,34 +12,28 @@ import Modal from '../../components/ui/Modal'
 import Button from '../../components/ui/Button'
 import Badge from '../../components/ui/Badge'
 import ConfirmExecutionModal from '../../components/ConfirmExecutionModal'
+import NotificationsBell from '../../components/NotificationsBell'
 import { getSessionHistory } from '../../services/coaching'
 import './coaching.css'
 import './history.css'
-
-const NAV_ITEMS = [
-  { label: 'Painel', href: '/student/dashboard' },
-  { label: 'Coaching', href: '/student/coaching' },
-  { label: 'Mapa de Coaching', href: '/student/coaching/map' },
-  { label: 'Histórico', href: '/student/history' },
-  { label: 'Inventário da Escola', href: '/student/inventory' },
-  { label: 'As Minhas Rendas', href: '/student/inventory/rentals' },
-  { label: 'Marketplace', href: '/student/marketplace' },
-  { label: 'Os Meus Anúncios', href: '/student/marketplace/my-listings' },
-  { label: 'Perdidos e Achados', href: '/student/lostfound' },
-  { label: 'Notificações', href: '/student/notifications' },
-  { label: 'Minha Conta', href: '/student/account' },
-]
+import { STUDENT_NAV_ITEMS as NAV_ITEMS } from './studentNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 const PAGE_SIZE = 10
 
 const STATUS_FILTERS = [
   { value: '', label: 'Todos os estados' },
   { value: 'pending', label: 'Pendente' },
-  { value: 'confirmed', label: 'Confirmado' },
-  { value: 'completed', label: 'Concluído' },
-  { value: 'cancelled', label: 'Cancelado' },
-  { value: 'awaiting', label: 'Aguarda validação' },
+  { value: 'active', label: 'Ativa' },
+  { value: 'awaitingTeacher', label: 'Aguarda professor' },
+  { value: 'awaitingDirection', label: 'Aguarda direção' },
+  { value: 'awaitingConfirmation', label: 'Aguarda confirmação' },
+  { value: 'completed', label: 'Finalizada' },
+  { value: 'rejected', label: 'Rejeitada' },
+  { value: 'cancelled', label: 'Cancelada' },
 ]
+
+const SESSION_AMOUNT_FIELDS = ['finalPrice', 'coachingValue', 'value', 'price', 'amount']
 
 function formatDateTimePT(value) {
   if (!value) return '—'
@@ -61,38 +55,62 @@ function formatMoney(value) {
   return new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(num)
 }
 
+function getSessionAmount(session) {
+  for (const field of SESSION_AMOUNT_FIELDS) {
+    if (session?.[field] !== null && session?.[field] !== undefined) {
+      return session[field]
+    }
+  }
+  return null
+}
+
+function normalizeStatus(status) {
+  return String(status || '').toLowerCase().replace(/[_\s-]/g, '')
+}
+
 function resolveStatusBadge(status) {
-  const s = String(status || '').toLowerCase()
-  if (s.includes('cancel')) return { label: 'Cancelada', variant: 'danger' }
-  if (s.includes('complet') || s.includes('final')) return { label: 'Finalizada', variant: 'success' }
-  if (s.includes('approv') || s.includes('schedul') || s.includes('active') || s.includes('ativa')) {
-    return { label: 'Ativa', variant: 'success' }
+  const s = normalizeStatus(status)
+  if (s.includes('cancel')) return { key: 'cancelled', label: 'Cancelada', variant: 'danger' }
+  if (s.includes('reject') || s === 'notapproved') return { key: 'rejected', label: 'Rejeitada', variant: 'danger' }
+  if (s.includes('finalizationvalidationpending') || s.includes('awaitingcompletion') || s.includes('awaitingconfirmation')) {
+    return { key: 'awaitingConfirmation', label: 'Aguarda confirmação', variant: 'warning' }
   }
-  if (s.includes('awaitingcompletion') || s.includes('awaiting_completion')) {
-    return { label: 'Aguarda confirmação', variant: 'warning' }
+  if (s.includes('teacherapproved') || s.includes('pendingadmin') || s.includes('awaitingdirection')) {
+    return { key: 'awaitingDirection', label: 'Aguarda direção', variant: 'info' }
   }
-  if (s.includes('await') || s.includes('aguarda')) {
-    return { label: 'Aguarda validação', variant: 'info' }
+  if (s.includes('awaitingapproval') || s.includes('pendingteacher') || s.includes('awaitingteacher')) {
+    return { key: 'awaitingTeacher', label: 'Aguarda professor', variant: 'warning' }
   }
-  if (s.includes('teacher') || s.includes('professor')) return { label: 'Aguarda professor', variant: 'warning' }
-  if (s.includes('admin') || s.includes('direct') || s.includes('manag')) {
-    return { label: 'Aguarda direção', variant: 'info' }
+  if (s.includes('complet') || s.includes('final')) return { key: 'completed', label: 'Finalizada', variant: 'success' }
+  if (s.includes('approved') || s === 'active' || s.includes('schedul') || s.includes('ativa')) {
+    return { key: 'active', label: 'Ativa', variant: 'success' }
   }
-  if (s.includes('pend')) return { label: 'Pendente', variant: 'warning' }
-  return { label: status || '—', variant: 'neutral' }
+  if (s.includes('pendingapproval') || s.includes('pend')) return { key: 'pending', label: 'Pendente', variant: 'warning' }
+  if (s.includes('await') || s.includes('aguarda')) return { key: 'awaitingConfirmation', label: 'Aguarda confirmação', variant: 'warning' }
+  return { key: 'other', label: 'Estado desconhecido', variant: 'neutral' }
 }
 
 function matchesStatusFilter(session, filterValue) {
   if (!filterValue) return true
-  const s = String(session.status || '').toLowerCase()
-  switch (filterValue) {
-    case 'pending': return s.includes('pend') && !s.includes('cancel')
-    case 'confirmed': return s.includes('approv') || s.includes('schedul') || s.includes('confirm')
-    case 'completed': return s.includes('complet') || s.includes('final')
-    case 'cancelled': return s.includes('cancel')
-    case 'awaiting': return s.includes('await') || s.includes('aguarda')
-    default: return true
-  }
+  return resolveStatusBadge(session.status).key === filterValue
+}
+
+function matchesDateFilter(session, dateFilter) {
+  if (!dateFilter) return true
+  const d = new Date(session.startTime)
+  if (Number.isNaN(d.getTime())) return false
+  return d.toISOString().slice(0, 10) === dateFilter
+}
+
+function normalizeText(text) {
+  return String(text || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
+function isAwaitingConfirmationSession(session) {
+  return session.canConfirm || resolveStatusBadge(session.status).key === 'awaitingConfirmation'
 }
 
 function SessionDetailModal({ session, open, onClose, onConfirmExecution }) {
@@ -101,8 +119,7 @@ function SessionDetailModal({ session, open, onClose, onConfirmExecution }) {
   const badge = resolveStatusBadge(session.status)
   const canConfirmExecution =
     session.canConfirm ||
-    String(session.status || '').toLowerCase().includes('awaitingcompletion') ||
-    String(session.status || '').toLowerCase().includes('awaiting_completion')
+    badge.key === 'awaitingConfirmation'
 
   return (
     <Modal
@@ -158,8 +175,8 @@ function SessionDetailModal({ session, open, onClose, onConfirmExecution }) {
             <span>{session.studioName || '—'}</span>
           </div>
           <div className="hist-detail-item">
-            <span className="hist-detail-label">Valor final</span>
-            <span>{formatMoney(session.finalPrice)}</span>
+            <span className="hist-detail-label">Valor do coaching</span>
+            <span>{formatMoney(getSessionAmount(session))}</span>
           </div>
           {session.notes ? (
             <div className="hist-detail-item hist-detail-full">
@@ -216,7 +233,9 @@ export default function MyHistoryPage() {
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('')
-  const [search, setSearch] = useState('')
+  const [dateFilter, setDateFilter] = useState('')
+  const initialSearch = new URLSearchParams(location.search).get('q') || ''
+  const [search, setSearch] = useState(initialSearch)
 
   // Pagination
   const [page, setPage] = useState(1)
@@ -229,6 +248,16 @@ export default function MyHistoryPage() {
   const [confirmSession, setConfirmSession] = useState(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
 
+  const toConfirm = useMemo(
+    () => sessions.filter(isAwaitingConfirmationSession),
+    [sessions]
+  )
+
+  const mainSessions = useMemo(
+    () => sessions.filter((session) => !isAwaitingConfirmationSession(session)),
+    [sessions]
+  )
+
   const loadHistory = useCallback(async () => {
     setLoading(true)
     setError('')
@@ -236,7 +265,7 @@ export default function MyHistoryPage() {
       const data = await getSessionHistory()
       setSessions(data)
     } catch (err) {
-      setError(err?.response?.data?.error || 'Não foi possível carregar o histórico.')
+      setError(localizeApiError(err, 'Não foi possível carregar o histórico.'))
     } finally {
       setLoading(false)
     }
@@ -245,25 +274,26 @@ export default function MyHistoryPage() {
   useEffect(() => { void loadHistory() }, [loadHistory])
 
   // Reset page when filters change
-  useEffect(() => { setPage(1) }, [statusFilter, search])
+  useEffect(() => { setPage(1) }, [statusFilter, dateFilter, search])
 
   const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase()
-    return sessions.filter((s) => {
+    const term = normalizeText(search.trim())
+    return mainSessions.filter((s) => {
       if (!matchesStatusFilter(s, statusFilter)) return false
+      if (!matchesDateFilter(s, dateFilter)) return false
       if (term) {
-        const text = [
+        const text = normalizeText([
           `#${s.sessionId}`,
           s.studioName,
           s.modalityName,
           ...(s.teachers || []).map((t) => t.name),
           formatDateTimePT(s.startTime),
-        ].join(' ').toLowerCase()
+        ].join(' '))
         if (!text.includes(term)) return false
       }
       return true
     })
-  }, [sessions, statusFilter, search])
+  }, [mainSessions, statusFilter, dateFilter, search])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const pageRows = useMemo(() => {
@@ -354,33 +384,75 @@ export default function MyHistoryPage() {
               </button>
               <div>
                 <h2>Histórico</h2>
-                <p>Todas as sessões de coaching passadas e futuras</p>
               </div>
             </div>
             <div className="topbar-right">
-              <Link
-                to="/student/coaching"
-                className="pill"
-                style={{ textDecoration: 'none' }}
-              >
-                ← Coaching
-              </Link>
+              <NotificationsBell pageLink="/student/notifications" />
             </div>
           </header>
 
           <div className="content-grid">
             <article className="panel">
+              {toConfirm.length > 0 ? (
+                <div className="hist-confirm-panel">
+                  <div className="hist-confirm-header">
+                    <div>
+                      <h3>Sessões para confirmar conclusão</h3>
+                      <p>
+                        Sessões finalizadas que aguardam a tua confirmação antes da validação final.
+                      </p>
+                    </div>
+                    <Badge variant="warning" size="sm" className="hist-confirm-count">{toConfirm.length}</Badge>
+                  </div>
+                  <div className="hist-confirm-list">
+                    {toConfirm.map((session) => {
+                      const badge = resolveStatusBadge(session.status)
+                      return (
+                        <article key={session.sessionId} className="hist-confirm-card">
+                          <div className="hist-confirm-card-main">
+                            <div className="hist-confirm-card-top">
+                              <strong>Sessão #{session.sessionId}</strong>
+                              <Badge variant={badge.variant} size="sm">{badge.label}</Badge>
+                            </div>
+                            <p className="hist-confirm-meta">
+                              {formatDateTimePT(session.startTime)} · {session.teachers?.map((t) => t.name).join(', ') || '—'}
+                            </p>
+                            <p className="hist-confirm-meta hist-confirm-meta--muted">
+                              {session.modalityName || '—'} · {session.studioName || '—'}
+                            </p>
+                          </div>
+                          <div className="hist-confirm-actions">
+                            <Button variant="cta" size="sm" onClick={() => handleOpenConfirmExecution(session)} data-testid={`confirm-list-btn-${session.sessionId}`}>
+                              Confirmar execução
+                            </Button>
+                          </div>
+                        </article>
+                      )
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
               {/* Filters */}
               <div className="filters-bar" style={{ marginBottom: '16px' }}>
                 <input
                   className="filter-input"
                   type="search"
-                  placeholder="Pesquisar sessão, professor, estúdio…"
+                  placeholder="Pesquisar sessão, professor ou estúdio…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   aria-label="Pesquisar histórico"
                   data-testid="history-search"
                   style={{ minWidth: '220px', flex: 1 }}
+                />
+                <input
+                  className="filter-input"
+                  type="date"
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  aria-label="Filtrar por data"
+                  data-testid="history-date-filter"
+                  style={{ minWidth: '180px' }}
                 />
                 <select
                   className="filter-select"
@@ -396,7 +468,7 @@ export default function MyHistoryPage() {
                 <button
                   type="button"
                   className="ghost-btn"
-                  onClick={() => { setSearch(''); setStatusFilter('') }}
+                  onClick={() => { setSearch(''); setDateFilter(''); setStatusFilter('') }}
                   aria-label="Limpar filtros"
                 >
                   Limpar
@@ -445,21 +517,18 @@ export default function MyHistoryPage() {
                           <th>Modalidade</th>
                           <th>Estúdio</th>
                           <th>Estado</th>
-                          <th>Valor</th>
+                          <th>Valor do coaching</th>
                         </tr>
                       </thead>
                       <tbody>
                         {pageRows.map((s) => {
                           const badge = resolveStatusBadge(s.status)
-                          const canConfirm =
-                            s.canConfirm ||
-                            String(s.status || '').toLowerCase().includes('awaitingcompletion') ||
-                            String(s.status || '').toLowerCase().includes('awaiting_completion')
+                          const coachingAmount = getSessionAmount(s)
 
                           return (
                             <tr
                               key={s.sessionId}
-                              className={`hist-row${canConfirm ? ' hist-row--highlight' : ''}`}
+                              className="hist-row"
                               onClick={() => handleRowClick(s)}
                               style={{ cursor: 'pointer' }}
                               data-testid={`history-row-${s.sessionId}`}
@@ -473,22 +542,8 @@ export default function MyHistoryPage() {
                               <td>{s.studioName || '—'}</td>
                               <td>
                                 <Badge variant={badge.variant} size="sm">{badge.label}</Badge>
-                                {canConfirm ? (
-                                  <button
-                                    type="button"
-                                    className="confirm-btn"
-                                    style={{ marginLeft: '8px', fontSize: '0.75rem', padding: '3px 10px' }}
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleOpenConfirmExecution(s)
-                                    }}
-                                    data-testid={`confirm-btn-${s.sessionId}`}
-                                  >
-                                    Confirmar execução
-                                  </button>
-                                ) : null}
                               </td>
-                              <td>{formatMoney(s.finalPrice)}</td>
+                              <td>{formatMoney(coachingAmount)}</td>
                             </tr>
                           )
                         })}

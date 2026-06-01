@@ -10,21 +10,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import Button from '../../components/ui/Button'
 import InventoryCatalog from '../../components/InventoryCatalog'
+import NotificationsBell from '../../components/NotificationsBell'
 import './DashboardPage.css'
 import './inventory.css'
-
-const NAV_ITEMS = [
-	{ label: 'Painel', href: '/student/dashboard' },
-	{ label: 'Coaching', href: '/student/coaching' },
-	{ label: 'Mapa de Coaching', href: '/student/coaching/map' },
-	{ label: 'Inventário da Escola', href: '/student/inventory' },
-	{ label: 'As Minhas Rendas', href: '/student/inventory/rentals' },
-	{ label: 'Marketplace', href: '/student/marketplace' },
-	{ label: 'Os Meus Anúncios', href: '/student/marketplace/my-listings' },
-	{ label: 'Perdidos e Achados', href: '/student/lostfound' },
-	{ label: 'Notificações', href: '/student/notifications' },
-	{ label: 'Minha Conta', href: '/student/account' },
-]
+import { STUDENT_NAV_ITEMS as NAV_ITEMS } from './studentNav'
 
 export default function InventoryPage() {
 	const { logout, user } = useAuth()
@@ -32,20 +21,29 @@ export default function InventoryPage() {
 	const navigate = useNavigate()
 	const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false))
 	const [mobileOpen, setMobileOpen] = useState(false)
+	const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
 	const studentName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Aluno'
 
+	const sidebarHidden = isMobile || sidebarCollapsed
+	const appShellClassName = ['app-shell', sidebarHidden ? 'sidebar-hidden' : '']
+		.filter(Boolean)
+		.join(' ')
 	const sidebarClassName = ['sidebar', isMobile && mobileOpen ? 'open' : '']
 		.filter(Boolean)
 		.join(' ')
 
-	const sidebarToggleSymbol = isMobile ? (mobileOpen ? '✕' : '☰') : '☰'
-	const sidebarToggleLabel = mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'
+	const sidebarToggleSymbol = isMobile ? (mobileOpen ? '✕' : '☰') : sidebarCollapsed ? '▶' : '◀'
+	const sidebarToggleLabel = isMobile
+		? (mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral')
+		: (sidebarCollapsed ? 'Mostrar barra lateral' : 'Esconder barra lateral')
 
 	const handleSidebarToggle = useCallback(() => {
 		if (isMobile) {
 			setMobileOpen((value) => !value)
+			return
 		}
+		setSidebarCollapsed((value) => !value)
 	}, [isMobile])
 
 	const handleMobileNavClick = useCallback(() => {
@@ -72,7 +70,7 @@ export default function InventoryPage() {
 
 	return (
 		<div className="student-dashboard inventory-page">
-			<div className="app-shell">
+			<div className={appShellClassName}>
 				{isMobile && mobileOpen ? (
 					<button
 						type="button"
@@ -132,16 +130,13 @@ export default function InventoryPage() {
 
 							<div>
 							<h2>Inventário da Escola</h2>
-							<p>Catálogo oficial para pedidos de aluguer. A admin aprova ou rejeita e o pagamento é feito na escola.</p>
 							</div>
 						</div>
 
 						<div className="topbar-right">
+							<NotificationsBell pageLink="/student/notifications" />
 							<Button as={Link} variant="secondary" to="/student/inventory/rentals" size="sm">
-								Ver pedidos
-							</Button>
-							<Button as={Link} variant="cta" to="/student/dashboard" size="sm">
-								Painel
+								Pedidos de aluguer
 							</Button>
 						</div>
 					</header>

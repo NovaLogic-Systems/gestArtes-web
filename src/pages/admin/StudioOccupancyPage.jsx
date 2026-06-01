@@ -9,20 +9,9 @@ import { useState, useEffect, useMemo } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import StudioOccupancyPanel from '../../components/admin/StudioOccupancyPanel'
-import notificationPreviewService from '../../services/notificationPreviewService'
+import NotificationsBell from '../../components/NotificationsBell'
 import '../admin-studios.css'
-
-const navigationItems = [
-  { href: '/admin', label: 'Painel' },
-  { href: '/admin/validations', label: 'Validações' },
-  { href: '/admin/studios', label: 'Estúdios' },
-  { href: '/admin/users', label: 'Utilizadores' },
-  { href: '/admin/lostfound', label: 'Perdidos e Achados' },
-  { href: '/admin/inventory', label: 'Inventário da Escola' },
-  { href: '/admin/marketplace', label: 'Marketplace' },
-  { href: '/admin/finance', label: 'Finanças' },
-  { href: '/admin/audit', label: 'Auditoria' },
-]
+import { ADMIN_NAV_ITEMS as navigationItems } from './adminNav'
 
 function StudioOccupancyPage() {
   const navigate = useNavigate()
@@ -32,7 +21,6 @@ function StudioOccupancyPage() {
   const [isMobile, setIsMobile] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0)
 
   const displayName = user?.fullName || user?.name || user?.email || 'Utilizador'
 
@@ -80,17 +68,6 @@ function StudioOccupancyPage() {
     return () => {
       document.body.classList.remove('studio-page')
     }
-  }, [])
-
-  useEffect(() => {
-    void (async () => {
-      try {
-        const preview = await notificationPreviewService.getPreview({ limit: 0, includeUnreadCount: true })
-        setNotificationUnreadCount(preview.unreadCount)
-      } catch {
-        // ignore
-      }
-    })()
   }, [])
 
   const handleSidebarToggle = () => {
@@ -186,9 +163,7 @@ function StudioOccupancyPage() {
           </div>
 
           <div className="topbar-right">
-            <button type="button" className="pill notifications-pill">
-              Notificações {notificationUnreadCount}
-            </button>
+            <NotificationsBell pageLink="/admin/notifications" />
           </div>
         </header>
 

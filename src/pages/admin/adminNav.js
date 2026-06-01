@@ -8,4 +8,5 @@ export const ADMIN_NAV_ITEMS = [
   { href: '/admin/marketplace', label: 'Marketplace' },
   { href: '/admin/finance', label: 'Finanças' },
   { href: '/admin/audit', label: 'Auditoria' },
+  { href: '/admin/notifications', label: 'Notificações' },
 ]

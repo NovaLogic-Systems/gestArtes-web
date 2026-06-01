@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
-import notificationService, { formatNotificationDate } from '../services/notificationService'
+import { useNavigate } from 'react-router-dom'
+import notificationService, { formatNotificationDate, invalidateNotificationCache, resolveNotificationLink } from '../services/notificationService'
 import { subscribeToNotifications } from '../services/realtimeNotifications'
+import Toast from './ui/Toast'
+import RoleSwitcher from './RoleSwitcher'
 
 function BellGlyph({ unreadCount }) {
   return (
@@ -14,6 +16,26 @@ function BellGlyph({ unreadCount }) {
   )
 }
 
+const getActionUrl = resolveNotificationLink
+
+function shouldReplaceNotification(current, incoming) {
+  if (!incoming) {
+    return false
+  }
+
+  if (!incoming.id) {
+    return true
+  }
+
+  const existingIndex = current.findIndex((item) => item.id === incoming.id)
+  if (existingIndex === -1) {
+    return true
+  }
+
+  const existing = current[existingIndex]
+  return existing.isRead !== incoming.isRead || existing.title !== incoming.title || existing.message !== incoming.message || existing.createdAt !== incoming.createdAt || existingIndex !== 0
+}
+
 export default function NotificationsBell({
   pageLink = '/student/notifications',
   onClick,
@@ -21,6 +43,7 @@ export default function NotificationsBell({
   children = 'Notificações',
   ...buttonProps
 }) {
+  const navigate = useNavigate()
   const controlledByParent = typeof onClick === 'function'
   const [open, setOpen] = useState(false)
   const [loaded, setLoaded] = useState(false)
@@ -28,6 +51,7 @@ export default function NotificationsBell({
   const [error, setError] = useState('')
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
+  const [toastNotif, setToastNotif] = useState(null)
   const rootRef = useRef(null)
 
   const displayCount = typeof count === 'number' ? count : unreadCount
@@ -61,8 +85,19 @@ export default function NotificationsBell({
     }
 
     return subscribeToNotifications((notification) => {
-      setNotifications((current) => [notification, ...current.filter((item) => item.id !== notification.id)])
-      setUnreadCount((current) => current + (notification.isRead ? 0 : 1))
+      invalidateNotificationCache()
+      setNotifications((current) => {
+        if (!shouldReplaceNotification(current, notification)) {
+          return current
+        }
+
+        if (!notification.isRead) {
+          setUnreadCount((count) => count + 1)
+        }
+
+        setToastNotif(notification)
+        return [notification, ...current.filter((item) => item.id !== notification.id)]
+      })
       setLoaded(true)
     })
   }, [controlledByParent])
@@ -116,8 +151,22 @@ export default function NotificationsBell({
     }
   }
 
+  const handleDismiss = async (notificationId) => {
+    const previous = notifications
+
+    setNotifications((current) => current.filter((item) => item.id !== notificationId))
+
+    try {
+      await notificationService.remove(notificationId)
+    } catch {
+      setNotifications(previous)
+      setError('Nao foi possivel remover a notificacao.')
+    }
+  }
+
   return (
-    <div className="notifications-root" ref={rootRef}>
+    <div className="notifications-root" ref={rootRef} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+      <RoleSwitcher />
       <button
         type="button"
         className="pill notifications-pill"
@@ -146,22 +195,86 @@ export default function NotificationsBell({
             <ul className="notifications-list">
               {previewItems.map((notification) => (
                 <li key={notification.id} className={`notifications-item${notification.isRead ? '' : ' unread'}`}>
-                  <button type="button" onClick={() => handleMarkAsRead(notification)}>
-                    <strong>{notification.title}</strong>
-                    {notification.message ? <p>{notification.message}</p> : null}
-                    <small>{formatNotificationDate(notification.createdAt)}</small>
-                  </button>
+                  <div className="notifications-item-row">
+                    <div
+                      className="notifications-item-content"
+                      onClick={() => {
+                        handleMarkAsRead(notification)
+                        navigate(getActionUrl(notification, pageLink))
+                        setOpen(false)
+                      }}
+                      style={{ cursor: 'pointer', flex: 1 }}
+                    >
+                      <span className={`notifications-type-badge notifications-type-${notification.type}`}>
+                        {notification.type === 'coaching' ? '🎓' :
+                         notification.type === 'marketplace' ? '🛒' :
+                         notification.type === 'schedule' ? '📅' :
+                         notification.type === 'join_request' ? '📋' :
+                         notification.type === 'penalty' ? '⚠️' :
+                         notification.type === 'inventory' ? '📦' :
+                         notification.type === 'account' ? '👤' : '🔔'}
+                      </span>
+                      <div className="notifications-item-text">
+                        <strong>{notification.title}</strong>
+                        {notification.message ? <p>{notification.message}</p> : null}
+                        <small>{formatNotificationDate(notification.createdAt)}</small>
+                      </div>
+                    </div>
+                    <div className="notifications-item-actions">
+                      <button
+                        type="button"
+                        className="notifications-dismiss-btn"
+                        aria-label="Dispensar notificação"
+                        title="Dispensar"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDismiss(notification.id)
+                        }}
+                      >
+                        <svg
+                          viewBox="0 0 16 16"
+                          width="10"
+                          height="10"
+                          aria-hidden="true"
+                          focusable="false"
+                        >
+                          <path
+                            d="M3 3 L13 13 M13 3 L3 13"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            fill="none"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
                 </li>
               ))}
             </ul>
           ) : null}
 
-          <Link to={pageLink} className="notifications-more-link" onClick={() => setOpen(false)}>
+          <button
+            type="button"
+            className="notifications-more-link"
+            onClick={() => { setOpen(false); navigate(pageLink) }}
+          >
             Ver Mais
-          </Link>
+          </button>
         </div>
+      ) : null}
+
+      {toastNotif ? (
+        <Toast
+          variant="info"
+          title={toastNotif.title}
+          description={toastNotif.message || undefined}
+          actionLabel="Ver"
+          onAction={() => { navigate(getActionUrl(toastNotif, pageLink)); setToastNotif(null) }}
+          onClose={() => setToastNotif(null)}
+          style={{ position: 'fixed', bottom: '18px', right: '18px', zIndex: 9999 }}
+        />
       ) : null}
     </div>
   )
 }
-

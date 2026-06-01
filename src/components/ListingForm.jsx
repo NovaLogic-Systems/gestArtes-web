@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import MarketplaceImage from './MarketplaceImage'
 import { resolveMarketplacePhotoUrl } from '../utils/marketplace-photo-url'
 import Badge from './ui/Badge'
 
@@ -62,19 +63,25 @@ function resolveStatusLabel(statusName) {
     return 'Ativo'
   }
 
-  return normalized
+  if (/remov|hidden|inactive|inativ/i.test(normalized)) {
+    return 'Inativo'
+  }
+
+  return 'Estado desconhecido'
 }
 
 export default function ListingForm({
   initialValues,
   categories = [],
   conditions = [],
+  allowNewCategory = false,
   submitLabel,
   busy = false,
   onSubmit,
   onCancel,
 }) {
   const [values, setValues] = useState(() => normalizeValues(initialValues))
+  const [newCategoryName, setNewCategoryName] = useState('')
   const [selectedFile, setSelectedFile] = useState(null)
   const [error, setError] = useState('')
 
@@ -145,7 +152,8 @@ export default function ListingForm({
         {
           ...values,
           price: values.price === '' ? '' : Number(values.price),
-          categoryId: values.categoryId === '' ? '' : Number(values.categoryId),
+          categoryId: values.categoryId === '__new__' || values.categoryId === '' ? '' : Number(values.categoryId),
+          categoryName: values.categoryId === '__new__' ? newCategoryName.trim() : '',
           conditionId: values.conditionId === '' ? '' : Number(values.conditionId),
         },
         selectedFile,
@@ -191,7 +199,19 @@ export default function ListingForm({
                 {category.categoryName}
               </option>
             ))}
+            {allowNewCategory ? <option value="__new__">+ Nova categoria...</option> : null}
           </select>
+          {allowNewCategory && values.categoryId === '__new__' ? (
+            <input
+              type="text"
+              placeholder="Nome da nova categoria"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              maxLength={50}
+              required
+              style={{ marginTop: '0.4rem' }}
+            />
+          ) : null}
         </label>
 
         <label>
@@ -262,7 +282,7 @@ export default function ListingForm({
         <h3>Pre-visualizacao</h3>
         <article className="market-listing-card market-form-preview-card">
           <div className="market-listing-image market-form-preview-image">
-            {previewUrl ? <img src={previewUrl} alt="Pre-visualizacao do anuncio" /> : <span>Imagem do anuncio</span>}
+            {previewUrl ? <MarketplaceImage src={previewUrl} alt="Pre-visualizacao do anuncio" fallback={<span>Imagem do anuncio</span>} /> : <span>Imagem do anuncio</span>}
           </div>
           <div className="market-listing-content">
             <p className="market-listing-title">{values.title || 'Titulo do anuncio'}</p>

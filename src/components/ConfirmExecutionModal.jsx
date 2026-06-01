@@ -9,6 +9,7 @@ import { useState } from 'react'
 import Modal from './ui/Modal'
 import Button from './ui/Button'
 import { confirmCompletion } from '../services/coaching'
+import { localizeApiError } from '../utils/apiErrors'
 
 export default function ConfirmExecutionModal({
   open,
@@ -28,7 +29,7 @@ export default function ConfirmExecutionModal({
       onConfirmed?.(session.sessionId)
       onClose?.()
     } catch (err) {
-      setError(err?.response?.data?.error || 'Não foi possível confirmar a sessão.')
+      setError(localizeApiError(err, 'Não foi possível confirmar a sessão.'))
     } finally {
       setSaving(false)
     }

@@ -5,15 +5,19 @@
  * @project GestArtes - Projeto 50+10 para Entartes
  */
 
-import { useEffect, useMemo, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useEffect, useMemo, useState, useCallback } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../hooks/useAuth'
 import Badge from '../../components/ui/Badge'
 import Button from '../../components/ui/Button'
 import LoadingSkeleton from '../../components/ui/LoadingSkeleton'
 import Table from '../../components/ui/Table'
 import { listInventoryRentals } from '../../services/inventory'
+import NotificationsBell from '../../components/NotificationsBell'
 import './DashboardPage.css'
 import './inventory.css'
+import { STUDENT_NAV_ITEMS as NAV_ITEMS } from './studentNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 function formatMoney(value) {
 	const numeric = Number(value)
@@ -57,7 +61,19 @@ function resolveStatusLabel(status) {
 	}
 
 	if (normalized.includes('condition')) {
-		return 'Aceite pela admin'
+		return 'Aceite pela Direção'
+	}
+
+	if (normalized.includes('approved')) {
+		return 'Aprovado'
+	}
+
+	if (normalized.includes('awaiting') || normalized.includes('awaiting-approval')) {
+		return 'A aguardar aprovação'
+	}
+
+	if (normalized.includes('rejected')) {
+		return 'Rejeitado'
 	}
 
 	return 'A aguardar admin'
@@ -66,7 +82,7 @@ function resolveStatusLabel(status) {
 function resolveStatusVariant(status) {
 	const normalized = String(status || '').toLowerCase()
 
-	if (normalized.includes('complete')) {
+	if (normalized.includes('complete') || normalized.includes('approved')) {
 		return 'success'
 	}
 
@@ -74,15 +90,70 @@ function resolveStatusVariant(status) {
 		return 'info'
 	}
 
+	if (normalized.includes('rejected')) {
+		return 'error'
+	}
+
 	return 'warning'
 }
 
 export default function RentalRequestsPage() {
 	const location = useLocation()
+	const navigate = useNavigate()
+	const { logout, user } = useAuth()
+
+	const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false))
+	const [mobileOpen, setMobileOpen] = useState(false)
+	const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+	const studentName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Aluno'
+
+	const sidebarHidden = isMobile || sidebarCollapsed
+	const appShellClassName = ['app-shell', sidebarHidden ? 'sidebar-hidden' : '']
+		.filter(Boolean)
+		.join(' ')
+	const sidebarClassName = ['sidebar', isMobile && mobileOpen ? 'open' : '']
+		.filter(Boolean)
+		.join(' ')
+
+	const sidebarToggleSymbol = isMobile ? (mobileOpen ? '✕' : '☰') : sidebarCollapsed ? '▶' : '◀'
+	const sidebarToggleLabel = isMobile
+		? (mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral')
+		: (sidebarCollapsed ? 'Mostrar barra lateral' : 'Esconder barra lateral')
+
+	const handleSidebarToggle = useCallback(() => {
+		if (isMobile) {
+			setMobileOpen((value) => !value)
+			return
+		}
+		setSidebarCollapsed((value) => !value)
+	}, [isMobile])
+
+	const handleMobileNavClick = useCallback(() => {
+		if (isMobile) {
+			setMobileOpen(false)
+		}
+	}, [isMobile])
+
+	useEffect(() => {
+		const onResize = () => {
+			const mobile = window.innerWidth <= 1024
+			setIsMobile(mobile)
+
+			if (!mobile) {
+				setMobileOpen(false)
+			}
+		}
+
+		window.addEventListener('resize', onResize)
+		onResize()
+
+		return () => window.removeEventListener('resize', onResize)
+	}, [])
 
 	const [rentals, setRentals] = useState([])
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState('')
+	const searchTerm = ''
 	const successMessage = location.state?.successMessage || ''
 
 	useEffect(() => {
@@ -99,7 +170,7 @@ export default function RentalRequestsPage() {
 			} catch (requestError) {
 				if (active) {
 					setRentals([])
-					setError(requestError?.response?.data?.error || 'Não foi possível carregar os pedidos de aluguer.')
+					setError(localizeApiError(requestError, 'Não foi possível carregar os pedidos de aluguer.'))
 				}
 			} finally {
 				if (active) {
@@ -116,7 +187,11 @@ export default function RentalRequestsPage() {
 	}, [])
 
 	const rows = useMemo(() => {
-		return rentals.map((rental) => ({
+		const term = searchTerm.trim().toLowerCase()
+		const filtered = !term ? rentals : rentals.filter((r) =>
+			[r.item?.itemName, r.status].join(' ').toLowerCase().includes(term)
+		)
+		return filtered.map((rental) => ({
 			id: rental.rentalId,
 			itemName: rental.item?.itemName || 'Artigo',
 			period: `${formatDate(rental.startDate)} → ${formatDate(rental.endDate)}`,
@@ -124,7 +199,7 @@ export default function RentalRequestsPage() {
 			status: rental.status,
 			payment: 'Pagamento presencial na escola',
 		}))
-	}, [rentals])
+	}, [rentals, searchTerm])
 
 	const columns = [
 		{ header: 'Artigo', key: 'itemName' },
@@ -140,28 +215,74 @@ export default function RentalRequestsPage() {
 
 	return (
 		<div className="student-dashboard inventory-page">
-			<div className="app-shell inventory-checkout-shell">
+			<div className={appShellClassName}>
+				{isMobile && mobileOpen ? (
+					<button
+						type="button"
+						className="sidebar-overlay"
+						aria-label="Fechar navegação lateral"
+						onClick={() => setMobileOpen(false)}
+					/>
+				) : null}
+
+				<aside className={sidebarClassName} id="sidebar">
+					<div className="brand">
+						<span className="brand-dot" />
+						<div>
+							<h1>gestArtes</h1>
+							<p>{studentName}</p>
+						</div>
+					</div>
+
+					<div className="nav-group">
+						<h2>Aluno</h2>
+						{NAV_ITEMS.map((item) => {
+							const isActive = location.pathname === item.href || location.pathname.startsWith(`${item.href}/`)
+
+							return (
+								<Link key={item.href} className={`nav-link${isActive ? ' active' : ''}`} to={item.href} onClick={handleMobileNavClick}>
+									{item.label}
+								</Link>
+							)
+						})}
+
+						<button
+							className="nav-link"
+							type="button"
+							onClick={async () => {
+								await logout()
+								navigate('/login?reason=logged-out', { replace: true })
+							}}
+						>
+							Terminar Sessão
+						</button>
+					</div>
+				</aside>
+
 				<main className="main inventory-checkout-main inventory-history-main">
 					<header className="topbar">
 						<div className="topbar-left">
-							<h2>Pedidos de aluguer</h2>
-							<p>Histórico de pedidos enviados para validação da administração.</p>
+							<div className="topbar-heading">
+								<button
+									type="button"
+									className="sidebar-toggle-btn"
+									aria-label={sidebarToggleLabel}
+									aria-controls="sidebar"
+									aria-expanded={mobileOpen}
+									onClick={handleSidebarToggle}
+								>
+									{sidebarToggleSymbol}
+								</button>
+								<h2>Pedidos de aluguer</h2>
+							</div>
 						</div>
 						<div className="topbar-right">
+							<NotificationsBell pageLink="/student/notifications" />
 							<Button as={Link} variant="secondary" size="sm" to="/student/inventory">
 								Voltar ao catálogo
 							</Button>
 						</div>
 					</header>
-
-					<section className="inventory-banner inventory-history-banner">
-						<div>
-							<p className="inventory-kicker">Registo offline</p>
-							<h3>A admin aprova ou rejeita cada pedido.</h3>
-							<p>Depois da aprovação, o pagamento e a recolha são feitos presencialmente na escola.</p>
-						</div>
-						<Badge variant="info">Sem gateway online</Badge>
-					</section>
 
 					<section className="panel inventory-history-panel">
 						<div className="inventory-feed-header">

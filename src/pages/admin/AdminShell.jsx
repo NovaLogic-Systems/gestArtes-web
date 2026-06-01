@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { ADMIN_NAV_ITEMS } from './adminNav'
+import NotificationsBell from '../../components/NotificationsBell'
 import '../admin-studios.css'
 
-function AdminShell({ title, subtitle, activePath, children, topbarEnd }) {
+function AdminShell({ title, subtitle, activePath, children, topbarEnd, topbarSearch }) {
   const navigate = useNavigate()
   const { logout, user } = useAuth()
 
@@ -138,8 +139,12 @@ function AdminShell({ title, subtitle, activePath, children, topbarEnd }) {
               <h2>{title}</h2>
             </div>
             {subtitle ? <p>{subtitle}</p> : null}
+            {topbarSearch ?? null}
           </div>
-          {topbarEnd ? <div className="topbar-right">{topbarEnd}</div> : null}
+          <div className="topbar-right">
+            {topbarEnd}
+            <NotificationsBell pageLink="/admin/notifications" />
+          </div>
         </header>
 
         <div className="content page-transition">

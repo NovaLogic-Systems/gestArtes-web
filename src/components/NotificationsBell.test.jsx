@@ -8,13 +8,20 @@ import notificationService from '../services/notificationService'
 vi.mock('../services/notificationService', () => ({
   default: {
     list: vi.fn(),
-    markAsRead: vi.fn()
+    markAsRead: vi.fn(),
+    remove: vi.fn()
   },
-  formatNotificationDate: vi.fn(() => 'Mock Date')
+  formatNotificationDate: vi.fn(() => 'Mock Date'),
+  invalidateNotificationCache: vi.fn(),
+  resolveNotificationLink: vi.fn(() => '/student/notifications')
 }))
 
 vi.mock('../services/realtimeNotifications', () => ({
   subscribeToNotifications: vi.fn(() => vi.fn())
+}))
+
+vi.mock('../hooks/useAuth', () => ({
+  useAuth: vi.fn(() => ({ user: null, role: null, roles: [], loading: false, switchRole: vi.fn() }))
 }))
 
 describe('NotificationsBell component', () => {

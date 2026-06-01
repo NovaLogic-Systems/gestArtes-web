@@ -1,3 +1,4 @@
+import process from 'node:process'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { getApiBaseUrl, getApiOrigin, getSocketUrl } from './network'
 

@@ -1,24 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
-import notificationPreviewService from '../../services/notificationPreviewService'
+import NotificationsBell from '../../components/NotificationsBell'
 import Badge from '../../components/ui/Badge'
 import KPICard from '../../components/ui/KPICard'
 import LoadingSkeleton from '../../components/ui/LoadingSkeleton'
 import Table from '../../components/ui/Table'
 import Toast from '../../components/ui/Toast'
-import Button from '../../components/ui/Button'
+import '../admin-studios.css'
 import './DashboardPage.css'
-
-const NAV_ITEMS = [
-  { label: 'Painel', href: '/teacher/dashboard' },
-  { label: 'Horário', href: '/teacher/schedule' },
-  { label: 'Coaching', href: '/teacher/coaching' },
-  { label: 'Inventário da Escola', href: '/teacher/inventory' },
-  { label: 'Marketplace', href: '/teacher/marketplace' },
-  { label: 'Minha Conta', href: '/teacher/account' },
-]
+import { TEACHER_NAV_ITEMS as NAV_ITEMS } from './teacherNav'
 
 function toInteger(value, fallback = 0) {
   const parsed = Number(value)
@@ -30,20 +22,17 @@ function formatTime(value) {
   return String(value).slice(0, 5)
 }
 
-function formatNotificationDate(value) {
-  if (!value) return ''
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return ''
-  return parsed.toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' })
-}
-
 const SESSION_STATUS_META = {
+  pending_approval:                { label: 'Aguarda aprovação',       variant: 'warning' },
+  approved:                        { label: 'Agendada',                variant: 'info'    },
+  rejected:                        { label: 'Rejeitada',               variant: 'danger'  },
   scheduled:                       { label: 'Agendada',                variant: 'info'    },
   completion_confirmation_pending: { label: 'A confirmar',             variant: 'warning' },
   finalization_validation_pending: { label: 'A validar',               variant: 'warning' },
   finalized:                       { label: 'Finalizada',              variant: 'success' },
   accounting_table_updated:        { label: 'Contabilizada',           variant: 'success' },
   no_show:                         { label: 'Falta s/ aviso',          variant: 'danger'  },
+  cancelled:                       { label: 'Cancelada',               variant: 'neutral' },
   cancelled_justified:             { label: 'Cancelada (justificada)', variant: 'neutral' },
   cancelled_timeout:               { label: 'Cancelada (timeout)',     variant: 'danger'  },
   cancelled_rejected:              { label: 'Cancelada (rejeitada)',   variant: 'danger'  },
@@ -60,22 +49,33 @@ function normalizeStatusKey(statusName) {
 function resolveSessionStatusMeta(statusName) {
   const key = normalizeStatusKey(statusName)
   if (SESSION_STATUS_META[key]) return SESSION_STATUS_META[key]
-  if (key.includes('finali') || key.includes('conclu')) return { label: 'Finalizada',     variant: 'success' }
-  if (key.includes('no_show') || key.includes('falta')) return { label: 'Falta s/ aviso', variant: 'danger'  }
-  if (key.includes('cancel'))                            return { label: 'Cancelada',     variant: 'neutral' }
-  if (key.includes('pend') || key.includes('valid'))     return { label: 'Em curso',      variant: 'warning' }
-  if (key.includes('schedul') || key.includes('agend'))  return { label: 'Agendada',      variant: 'info'    }
-  return { label: statusName || '—', variant: 'neutral' }
+  if (key.includes('finali') || key.includes('conclu')) return { label: 'Finalizada',          variant: 'success' }
+  if (key.includes('no_show') || key.includes('falta')) return { label: 'Falta s/ aviso',      variant: 'danger'  }
+  if (key.includes('cancel'))                            return { label: 'Cancelada',          variant: 'neutral' }
+  if (key.includes('reject'))                            return { label: 'Rejeitada',          variant: 'danger'  }
+  if (key.includes('approv') || key.includes('aprov'))   return { label: 'Agendada',           variant: 'info'    }
+  if (key.includes('pend'))                              return { label: 'Aguarda aprovação',  variant: 'warning' }
+  if (key.includes('valid'))                             return { label: 'A validar',          variant: 'warning' }
+  if (key.includes('schedul') || key.includes('agend'))  return { label: 'Agendada',           variant: 'info'    }
+  return { label: 'Estado desconhecido', variant: 'neutral' }
 }
 
 function normalizeSummary(data) {
   return {
     classesToday: toInteger(data?.classesToday),
     pendingConfirmations: toInteger(data?.pendingConfirmations),
+    pendingRequests: toInteger(data?.pendingRequests ?? data?.admissionRequests),
     admissionRequests: toInteger(data?.admissionRequests),
     noShows: toInteger(data?.noShows),
   }
 }
+
+const normalizeText = (text) =>
+  String(text || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
 
 function normalizeSchedule(data) {
   const rows = Array.isArray(data?.schedule) ? data.schedule : []
@@ -85,6 +85,8 @@ function normalizeSchedule(data) {
     studio: String(row?.studio ?? '—').trim() || '—',
     status: String(row?.status ?? '').trim(),
     modalityName: String(row?.modalityName ?? '—').trim() || '—',
+    format: row?.format ? String(row.format).trim() : '—',
+    maxParticipants: toInteger(row?.maxParticipants),
   }))
 }
 
@@ -96,13 +98,13 @@ const scheduleColumns = [
     render: (row) => <strong>{formatTime(row.time)}</strong>,
   },
   {
-    key: 'sessionId',
-    header: 'Sessão',
-    render: (row) => <span>#{row.sessionId}</span>,
+    key: 'format',
+    header: 'Formato',
+    render: (row) => <span>{row.format}</span>,
   },
   {
     key: 'modalityName',
-    header: 'Formato',
+    header: 'Modalidade',
     render: (row) => <span>{row.modalityName}</span>,
   },
   {
@@ -140,15 +142,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [toast, setToast] = useState(null)
-
-  const [notificationsOpen, setNotificationsOpen] = useState(false)
-  const [notificationsLoaded, setNotificationsLoaded] = useState(false)
-  const [notificationsLoading, setNotificationsLoading] = useState(false)
-  const [notificationsError, setNotificationsError] = useState('')
-  const [notifications, setNotifications] = useState([])
-  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0)
-
-  const notificationBoxRef = useRef(null)
+  const searchTerm = ''
 
   const displayName =
     [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'Professor'
@@ -188,9 +182,6 @@ export default function DashboardPage() {
   }, [])
 
   const loadData = useCallback(async () => {
-    setLoading(true)
-    setError('')
-
     const [summaryResult, scheduleResult] = await Promise.allSettled([
       api.get('/teacher/dashboard'),
       api.get('/teacher/schedule/today'),
@@ -206,50 +197,54 @@ export default function DashboardPage() {
     setLoading(false)
   }, [])
 
-  const refreshNotificationSummary = useCallback(async () => {
-    const preview = await notificationPreviewService.getPreview({ limit: 0, includeUnreadCount: true })
-    setNotificationUnreadCount(preview.unreadCount)
-  }, [])
-
-  const loadNotificationPreview = useCallback(async () => {
-    setNotificationsLoading(true)
-    setNotificationsError('')
-    try {
-      const preview = await notificationPreviewService.getPreview({ limit: 4, includeUnreadCount: true })
-      setNotifications(preview.items)
-      setNotificationUnreadCount(preview.unreadCount)
-      setNotificationsLoaded(true)
-    } catch {
-      setNotificationsError('Não foi possível carregar as notificações.')
-    } finally {
-      setNotificationsLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
+  const handleReload = useCallback(() => {
+    setLoading(true)
+    setError('')
     void loadData()
   }, [loadData])
 
-  useEffect(() => {
-    void refreshNotificationSummary()
-  }, [refreshNotificationSummary])
+  const filteredSchedule = useMemo(() => {
+    const term = normalizeText(searchTerm)
+    if (!term) return schedule
+    return schedule.filter((row) =>
+      normalizeText([row.modalityName, row.studio, row.status, String(row.sessionId)].join(' ')).includes(term)
+    )
+  }, [schedule, searchTerm])
 
   useEffect(() => {
-    if (!notificationsOpen) return undefined
-    const handleOutsideClick = (event) => {
-      if (notificationBoxRef.current && !notificationBoxRef.current.contains(event.target)) {
-        setNotificationsOpen(false)
-      }
+    document.body.classList.add('studio-page')
+    return () => document.body.classList.remove('studio-page')
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    Promise.allSettled([
+      api.get('/teacher/dashboard'),
+      api.get('/teacher/schedule/today'),
+    ])
+      .then(([summaryResult, scheduleResult]) => {
+        if (cancelled) {
+          return
+        }
+
+        setSummary(summaryResult.status === 'fulfilled' ? normalizeSummary(summaryResult.value.data) : null)
+        setSchedule(scheduleResult.status === 'fulfilled' ? normalizeSchedule(scheduleResult.value.data) : [])
+
+        if (summaryResult.status === 'rejected' && scheduleResult.status === 'rejected') {
+          setError('Não foi possível carregar os dados do painel. Verifica a ligação ao servidor.')
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
     }
-    document.addEventListener('mousedown', handleOutsideClick)
-    return () => document.removeEventListener('mousedown', handleOutsideClick)
-  }, [notificationsOpen])
-
-  const handleNotificationsClick = useCallback(() => {
-    const next = !notificationsOpen
-    setNotificationsOpen(next)
-    if (next && !notificationsLoaded) void loadNotificationPreview()
-  }, [loadNotificationPreview, notificationsLoaded, notificationsOpen])
+  }, [])
 
   return (
     <div className="teacher-dashboard">
@@ -316,60 +311,13 @@ export default function DashboardPage() {
                 </button>
                 <h2>Painel Professor</h2>
               </div>
-              <p>Operação diária de aulas, faltas e pedidos de adesão</p>
             </div>
 
-            <div className="topbar-right" ref={notificationBoxRef}>
+            <div className="topbar-right">
               <Link className="pill" to="/teacher/account">
                 Minha Conta
               </Link>
-              <button
-                type="button"
-                className="notifications-pill"
-                onClick={handleNotificationsClick}
-              >
-                Notificações {notificationUnreadCount > 0 ? notificationUnreadCount : ''}
-              </button>
-
-              {notificationsOpen ? (
-                <div className="notifications-popover">
-                  <div className="notifications-popover-header">
-                    <strong>Notificações</strong>
-                  </div>
-
-                  {notificationsLoading ? (
-                    <p className="notifications-state">A carregar...</p>
-                  ) : null}
-
-                  {!notificationsLoading && notificationsError ? (
-                    <p className="notifications-state error">{notificationsError}</p>
-                  ) : null}
-
-                  {!notificationsLoading && !notificationsError && notifications.length === 0 ? (
-                    <p className="notifications-state">Sem notificações.</p>
-                  ) : null}
-
-                  {!notificationsLoading && notifications.length > 0 ? (
-                    <ul className="notifications-list">
-                      {notifications.map((n) => (
-                        <li key={n.id} className="notifications-item">
-                          <strong>{n.title}</strong>
-                          {n.message ? <p>{n.message}</p> : null}
-                          <small>{formatNotificationDate(n.createdAt)}</small>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-
-                  <Link
-                    to="/notifications"
-                    className="notifications-more-link"
-                    onClick={() => setNotificationsOpen(false)}
-                  >
-                    Ver Mais
-                  </Link>
-                </div>
-              ) : null}
+              <NotificationsBell pageLink="/teacher/notifications" />
             </div>
           </header>
 
@@ -381,7 +329,7 @@ export default function DashboardPage() {
                   className="pill"
                   style={{ marginLeft: '0.65rem', cursor: 'pointer' }}
                   type="button"
-                  onClick={loadData}
+                  onClick={handleReload}
                 >
                   Tentar novamente
                 </button>
@@ -395,13 +343,13 @@ export default function DashboardPage() {
                 accent="#0b9d8f"
               />
               <KPICard
-                title="Confirmações pendentes"
-                value={summary ? summary.pendingConfirmations : '—'}
+                title="Pedidos pendentes"
+                value={summary ? summary.pendingRequests : '—'}
                 accent="#c2410c"
               />
               <KPICard
-                title="Pedidos de adesão"
-                value={summary ? summary.admissionRequests : '—'}
+                title="Sessões a confirmar"
+                value={summary ? summary.pendingConfirmations : '—'}
                 accent="#6f5ca5"
               />
               <KPICard
@@ -424,7 +372,7 @@ export default function DashboardPage() {
                 ) : (
                   <Table
                     columns={scheduleColumns}
-                    rows={schedule}
+                    rows={filteredSchedule}
                     getRowKey={(row) => row.sessionId}
                     emptyState="Sem aulas agendadas para hoje."
                     compact
@@ -438,26 +386,19 @@ export default function DashboardPage() {
               <article className="panel">
                 <h3>Ações rápidas</h3>
                 <p className="panel-subtle">Operações do dia a dia.</p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  <Button variant="cta" as={Link} to="/teacher/availability">
-                    Submeter disponibilidade
-                  </Button>
-                  <Button variant="cta" as={Link} to="/teacher/sessions/confirmation">
-                    Confirmar conclusão
-                  </Button>
-                  <Button variant="ctaSecondary" as={Link} to="/teacher/sessions/confirmation">
-                    Registar falta sem aviso
-                  </Button>
+                <div className="quick-actions">
+                  <Link className="cta" to="/teacher/schedule">Submeter disponibilidade</Link>
+                  <Link className="cta" to="/teacher/sessions/confirmation">Confirmar conclusão</Link>
+                  <Link className="cta secondary" to="/teacher/sessions/confirmation">Registar falta sem aviso</Link>
                 </div>
 
                 <h3 className="panel-subheading">Atalhos</h3>
                 <p className="panel-subtle">Acesso rápido aos módulos do professor.</p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  <Button variant="ctaSecondary" as={Link} to="/teacher/schedule">Horário</Button>
-                  <Button variant="ctaSecondary" as={Link} to="/teacher/availability">Disponibilidade</Button>
-                  <Button variant="ctaSecondary" as={Link} to="/teacher/coaching">Coaching</Button>
-                  <Button variant="ctaSecondary" as={Link} to="/teacher/inventory">Inventário da Escola</Button>
-                  <Button variant="ctaSecondary" as={Link} to="/teacher/marketplace">Marketplace</Button>
+                <div className="quick-actions">
+                  <Link className="cta secondary" to="/teacher/schedule">Horário</Link>
+                  <Link className="cta secondary" to="/teacher/coaching">Coaching</Link>
+                  <Link className="cta secondary" to="/teacher/inventory">Inventário da Escola</Link>
+                  <Link className="cta secondary" to="/teacher/marketplace">Marketplace</Link>
                 </div>
               </article>
             </div>

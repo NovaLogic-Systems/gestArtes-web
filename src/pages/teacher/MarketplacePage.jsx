@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import NotificationsBell from '../../components/NotificationsBell'
 import ListingCard from '../../components/ListingCard'
 import ListingDetailModal from '../../components/ListingDetailModal'
 import {
@@ -11,18 +12,13 @@ import {
 } from '../../services/marketplace'
 import ListingForm from '../../components/ListingForm'
 import Modal from '../../components/ui/Modal'
-import '../student/DashboardPage.css'
+import '../admin-studios.css'
 import '../student/marketplace.css'
+import { TEACHER_NAV_ITEMS as NAV_ITEMS } from './teacherNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 const SEARCH_HISTORY_KEY = 'marketplace.search.history'
 const SEARCH_HISTORY_LIMIT = 8
-
-const NAV_ITEMS = [
-  { label: 'Painel', href: '/teacher/dashboard' },
-  { label: 'Pedidos de admissão', href: '/teacher/admission-requests' },
-  { label: 'Marketplace', href: '/teacher/marketplace' },
-  { label: 'Os meus anúncios', href: '/teacher/marketplace/my-listings' },
-]
 
 function loadSearchHistory() {
   if (typeof window === 'undefined') {
@@ -66,6 +62,7 @@ export default function TeacherMarketplacePage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false))
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [searchHistory, setSearchHistory] = useState(loadSearchHistory)
 
   const [filters, setFilters] = useState({
@@ -77,14 +74,20 @@ export default function TeacherMarketplacePage() {
   })
 
   const teacherName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Professor'
+  const sidebarHidden = isMobile || sidebarCollapsed
+  const appShellClassName = ['app-shell', sidebarHidden ? 'sidebar-hidden' : ''].filter(Boolean).join(' ')
   const sidebarClassName = ['sidebar', isMobile && mobileOpen ? 'open' : ''].filter(Boolean).join(' ')
-  const sidebarToggleSymbol = isMobile ? (mobileOpen ? '✕' : '☰') : '☰'
-  const sidebarToggleLabel = mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'
+  const sidebarToggleSymbol = isMobile ? (mobileOpen ? '✕' : '☰') : (sidebarCollapsed ? '▶' : '◀')
+  const sidebarToggleLabel = isMobile
+    ? (mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral')
+    : (sidebarCollapsed ? 'Mostrar barra lateral' : 'Esconder barra lateral')
 
   const handleSidebarToggle = useCallback(() => {
     if (isMobile) {
       setMobileOpen((value) => !value)
+      return
     }
+    setSidebarCollapsed((value) => !value)
   }, [isMobile])
 
   const handleMobileNavClick = useCallback(() => {
@@ -107,7 +110,7 @@ export default function TeacherMarketplacePage() {
         setListings(listingsResult.value)
       } else {
         setListings([])
-        setError(listingsResult.reason?.response?.data?.error || 'Nao foi possivel carregar o marketplace.')
+        setError(listingsResult.localizeApiError(reason, 'Nao foi possivel carregar o marketplace.'))
       }
 
       if (optionsResult.status === 'fulfilled') {
@@ -118,7 +121,7 @@ export default function TeacherMarketplacePage() {
         setConditions([])
       }
     } catch (requestError) {
-      setError(requestError?.response?.data?.error || 'Nao foi possivel carregar o marketplace.')
+      setError(localizeApiError(requestError, 'Nao foi possivel carregar o marketplace.'))
     } finally {
       setLoading(false)
     }
@@ -142,6 +145,11 @@ export default function TeacherMarketplacePage() {
     onResize()
 
     return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  useEffect(() => {
+    document.body.classList.add('studio-page')
+    return () => document.body.classList.remove('studio-page')
   }, [])
 
   const filteredListings = useMemo(() => {
@@ -235,8 +243,8 @@ export default function TeacherMarketplacePage() {
   }
 
   return (
-    <div className="student-dashboard market-page">
-      <div className="app-shell">
+    <div className="market-page">
+      <div className={appShellClassName}>
         {isMobile && mobileOpen ? (
           <button
             type="button"
@@ -295,7 +303,6 @@ export default function TeacherMarketplacePage() {
               </button>
               <div>
                 <h2>Marketplace da Comunidade</h2>
-                <p>Explora artigos, encontra servicos e publica os teus anuncios.</p>
               </div>
             </div>
 
@@ -306,6 +313,7 @@ export default function TeacherMarketplacePage() {
               <Link className="pill" to="/teacher/marketplace/my-listings">
                 Os meus anuncios
               </Link>
+              <NotificationsBell pageLink="/teacher/notifications" />
             </div>
           </header>
 

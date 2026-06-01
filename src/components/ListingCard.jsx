@@ -6,6 +6,7 @@
  */
 
 import { resolveMarketplacePhotoUrl } from '../utils/marketplace-photo-url'
+import MarketplaceImage from './MarketplaceImage'
 
 function formatMoney(value) {
   const numeric = Number(value)
@@ -53,8 +54,12 @@ function resolveStatusVariant(statusName) {
     return 'warning'
   }
 
-  if (normalized.includes('active') || normalized.includes('approved') || normalized.includes('published')) {
+  if (normalized.includes('active') || normalized.includes('approved') || normalized.includes('published') || normalized.includes('sold') || normalized.includes('vendid')) {
     return 'success'
+  }
+
+  if (normalized.includes('reserv')) {
+    return 'warning'
   }
 
   return 'neutral'
@@ -79,7 +84,19 @@ function resolveStatusLabel(status) {
     return 'Ativo'
   }
 
-  return statusName
+  if (/remov|hidden|inactive|inativ/i.test(statusName)) {
+    return 'Inativo'
+  }
+
+  if (/sold|vendid/i.test(statusName)) {
+    return 'Vendido'
+  }
+
+  if (/reserv/i.test(statusName)) {
+    return 'Reservado'
+  }
+
+  return 'Estado desconhecido'
 }
 
 export default function ListingCard({
@@ -98,7 +115,7 @@ export default function ListingCard({
     <article className="market-listing-card">
       <button type="button" className="market-listing-image" onClick={() => onOpen?.(listing)}>
         {photoUrl ? (
-          <img src={photoUrl} alt={`Foto do anúncio ${listing?.title || ''}`} />
+          <MarketplaceImage src={photoUrl} alt={`Foto do anúncio ${listing?.title || ''}`} fallback={<span>Sem imagem</span>} />
         ) : (
           <span>Sem imagem</span>
         )}

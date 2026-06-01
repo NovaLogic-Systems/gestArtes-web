@@ -131,9 +131,14 @@
 .teacher-dashboard .notifications-more-link {
   color: #8c402a;
   display: inline-flex;
+  border: 0;
+  background: transparent;
+  font: inherit;
   font-weight: 700;
   margin-top: 10px;
   text-decoration: none;
+  cursor: pointer;
+  padding: 0;
 }
 
 .teacher-notifications-page .notifications-page-header {

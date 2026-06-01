@@ -71,6 +71,21 @@ export function AuthProvider({ children }) {
     return currentUser
   }, [])
 
+  const switchRole = useCallback(async (nextRole) => {
+    const response = await api.post('/auth/switch-role', { role: nextRole })
+    const currentUser = response.data?.user ?? null
+    const currentRole = response.data?.role ?? currentUser?.role ?? null
+
+    if (response.data?.accessToken) {
+      setAccessToken(response.data.accessToken)
+    }
+    setUser(currentUser)
+    setRole(currentRole)
+    setIsAuthenticated(Boolean(currentUser && currentRole))
+
+    return currentRole
+  }, [])
+
   const logout = useCallback(async () => {
     try {
       await api.post('/auth/logout', null, { skipAuthHandler: true })
@@ -132,16 +147,18 @@ export function AuthProvider({ children }) {
     () => ({
       user,
       role,
+      roles: Array.isArray(user?.roles) ? user.roles : (role ? [role] : []),
       isAuthenticated,
       loading,
       login,
       logout,
+      switchRole,
       reloadSession: loadSession,
       loadSession,
       unreadCount,
       setUnreadCount,
     }),
-    [user, role, isAuthenticated, loading, login, logout, loadSession, unreadCount],
+    [user, role, isAuthenticated, loading, login, logout, switchRole, loadSession, unreadCount],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

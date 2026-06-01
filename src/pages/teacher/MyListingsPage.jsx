@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import NotificationsBell from '../../components/NotificationsBell'
 import ListingCard from '../../components/ListingCard'
 import ListingDetailModal from '../../components/ListingDetailModal'
 import ListingForm from '../../components/ListingForm'
@@ -12,15 +13,27 @@ import {
   getMyMarketplaceListings,
   updateMarketplaceListing,
 } from '../../services/marketplace'
-import '../student/DashboardPage.css'
+import '../admin-studios.css'
 import '../student/marketplace.css'
+import { TEACHER_NAV_ITEMS as NAV_ITEMS } from './teacherNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
-const NAV_ITEMS = [
-  { label: 'Painel', href: '/teacher/dashboard' },
-  { label: 'Pedidos de admissão', href: '/teacher/admission-requests' },
-  { label: 'Marketplace', href: '/teacher/marketplace' },
-  { label: 'Os meus anúncios', href: '/teacher/marketplace/my-listings' },
-]
+function isVisibleListing(listing) {
+  const statusName = String(listing?.status?.statusName || listing?.status || '').trim().toLowerCase()
+
+  if (!statusName) {
+    return true
+  }
+
+  return !(
+    statusName.includes('removed') ||
+    statusName.includes('remov') ||
+    statusName.includes('inactive') ||
+    statusName.includes('inativo') ||
+    statusName.includes('hidden') ||
+    statusName.includes('ocult')
+  )
+}
 
 export default function TeacherMarketplaceListingsPage() {
   const { logout, user } = useAuth()
@@ -40,16 +53,22 @@ export default function TeacherMarketplaceListingsPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false))
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   const teacherName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Professor'
+  const sidebarHidden = isMobile || sidebarCollapsed
+  const appShellClassName = ['app-shell', sidebarHidden ? 'sidebar-hidden' : ''].filter(Boolean).join(' ')
   const sidebarClassName = ['sidebar', isMobile && mobileOpen ? 'open' : ''].filter(Boolean).join(' ')
-  const sidebarToggleSymbol = isMobile ? (mobileOpen ? '✕' : '☰') : '☰'
-  const sidebarToggleLabel = mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'
+  const sidebarToggleSymbol = isMobile ? (mobileOpen ? '✕' : '☰') : (sidebarCollapsed ? '▶' : '◀')
+  const sidebarToggleLabel = isMobile ? (mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral') : (sidebarCollapsed ? 'Mostrar barra lateral' : 'Esconder barra lateral')
 
   const handleSidebarToggle = useCallback(() => {
     if (isMobile) {
       setMobileOpen((value) => !value)
+      return
     }
+    setSidebarCollapsed((value) => !value)
   }, [isMobile])
 
   const handleMobileNavClick = useCallback(() => {
@@ -67,7 +86,7 @@ export default function TeacherMarketplaceListingsPage() {
       setCategories(options.categories ?? [])
       setConditions(options.conditions ?? [])
     } catch (requestError) {
-      setError(requestError?.response?.data?.error || 'Nao foi possivel carregar os teus anuncios.')
+      setError(localizeApiError(requestError, 'Nao foi possivel carregar os teus anuncios.'))
     } finally {
       setLoading(false)
     }
@@ -84,6 +103,7 @@ export default function TeacherMarketplaceListingsPage() {
 
       if (!mobile) {
         setMobileOpen(false)
+        setSidebarCollapsed(false)
       }
     }
 
@@ -91,6 +111,11 @@ export default function TeacherMarketplaceListingsPage() {
     onResize()
 
     return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  useEffect(() => {
+    document.body.classList.add('studio-page')
+    return () => document.body.classList.remove('studio-page')
   }, [])
 
   async function handleOpenListing(listing) {
@@ -111,9 +136,24 @@ export default function TeacherMarketplaceListingsPage() {
       return
     }
 
-    await deleteMarketplaceListing(listing.listingId)
-    await loadData()
+    try {
+      await deleteMarketplaceListing(listing.listingId)
+      await loadData()
+    } catch (requestError) {
+      setError(localizeApiError(requestError, 'Nao foi possivel apagar o anuncio.'))
+    }
   }
+
+  const filteredListings = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase()
+    const visibleListings = listings.filter(isVisibleListing)
+
+    if (!term) return visibleListings
+
+    return visibleListings.filter((listing) =>
+      Object.values(listing).join(' ').toLowerCase().includes(term)
+    )
+  }, [listings, searchTerm])
 
   async function handleEditSubmit(values, file) {
     try {
@@ -128,8 +168,8 @@ export default function TeacherMarketplaceListingsPage() {
   }
 
   return (
-    <div className="student-dashboard market-page">
-      <div className="app-shell">
+    <div className="market-page">
+      <div className={appShellClassName}>
         {isMobile && mobileOpen ? (
           <button
             type="button"
@@ -176,25 +216,33 @@ export default function TeacherMarketplaceListingsPage() {
         <main className="main">
           <header className="topbar">
             <div className="topbar-left">
-              <button
-                type="button"
-                className="sidebar-toggle-btn"
-                aria-label={sidebarToggleLabel}
-                aria-controls="sidebar"
-                aria-expanded={mobileOpen}
-                onClick={handleSidebarToggle}
-              >
-                {sidebarToggleSymbol}
-              </button>
-              <div>
+              <div className="topbar-heading">
+                <button
+                  type="button"
+                  className="sidebar-toggle-btn"
+                  aria-label={sidebarToggleLabel}
+                  aria-controls="sidebar"
+                  aria-expanded={mobileOpen}
+                  onClick={handleSidebarToggle}
+                >
+                  {sidebarToggleSymbol}
+                </button>
                 <h2>Os meus anúncios</h2>
-                <p>Gere os teus anuncios ativos, edita detalhes e remove quando necessario.</p>
               </div>
+              <p>Gere os teus anuncios ativos, edita detalhes e remove quando necessario.</p>
             </div>
             <div className="topbar-right">
+              <input
+                type="search"
+                className="topbar-search"
+                placeholder="Pesquisar..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
               <Link className="pill" to="/teacher/marketplace">
                 Voltar ao feed
               </Link>
+              <NotificationsBell pageLink="/teacher/notifications" />
             </div>
           </header>
 
@@ -205,11 +253,11 @@ export default function TeacherMarketplaceListingsPage() {
               {error ? <p className="error-banner">{error}</p> : null}
               {loading ? <p className="panel-subtle">A carregar os teus anuncios...</p> : null}
 
-              {!loading && listings.length === 0 ? (
+              {!loading && filteredListings.length === 0 ? (
                 <p className="empty">Ainda nao tens anuncios publicados.</p>
               ) : (
                 <div className="market-listing-grid">
-                  {listings.map((listing) => (
+                  {filteredListings.map((listing) => (
                     <ListingCard
                       key={listing.listingId}
                       listing={listing}

@@ -13,22 +13,13 @@ import Input from '../../components/ui/Input'
 import LoadingSkeleton from '../../components/ui/LoadingSkeleton'
 import Modal from '../../components/ui/Modal'
 import { useAuth } from '../../hooks/useAuth'
+import toast from 'react-hot-toast'
 import { changeStudentPassword, fetchStudentAccount, updateStudentPhoneNumber } from '../../services/studentAccount'
+import NotificationsBell from '../../components/NotificationsBell'
 import './DashboardPage.css'
 import './account.css'
-
-const NAV_ITEMS = [
-	{ label: 'Painel', href: '/student/dashboard' },
-	{ label: 'Coaching', href: '/student/coaching' },
-	{ label: 'Mapa de Coaching', href: '/student/coaching/map' },
-	{ label: 'Inventário da Escola', href: '/student/inventory' },
-	{ label: 'As Minhas Rendas', href: '/student/inventory/rentals' },
-	{ label: 'Marketplace', href: '/student/marketplace' },
-	{ label: 'Os Meus Anúncios', href: '/student/marketplace/my-listings' },
-	{ label: 'Perdidos e Achados', href: '/student/lostfound' },
-	{ label: 'Notificações', href: '/student/notifications' },
-	{ label: 'Minha Conta', href: '/student/account' },
-]
+import { STUDENT_NAV_ITEMS as NAV_ITEMS } from './studentNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 function formatDateLabel(value) {
 	if (!value) {
@@ -45,23 +36,6 @@ function formatDateLabel(value) {
 		day: '2-digit',
 		month: '2-digit',
 		year: 'numeric',
-	}).format(date)
-}
-
-function formatDateTimeLabel(value) {
-	if (!value) {
-		return '—'
-	}
-
-	const date = new Date(value)
-
-	if (Number.isNaN(date.getTime())) {
-		return String(value)
-	}
-
-	return new Intl.DateTimeFormat('pt-PT', {
-		dateStyle: 'short',
-		timeStyle: 'short',
 	}).format(date)
 }
 
@@ -114,12 +88,11 @@ export default function AccountPage() {
 	const [error, setError] = useState('')
 	const [phoneNumber, setPhoneNumber] = useState('')
 	const [phoneSaving, setPhoneSaving] = useState(false)
-	const [phoneMessage, setPhoneMessage] = useState('')
 	const [phoneError, setPhoneError] = useState('')
+	const [passwordMessage, setPasswordMessage] = useState('')
 	const [passwordOpen, setPasswordOpen] = useState(false)
 	const [passwordSaving, setPasswordSaving] = useState(false)
 	const [passwordError, setPasswordError] = useState('')
-	const [passwordMessage, setPasswordMessage] = useState('')
 	const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false))
 	const [mobileOpen, setMobileOpen] = useState(false)
 	const [passwordForm, setPasswordForm] = useState({
@@ -132,19 +105,25 @@ export default function AccountPage() {
 	const profile = account?.profile ?? null
 	const trainingPlan = account?.trainingPlan ?? null
 	const statistics = account?.statistics ?? null
-	const nextSessions = Array.isArray(trainingPlan?.nextSessions) ? trainingPlan.nextSessions : []
 	const modalityDistribution = Array.isArray(trainingPlan?.modalityDistribution) ? trainingPlan.modalityDistribution : []
 	const normalizedPhone = normalizePhoneNumber(profile?.phoneNumber)
 	const phoneDirty = normalizePhoneNumber(phoneNumber) !== normalizedPhone
 	const trainingPlanLabel = splitPlanLabel(trainingPlan?.name)
+	const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+	const sidebarHidden = isMobile || sidebarCollapsed
+	const appShellClassName = ['app-shell', sidebarHidden ? 'sidebar-hidden' : ''].filter(Boolean).join(' ')
 	const sidebarClassName = ['sidebar', isMobile && mobileOpen ? 'open' : ''].filter(Boolean).join(' ')
-	const sidebarToggleSymbol = isMobile ? (mobileOpen ? '✕' : '☰') : '☰'
-	const sidebarToggleLabel = mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'
+	const sidebarToggleSymbol = isMobile ? (mobileOpen ? '✕' : '☰') : sidebarCollapsed ? '▶' : '◀'
+	const sidebarToggleLabel = isMobile
+		? (mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral')
+		: (sidebarCollapsed ? 'Mostrar barra lateral' : 'Esconder barra lateral')
 
 	const handleSidebarToggle = useCallback(() => {
 		if (isMobile) {
 			setMobileOpen((value) => !value)
+			return
 		}
+		setSidebarCollapsed((value) => !value)
 	}, [isMobile])
 
 	const handleMobileNavClick = useCallback(() => {
@@ -157,8 +136,6 @@ export default function AccountPage() {
 		try {
 			setLoading(true)
 			setError('')
-			setPhoneMessage('')
-			setPasswordMessage('')
 
 			const response = await fetchStudentAccount()
 			setAccount(response)
@@ -166,7 +143,7 @@ export default function AccountPage() {
 		} catch (requestError) {
 			setAccount(null)
 			setPhoneNumber('')
-			setError(requestError?.response?.data?.error || 'Não foi possível carregar a conta do aluno.')
+			setError(localizeApiError(requestError, 'Não foi possível carregar a conta do aluno.'))
 		} finally {
 			setLoading(false)
 		}
@@ -195,7 +172,6 @@ export default function AccountPage() {
 	const statCards = useMemo(() => ([
 		{ label: 'Sessões inscritas', value: formatCount(statistics?.totalSessionsEnrolled) },
 		{ label: 'Sessões concluídas', value: formatCount(statistics?.completedSessions) },
-		{ label: 'Próximas sessões', value: formatCount(statistics?.upcomingSessions) },
 		{ label: 'Pedidos de adesão', value: formatCount(statistics?.totalJoinRequests) },
 		{ label: 'Requisições de inventário', value: formatCount(statistics?.totalInventoryRentals) },
 		{ label: 'Compras no marketplace', value: formatCount(statistics?.totalMarketplacePurchases) },
@@ -209,7 +185,6 @@ export default function AccountPage() {
 		try {
 			setPhoneSaving(true)
 			setPhoneError('')
-			setPhoneMessage('')
 
 			const response = await updateStudentPhoneNumber(phoneNumber)
 			const nextProfile = response?.profile ?? null
@@ -219,9 +194,9 @@ export default function AccountPage() {
 				setPhoneNumber(normalizePhoneNumber(nextProfile.phoneNumber))
 			}
 
-			setPhoneMessage('Número de telemóvel atualizado com sucesso.')
+			toast.success('Número de telemóvel atualizado com sucesso.')
 		} catch (requestError) {
-			setPhoneError(requestError?.response?.data?.error || 'Não foi possível atualizar o número de telemóvel.')
+			setPhoneError(localizeApiError(requestError, 'Não foi possível atualizar o número de telemóvel.'))
 		} finally {
 			setPhoneSaving(false)
 		}
@@ -252,17 +227,17 @@ export default function AccountPage() {
 		try {
 			setPasswordSaving(true)
 			setPasswordError('')
-			setPasswordMessage('')
 
 			await changeStudentPassword({
 				currentPassword: passwordForm.currentPassword,
 				newPassword: passwordForm.newPassword,
 			})
 
-			closePasswordModal()
 			setPasswordMessage('Password atualizada com sucesso.')
+			closePasswordModal()
+			toast.success('Password atualizada com sucesso.')
 		} catch (requestError) {
-			setPasswordError(requestError?.response?.data?.error || 'Não foi possível alterar a password.')
+			setPasswordError(localizeApiError(requestError, 'Não foi possível alterar a password.'))
 		} finally {
 			setPasswordSaving(false)
 		}
@@ -293,7 +268,7 @@ export default function AccountPage() {
 
 	return (
 		<div className="student-dashboard account-page">
-			<div className="app-shell">
+			<div className={appShellClassName}>
 				{isMobile && mobileOpen ? (
 					<button
 						type="button"
@@ -353,17 +328,11 @@ export default function AccountPage() {
 
 							<div>
 								<h2>Minha Conta</h2>
-								<p>Perfil pessoal, plano formativo e estatísticas da tua conta.</p>
 							</div>
 						</div>
 
 						<div className="topbar-right">
-							<Link className="pill account-toolbar-pill" to="/student/dashboard">
-								Painel
-							</Link>
-							<button type="button" className="account-toolbar-button" onClick={loadAccount}>
-								Recarregar
-							</button>
+							<NotificationsBell pageLink="/student/notifications" />
 						</div>
 					</header>
 
@@ -391,7 +360,7 @@ export default function AccountPage() {
 									</div>
 
 									<div className="account-note">
-										<p>Para alterar os teus dados pessoais ou o plano de faturação, contacta a administração da escola.</p>
+										<p>Para alterar os teus dados pessoais contacta diretamente a escola.</p>
 									</div>
 
 									<div className="account-readonly-grid">
@@ -419,8 +388,7 @@ export default function AccountPage() {
 											value={phoneNumber}
 											onChange={(event) => {
 												setPhoneNumber(event.target.value)
-												setPhoneMessage('')
-												setPhoneError('')
+																					setPhoneError('')
 											}}
 											helperText="Este número é usado para contacto operacional da escola."
 											autoComplete="tel"
@@ -430,13 +398,19 @@ export default function AccountPage() {
 											<Button type="button" variant="cta" onClick={handlePhoneSave} disabled={!phoneDirty} isLoading={phoneSaving}>
 												Guardar número
 											</Button>
-											<Button type="button" variant="secondary" onClick={() => setPasswordOpen(true)}>
+											<Button
+												type="button"
+												variant="secondary"
+												onClick={() => {
+													setPasswordMessage('')
+													setPasswordOpen(true)
+												}}
+											>
 												Alterar password
 											</Button>
 										</div>
 
-										{phoneMessage ? <p className="account-success-message">{phoneMessage}</p> : null}
-										{phoneError ? <p className="account-error-message">{phoneError}</p> : null}
+											{phoneError ? <p className="account-error-message">{phoneError}</p> : null}
 									</div>
 								</article>
 							</div>
@@ -493,32 +467,6 @@ export default function AccountPage() {
 									)}
 								</article>
 
-								<article className="panel account-panel">
-									<div className="account-panel-head">
-										<div>
-											<h3>Próximas sessões</h3>
-											<p>As sessões mais recentes do teu plano.</p>
-										</div>
-									</div>
-
-									{nextSessions.length ? (
-										<ul className="account-sessions-list">
-											{nextSessions.slice(0, 3).map((session) => (
-												<li key={session.sessionId}>
-													<div>
-														<strong>{session.modalityName}</strong>
-														<span>{session.studioName}</span>
-													</div>
-													<Badge variant={String(session.status || '').toLowerCase().includes('cancel') ? 'danger' : 'success'} size="sm">
-														{formatDateTimeLabel(session.startTime)}
-													</Badge>
-												</li>
-											))}
-										</ul>
-									) : (
-										<p className="account-empty">Ainda não tens próximas sessões registadas.</p>
-									)}
-								</article>
 							</div>
 						</section>
 					)}

@@ -1,0 +1,420 @@
+.teacher-admission-requests {
+  min-height: 100%;
+}
+
+.teacher-admission-requests .main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.teacher-admission-requests .content-grid {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 0;
+}
+
+.teacher-admission-requests .split {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.teacher-admission-requests .split > .panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.teacher-admission-requests .panel {
+  min-height: 0;
+}
+
+.teacher-admission-requests .panel-header {
+  align-items: flex-start;
+}
+
+.teacher-admission-requests .panel-header > div {
+  min-width: 0;
+}
+
+.teacher-admission-requests .panel-subtle {
+  margin: 0.35rem 0 0;
+  color: var(--studio-muted);
+}
+
+.teacher-admission-requests .loading-stack {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.teacher-admission-requests .table-wrap {
+  flex: 1;
+  min-height: 0;
+}
+
+.teacher-admission-requests .table-wrap .ui-table-wrapper {
+  height: 100%;
+}
+
+.teacher-admission-requests .table-wrap .ui-table-wrapper > div {
+  height: 100%;
+}
+
+.teacher-admission-requests .table-wrap table {
+  min-height: 100%;
+}
+
+.teacher-admission-requests .ui-table-wrapper tbody td {
+  vertical-align: middle;
+}
+
+.teacher-admission-requests .request-link {
+  align-items: flex-start;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  gap: 0.2rem;
+  padding: 0;
+  text-align: left;
+}
+
+.teacher-admission-requests .request-link span {
+  color: var(--studio-ink);
+  font-weight: 700;
+}
+
+.teacher-admission-requests .request-student,
+.teacher-admission-requests .request-session,
+.teacher-admission-requests .request-capacity,
+.teacher-admission-requests .request-deadline {
+  color: var(--studio-ink);
+}
+
+.teacher-admission-requests .request-session small,
+.teacher-admission-requests .request-student small,
+.teacher-admission-requests .request-capacity small {
+  color: var(--studio-muted);
+}
+
+.teacher-admission-requests .request-modal-content {
+  display: grid;
+  gap: 1rem;
+}
+
+.teacher-admission-requests .request-meta-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.teacher-admission-requests .request-meta-card {
+  background: var(--studio-soft-bg);
+  border: 1px solid var(--studio-soft-line);
+  border-radius: 1rem;
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.85rem 0.95rem;
+}
+
+.teacher-admission-requests .request-meta-card strong {
+  color: var(--studio-muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.teacher-admission-requests .request-meta-card span {
+  color: var(--studio-ink);
+  font-weight: 700;
+}
+
+.teacher-admission-requests .request-meta-card small {
+  color: var(--studio-muted);
+}
+
+.teacher-admission-requests .modal-warning,
+.teacher-admission-requests .modal-error {
+  border-radius: 0.9rem;
+  padding: 0.85rem 0.95rem;
+}
+
+.teacher-admission-requests .modal-warning {
+  background: var(--studio-soft-bg);
+  border: 1px solid var(--studio-soft-line);
+  color: var(--studio-ink);
+}
+
+.teacher-admission-requests .modal-error {
+  background: var(--studio-error-bg);
+  border: 1px solid var(--studio-error-line);
+  color: var(--studio-error-ink);
+}
+
+.teacher-admission-requests .decision-toggle {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.35rem;
+  background: var(--studio-soft-bg);
+  border: 1px solid var(--studio-soft-line);
+  border-radius: 999px;
+}
+
+.teacher-admission-requests .decision-toggle button {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--studio-ghost-ink);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  padding: 0.6rem 0.95rem;
+}
+
+.teacher-admission-requests .decision-toggle button.active.approve {
+  background: linear-gradient(135deg, rgba(11, 157, 143, 0.18), rgba(16, 178, 163, 0.1));
+  border-color: color-mix(in srgb, var(--studio-cta-start) 32%, #ffffff 68%);
+  color: #0a7a70;
+}
+
+.teacher-admission-requests .decision-toggle button.active.reject {
+  background: var(--studio-danger-bg);
+  border-color: var(--studio-danger-line);
+  color: var(--studio-danger-ink);
+}
+
+.teacher-admission-requests .observations-field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.teacher-admission-requests .observations-field span {
+  color: var(--studio-ink);
+  font-weight: 600;
+}
+
+.teacher-admission-requests .observations-field textarea {
+  background: #fff;
+  border: 1px solid var(--studio-field-line);
+  border-radius: 1rem;
+  color: var(--studio-ink);
+  font: inherit;
+  min-height: 120px;
+  padding: 0.9rem 1rem;
+  resize: vertical;
+  width: 100%;
+}
+
+.teacher-admission-requests .observations-meta {
+  display: flex;
+  justify-content: flex-end;
+  color: var(--studio-muted);
+}
+
+.teacher-admission-requests .request-status-badge {
+  justify-self: start;
+}
+
+.teacher-admission-requests .review-note {
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .teacher-admission-requests .split {
+    display: block;
+  }
+}
+
+@media (max-width: 720px) {
+  .teacher-admission-requests .panel-header {
+    flex-direction: column;
+  }
+
+  .teacher-admission-requests .decision-toggle {
+    width: 100%;
+  }
+
+  .teacher-admission-requests .decision-toggle button {
+    flex: 1 1 0;
+  }
+}
+
+
+.teacher-admission-requests {
+  --modal-bg: #ffffff;
+  --modal-ink: #1f1c2e;
+  --modal-muted: #5c5a6b;
+  --modal-line: #e2e8f0;
+  --meta-card-bg: #f8fafc;
+}
+
+.teacher-admission-requests .main {
+  background: var(--studio-bg);
+  min-height: 100vh;
+}
+
+/* Modal Content Styling */
+.request-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 0.5rem 0;
+}
+
+.request-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.request-meta-card {
+  background: var(--meta-card-bg);
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--modal-line);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.request-meta-card strong {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--modal-muted);
+  letter-spacing: 0.05em;
+}
+
+.request-meta-card span {
+  font-weight: 600;
+  color: var(--modal-ink);
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.request-meta-card small {
+  color: var(--modal-muted);
+  font-size: 0.85rem;
+}
+
+.modal-warning {
+  background: #fffbeb;
+  color: #92400e;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #fde68a;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.modal-error {
+  color: var(--studio-error-ink);
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Decision Toggle */
+.decision-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.decision-toggle button {
+  padding: 0.85rem;
+  border-radius: 12px;
+  border: 1px solid var(--modal-line);
+  background: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.decision-toggle button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.decision-toggle button.active.approve {
+  background: #ecfdf5;
+  border-color: #10b981;
+  color: #065f46;
+  box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.1);
+}
+
+.decision-toggle button.active.reject {
+  background: #fef2f2;
+  border-color: #ef4444;
+  color: #991b1b;
+  box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.1);
+}
+
+/* Observations Field */
+.observations-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.observations-field span {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.observations-field textarea {
+  width: 100%;
+  padding: 0.85rem;
+  border-radius: 12px;
+  border: 1px solid var(--modal-line);
+  background: var(--meta-card-bg);
+  resize: vertical;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--modal-ink);
+}
+
+.observations-field textarea:focus {
+  outline: none;
+  border-color: var(--studio-cta-start);
+  background: #fff;
+}
+
+.observations-meta {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.observations-meta small {
+  color: var(--modal-muted);
+}
+
+.request-status-badge {
+  align-self: flex-start;
+}
+
+/* Modal Footer */
+.modal-footer-actions {
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  .decision-toggle {
+    grid-template-columns: 1fr;
+  }
+}

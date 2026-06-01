@@ -1,21 +1,18 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import notificationPreviewService from '../../services/notificationPreviewService'
 import Badge from '../../components/ui/Badge'
 import Button from '../../components/ui/Button'
 import LoadingSkeleton from '../../components/ui/LoadingSkeleton'
 import Table from '../../components/ui/Table'
+import NotificationsBell from '../../components/NotificationsBell'
 import InventoryCatalog from '../../components/InventoryCatalog'
 import { listInventoryRentals } from '../../services/inventory'
+import '../admin-studios.css'
 import '../student/inventory.css'
 import './InventoryPage.css'
-
-const NAV_ITEMS = [
-  { label: 'Painel', href: '/teacher/dashboard' },
-  { label: 'Pedidos de admissão', href: '/teacher/admission-requests' },
-  { label: 'Inventário da Escola', href: '/teacher/inventory' },
-]
+import { TEACHER_NAV_ITEMS as NAV_ITEMS } from './teacherNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 const RENTAL_STATUS_BADGE = {
   pending: { variant: 'warning', label: 'A aguardar direção' },
@@ -38,13 +35,6 @@ function formatDate(value) {
   return new Intl.DateTimeFormat('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(d)
 }
 
-function formatNotificationDate(value) {
-  if (!value) return ''
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return ''
-  return d.toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' })
-}
-
 export default function TeacherInventoryPage() {
   const { logout, user } = useAuth()
   const location = useLocation()
@@ -60,15 +50,7 @@ export default function TeacherInventoryPage() {
   const [rentals, setRentals] = useState([])
   const [loadingRentals, setLoadingRentals] = useState(true)
   const [error, setError] = useState('')
-
-  const [notificationsOpen, setNotificationsOpen] = useState(false)
-  const [notificationsLoaded, setNotificationsLoaded] = useState(false)
-  const [notificationsLoading, setNotificationsLoading] = useState(false)
-  const [notificationsError, setNotificationsError] = useState('')
-  const [notifications, setNotifications] = useState([])
-  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0)
-
-  const notificationBoxRef = useRef(null)
+  const searchTerm = ''
 
   const sidebarHidden = isMobile || sidebarCollapsed
   const appShellClassName = ['app-shell', sidebarHidden ? 'sidebar-hidden' : ''].filter(Boolean).join(' ')
@@ -103,56 +85,18 @@ export default function TeacherInventoryPage() {
       setRentals(data)
     } catch (err) {
       setRentals([])
-      setError((prev) => prev || err?.response?.data?.error || 'Não foi possível carregar as reservas.')
+      setError((prev) => prev || localizeApiError(err, 'Não foi possível carregar as reservas.'))
     } finally {
       setLoadingRentals(false)
     }
   }, [])
 
-  useEffect(() => { loadRentals() }, [loadRentals])
-
-  const refreshNotificationSummary = useCallback(async () => {
-    try {
-      const preview = await notificationPreviewService.getPreview({ limit: 0, includeUnreadCount: true })
-      setNotificationUnreadCount(preview.unreadCount)
-    } catch {
-      // ignore preview fetch errors silently
-    }
-  }, [])
-
-  const loadNotificationPreview = useCallback(async () => {
-    setNotificationsLoading(true)
-    setNotificationsError('')
-    try {
-      const preview = await notificationPreviewService.getPreview({ limit: 4, includeUnreadCount: true })
-      setNotifications(preview.items)
-      setNotificationUnreadCount(preview.unreadCount)
-      setNotificationsLoaded(true)
-    } catch {
-      setNotificationsError('Não foi possível carregar as notificações.')
-    } finally {
-      setNotificationsLoading(false)
-    }
-  }, [])
-
-  useEffect(() => { void refreshNotificationSummary() }, [refreshNotificationSummary])
-
   useEffect(() => {
-    if (!notificationsOpen) return undefined
-    const handleOutsideClick = (event) => {
-      if (notificationBoxRef.current && !notificationBoxRef.current.contains(event.target)) {
-        setNotificationsOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleOutsideClick)
-    return () => document.removeEventListener('mousedown', handleOutsideClick)
-  }, [notificationsOpen])
+    document.body.classList.add('studio-page')
+    return () => document.body.classList.remove('studio-page')
+  }, [])
 
-  const handleNotificationsClick = useCallback(() => {
-    const next = !notificationsOpen
-    setNotificationsOpen(next)
-    if (next && !notificationsLoaded) void loadNotificationPreview()
-  }, [loadNotificationPreview, notificationsLoaded, notificationsOpen])
+  useEffect(() => { loadRentals() }, [loadRentals])
 
   const rentalColumns = [
     {
@@ -195,6 +139,15 @@ export default function TeacherInventoryPage() {
       render: (row) => formatDate(row.endDate),
     },
   ]
+
+  const filteredRentals = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase()
+    if (!term) return rentals
+    return rentals.filter((r) =>
+      [r.reference, r.item?.itemName, r.status]
+        .join(' ').toLowerCase().includes(term)
+    )
+  }, [rentals, searchTerm])
 
   return (
     <div className="teacher-inventory inventory-page">
@@ -256,10 +209,9 @@ export default function TeacherInventoryPage() {
                 </button>
                 <h2>Inventário da Escola</h2>
               </div>
-              <p>Catálogo oficial para pedidos de aluguer. A admin aprova ou rejeita e o pagamento é feito na escola.</p>
             </div>
 
-            <div className="topbar-right" ref={notificationBoxRef}>
+            <div className="topbar-right">
               <button
                 type="button"
                 className="pill"
@@ -267,42 +219,7 @@ export default function TeacherInventoryPage() {
               >
                 Pedidos ({rentals.length})
               </button>
-              <button
-                type="button"
-                className="pill notifications-pill"
-                onClick={handleNotificationsClick}
-              >
-                Notificações {notificationUnreadCount > 0 ? notificationUnreadCount : ''}
-              </button>
-
-              {notificationsOpen ? (
-                <div className="notifications-popover">
-                  <div className="notifications-popover-header">
-                    <strong>Notificações</strong>
-                  </div>
-                  {notificationsLoading ? <p className="notifications-state">A carregar...</p> : null}
-                  {!notificationsLoading && notificationsError ? (
-                    <p className="notifications-state error">{notificationsError}</p>
-                  ) : null}
-                  {!notificationsLoading && !notificationsError && notifications.length === 0 ? (
-                    <p className="notifications-state">Sem notificações.</p>
-                  ) : null}
-                  {!notificationsLoading && notifications.length > 0 ? (
-                    <ul className="notifications-list">
-                      {notifications.map((n) => (
-                        <li key={n.id} className="notifications-item">
-                          <strong>{n.title}</strong>
-                          {n.message ? <p>{n.message}</p> : null}
-                          <small>{formatNotificationDate(n.createdAt)}</small>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                  <Link to="/teacher/notifications" className="notifications-more-link" onClick={() => setNotificationsOpen(false)}>
-                    Ver Mais
-                  </Link>
-                </div>
-              ) : null}
+              <NotificationsBell pageLink="/teacher/notifications" />
             </div>
           </header>
 
@@ -322,23 +239,6 @@ export default function TeacherInventoryPage() {
             ) : null}
 
             <div className="panel">
-              <div className="tab-row">
-                <button
-                  type="button"
-                  className={`tab-btn${activeTab === 'items' ? ' active' : ''}`}
-                  onClick={() => setActiveTab('items')}
-                >
-                  Catálogo oficial
-                </button>
-                <button
-                  type="button"
-                  className={`tab-btn${activeTab === 'myRentals' ? ' active' : ''}`}
-                  onClick={() => setActiveTab('myRentals')}
-                >
-                  Os meus pedidos ({rentals.length})
-                </button>
-              </div>
-
               {activeTab === 'items' ? (
                 <InventoryCatalog 
                   onRentalCreated={() => { loadRentals(); setActiveTab('myRentals') }} 
@@ -356,7 +256,7 @@ export default function TeacherInventoryPage() {
                   ) : (
                     <Table
                       columns={rentalColumns}
-                      rows={rentals}
+                      rows={filteredRentals}
                       getRowKey={(row) => row.rentalId}
                       emptyState="Ainda não tens pedidos de aluguer."
                       striped

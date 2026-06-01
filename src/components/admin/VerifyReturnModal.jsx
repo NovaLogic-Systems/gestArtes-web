@@ -16,7 +16,7 @@ export default function VerifyReturnModal({ rentalId, open = true, onClose, onSu
         conditionStatus: condition,
         conditionNotes: notes || null,
       })
-    } catch (err) {
+    } catch {
       // swallow — parent shows errors
     } finally {
       setBusy(false)

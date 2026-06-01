@@ -7,21 +7,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import NotificationsBell from '../../components/NotificationsBell'
 import { useAuth } from '../../hooks/useAuth'
 import { getMarketplaceListingById, listMarketplaceListings } from '../../services/marketplace'
 import { maskEmail, maskPhone } from '../../utils/masking'
 import '../admin-studios.css'
 import '../student/marketplace.css'
-
-const NAV_ITEMS = [
-  { label: 'Dashboard', href: '/admin/dashboard' },
-  { label: 'Utilizadores', href: '/admin/users' },
-  { label: 'Estúdios', href: '/admin/studios' },
-  { label: 'Marketplace', href: '/admin/marketplace' },
-    { label: 'Conversas', href: '/admin/marketplace/conversas' },
-  { label: 'Moderação', href: '/admin/moderation' },
-  { label: 'Minha Conta', href: '/admin/account' },
-]
+import { ADMIN_NAV_ITEMS as NAV_ITEMS } from './adminNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 function normalizePhone(phoneNumber) {
   return String(phoneNumber || '').replace(/\D/g, '')
@@ -79,7 +72,7 @@ export default function AdminMarketplaceConversationsPage() {
 
       setListings(withContact)
     } catch (requestError) {
-      setError(requestError?.response?.data?.error || 'Não foi possível carregar as conversas do marketplace.')
+      setError(localizeApiError(requestError, 'Não foi possível carregar as conversas do marketplace.'))
       setListings([])
     } finally {
       setLoading(false)
@@ -193,11 +186,19 @@ export default function AdminMarketplaceConversationsPage() {
                 <h2>Conversas do Marketplace</h2>
                 <p>Visualize e modere todos os contactos e conversas do marketplace.</p>
               </div>
+              <input
+                type="search"
+                className="topbar-search"
+                placeholder="Pesquisar..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
             </div>
             <div className="topbar-right">
               <Link className="pill" to="/admin/marketplace">
                 Voltar ao marketplace
               </Link>
+              <NotificationsBell pageLink="/admin/notifications" />
             </div>
           </header>
 

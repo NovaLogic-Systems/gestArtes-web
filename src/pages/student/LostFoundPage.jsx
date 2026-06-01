@@ -11,21 +11,11 @@ import { useAuth } from '../../hooks/useAuth'
 import Badge from '../../components/ui/Badge'
 import LoadingSkeleton from '../../components/ui/LoadingSkeleton'
 import { listLostFoundItems } from '../../services/lostFound'
+import NotificationsBell from '../../components/NotificationsBell'
 import './DashboardPage.css'
 import './lostfound.css'
-
-const NAV_ITEMS = [
-	{ label: 'Painel', href: '/student/dashboard' },
-	{ label: 'Coaching', href: '/student/coaching' },
-	{ label: 'Mapa de Coaching', href: '/student/coaching/map' },
-	{ label: 'Inventário da Escola', href: '/student/inventory' },
-	{ label: 'As Minhas Rendas', href: '/student/inventory/rentals' },
-	{ label: 'Marketplace', href: '/student/marketplace' },
-	{ label: 'Os Meus Anúncios', href: '/student/marketplace/my-listings' },
-	{ label: 'Perdidos e Achados', href: '/student/lostfound' },
-	{ label: 'Notificações', href: '/student/notifications' },
-	{ label: 'Minha Conta', href: '/student/account' },
-]
+import { STUDENT_NAV_ITEMS as NAV_ITEMS } from './studentNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 function formatDateLabel(value) {
 	if (!value) {
@@ -83,18 +73,27 @@ export default function LostFoundPage() {
 	const [items, setItems] = useState([])
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState('')
+	const [searchTerm, setSearchTerm] = useState('')
+	const [filterLocation, setFilterLocation] = useState('')
 	const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false))
 	const [mobileOpen, setMobileOpen] = useState(false)
+	const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
 	const studentName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Aluno'
+	const sidebarHidden = isMobile || sidebarCollapsed
+	const appShellClassName = ['app-shell', sidebarHidden ? 'sidebar-hidden' : ''].filter(Boolean).join(' ')
 	const sidebarClassName = ['sidebar', isMobile && mobileOpen ? 'open' : ''].filter(Boolean).join(' ')
-	const sidebarToggleSymbol = isMobile ? (mobileOpen ? '✕' : '☰') : '☰'
-	const sidebarToggleLabel = mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'
+	const sidebarToggleSymbol = isMobile ? (mobileOpen ? '✕' : '☰') : sidebarCollapsed ? '▶' : '◀'
+	const sidebarToggleLabel = isMobile
+		? (mobileOpen ? 'Fechar menu lateral' : 'Abrir menu lateral')
+		: (sidebarCollapsed ? 'Mostrar barra lateral' : 'Esconder barra lateral')
 
 	const handleSidebarToggle = useCallback(() => {
 		if (isMobile) {
 			setMobileOpen((value) => !value)
+			return
 		}
+		setSidebarCollapsed((value) => !value)
 	}, [isMobile])
 
 	const handleMobileNavClick = useCallback(() => {
@@ -112,7 +111,7 @@ export default function LostFoundPage() {
 			setItems(response.map(normalizeLostFoundItem))
 		} catch (requestError) {
 			setItems([])
-			setError(requestError?.response?.data?.error || 'Não foi possível carregar os itens perdidos e achados.')
+			setError(localizeApiError(requestError, 'Não foi possível carregar os itens perdidos e achados.'))
 		} finally {
 			setLoading(false)
 		}
@@ -138,13 +137,26 @@ export default function LostFoundPage() {
 		return () => window.removeEventListener('resize', onResize)
 	}, [])
 
-	const visibleItems = useMemo(() => sortByFoundDateDesc(items), [items])
+	const visibleItems = useMemo(() => {
+		const term = searchTerm.trim().toLowerCase()
+		const locationTerm = filterLocation.trim().toLowerCase()
+		let filtered = items
+		if (locationTerm) {
+			filtered = filtered.filter((i) => i.location && i.location.toLowerCase().includes(locationTerm))
+		}
+		if (term) {
+			filtered = filtered.filter((i) =>
+				[i.title, i.description, i.location].join(' ').toLowerCase().includes(term)
+			)
+		}
+		return sortByFoundDateDesc(filtered)
+	}, [items, searchTerm, filterLocation])
 
 	const bannerMessage = 'Para reclamar um objeto, contacta a escola diretamente na secretaria.'
 
 	return (
 		<div className="student-dashboard lostfound-page">
-			<div className="app-shell">
+			<div className={appShellClassName}>
 				{isMobile && mobileOpen ? (
 					<button
 						type="button"
@@ -205,15 +217,25 @@ export default function LostFoundPage() {
 							<div>
 								<h2>Perdidos e Achados</h2>
 							</div>
+							<input
+								type="search"
+								className="topbar-search"
+								placeholder="Pesquisar objetos..."
+								value={searchTerm}
+								onChange={(e) => setSearchTerm(e.target.value)}
+							/>
+							<input
+								type="text"
+								className="topbar-search"
+								placeholder="Localização..."
+								value={filterLocation}
+								onChange={(e) => setFilterLocation(e.target.value)}
+								style={{ maxWidth: '180px' }}
+							/>
 						</div>
 
 						<div className="topbar-right">
-							<Link className="pill lostfound-toolbar-pill" to="/student/dashboard">
-								Painel
-							</Link>
-							<button type="button" className="lostfound-toolbar-button" onClick={loadItems}>
-								Recarregar
-							</button>
+							<NotificationsBell pageLink="/student/notifications" />
 						</div>
 					</header>
 
@@ -221,9 +243,8 @@ export default function LostFoundPage() {
 						<div>
 							<p className="inventory-kicker">Aviso importante:</p>
 							<h3>{bannerMessage}</h3>
-							<p>Se reconheces um objeto, fala com a escola diretamente.</p>
+							<p>Se reconheces um objeto, fala diretamente com a escola.</p>
 						</div>
-						<Badge variant="info" size="sm">{visibleItems.length} item(s)</Badge>
 					</section>
 
 <section className="lostfound-feed panel">
@@ -291,6 +312,7 @@ export default function LostFoundPage() {
 															<div className="lostfound-item-copy">
 																<strong>{item.title}</strong>
 																<p>{item.description}</p>
+																{item.location && <small style={{ color: '#6b7280' }}>📍 {item.location}</small>}
 															</div>
 														</div>
 													</td>

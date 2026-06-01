@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { getDashboardPath, isPathAllowedForRole } from '../utils/roles'
+import { localizeApiError } from '../utils/apiErrors'
 import './auth.css'
 
 const allowedReturnPrefixes = ['/student/', '/teacher/', '/admin/']
@@ -128,7 +129,7 @@ export default function LoginPage() {
       const message =
         backendMessage === 'Invalid credentials'
           ? 'Credenciais inválidas.'
-          : backendMessage || 'Não foi possível autenticar.'
+          : localizeApiError(requestError, 'Não foi possível autenticar.')
       setError(message)
     } finally {
       setSubmitting(false)

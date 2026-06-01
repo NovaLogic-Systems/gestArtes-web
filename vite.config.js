@@ -38,7 +38,6 @@ export default defineConfig(({ mode }) => {
   const sslKeyPath = resolveOptionalPath(env.VITE_SSL_KEY_PATH)
   const sslCertPath = resolveOptionalPath(env.VITE_SSL_CERT_PATH)
   const hasSslFiles = sslKeyPath && sslCertPath && fs.existsSync(sslKeyPath) && fs.existsSync(sslCertPath)
-  const apiProxyTarget = env.VITE_API_PROXY_TARGET || env.VITE_API_URL || 'https://localhost:3001'
 
   const apiTarget = env.VITE_API_URL || 'http://localhost:3001'
 
@@ -49,12 +48,14 @@ export default defineConfig(({ mode }) => {
       globals: true,
     },
     server: {
-      host: 'localhost',
+      host: '127.0.0.1',
+      port: 3000,
+      allowedHosts: true,
       https: enableHttps && hasSslFiles
         ? {
-            key: fs.readFileSync(sslKeyPath),
-            cert: fs.readFileSync(sslCertPath),
-          }
+          key: fs.readFileSync(sslKeyPath),
+          cert: fs.readFileSync(sslCertPath),
+        }
         : false,
       proxy: {
         '/api': {

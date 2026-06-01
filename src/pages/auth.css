@@ -34,7 +34,7 @@ body.auth-page #root {
   background: var(--auth-page-bg);
   color: var(--auth-ink);
   display: grid;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: inherit;
   min-height: 100svh;
   overflow: auto;
   padding: clamp(1.25rem, 4vh, 2.5rem) clamp(1rem, 2vw, 2rem);
@@ -122,7 +122,7 @@ body.auth-page #root {
 .auth-title,
 .auth-title-sm {
   color: var(--auth-ink);
-  font-family: 'Sora', sans-serif;
+  font-family: inherit;
   font-weight: 700;
   letter-spacing: -0.05em;
   line-height: 0.95;
@@ -392,7 +392,7 @@ body.auth-page #root {
   background: var(--auth-page-bg);
   color: var(--auth-ink);
   display: grid;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: inherit;
   min-height: 100svh;
   overflow: auto;
   padding: clamp(1.25rem, 4vh, 2.5rem) clamp(1rem, 2vw, 2rem);
@@ -480,7 +480,7 @@ body.auth-page #root {
 .auth-title,
 .auth-title-sm {
   color: var(--auth-ink);
-  font-family: 'Sora', sans-serif;
+  font-family: inherit;
   font-weight: 700;
   letter-spacing: -0.05em;
   line-height: 0.95;
@@ -740,7 +740,7 @@ body.auth-page #root {
   background: var(--auth-page-bg);
   color: var(--auth-ink);
   display: grid;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: inherit;
   min-height: 100svh;
   overflow: auto;
   padding: clamp(1.25rem, 4vh, 2.5rem) clamp(1rem, 2vw, 2rem);
@@ -828,7 +828,7 @@ body.auth-page #root {
 .auth-title,
 .auth-title-sm {
   color: var(--auth-ink);
-  font-family: 'Sora', sans-serif;
+  font-family: inherit;
   font-weight: 700;
   letter-spacing: -0.05em;
   line-height: 0.95;

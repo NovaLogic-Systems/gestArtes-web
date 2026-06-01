@@ -51,6 +51,85 @@
   font-weight: 700;
 }
 
+.coaching-page .hist-confirm-panel {
+  margin-bottom: 16px;
+  border: 1px solid #f3c56d;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 251, 235, 0.96), rgba(255, 255, 255, 0.99));
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.08);
+  padding: 18px;
+}
+
+.coaching-page .hist-confirm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.coaching-page .hist-confirm-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.coaching-page .hist-confirm-header p {
+  margin: 4px 0 0;
+  color: #6d6480;
+  font-size: 0.88rem;
+}
+
+.coaching-page .hist-confirm-count {
+  align-self: flex-start;
+}
+
+.coaching-page .hist-confirm-list {
+  display: grid;
+  gap: 10px;
+}
+
+.coaching-page .hist-confirm-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid #fde6b2;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.coaching-page .hist-confirm-card-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.coaching-page .hist-confirm-card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.coaching-page .hist-confirm-meta {
+  margin: 0;
+  color: #3f3558;
+  font-size: 0.88rem;
+}
+
+.coaching-page .hist-confirm-meta--muted {
+  color: #6d6480;
+}
+
+.coaching-page .hist-confirm-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* Session detail grid in modal */
 .coaching-modal .hist-detail-grid {
   display: grid;

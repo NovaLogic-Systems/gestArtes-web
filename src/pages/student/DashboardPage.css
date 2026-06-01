@@ -12,7 +12,7 @@
   --soft-shadow: 0 14px 36px rgba(31, 28, 46, 0.12);
   --radius: 16px;
   color: var(--ink);
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: inherit;
   min-height: 100svh;
   background: linear-gradient(150deg, #fdf7f5 0%, #f7f0fb 45%, #effaf8 100%);
   width: 100%;
@@ -137,6 +137,13 @@
   gap: 10px;
 }
 
+.student-dashboard .topbar-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
 .student-dashboard .topbar-left h2 {
   margin: 0;
   font-size: 1.25rem;
@@ -166,11 +173,10 @@
     z-index: 10;
   }
 
-  .student-dashboard .topbar-right .cta,
-  .student-dashboard .topbar-right .pill {
-    flex: 0 1 auto;
-    max-width: 100%;
+  .student-dashboard .topbar-heading {
+    width: 100%;
   }
+
 }
 
 
@@ -310,12 +316,17 @@
 
 .student-dashboard .notifications-more-link {
   display: block;
+  width: 100%;
+  border: 0;
   border-top: 1px solid var(--line);
+  background: transparent;
   text-align: center;
   text-decoration: none;
+  font: inherit;
   font-weight: 600;
   color: #0a7a70;
   padding: 10px;
+  cursor: pointer;
 }
 
 .student-dashboard .notifications-more-link:hover {
@@ -340,7 +351,8 @@
 }
 
 .student-dashboard .kpi {
-  background: linear-gradient(145deg, #fff8f5, #f1fbf8);
+  background: #ffffff;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.05);
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 12px;
@@ -445,33 +457,9 @@
   margin-bottom: 14px;
 }
 
-.student-dashboard .cta {
-  display: inline-block;
-  border: 0;
-  border-radius: 10px;
-  padding: 10px 13px;
-  text-decoration: none;
-  color: #fff;
-  background: linear-gradient(135deg, var(--teal), #10b2a3);
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.88rem;
-  transition: opacity 0.15s, transform 0.15s;
-}
 
-.student-dashboard .cta:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
 
-.student-dashboard .cta:focus-visible {
-  outline: 2px solid var(--iris);
-  outline-offset: 3px;
-}
 
-.student-dashboard .cta.secondary {
-  background: linear-gradient(135deg, #55436d, #6a5490);
-}
 
 /* ── Misc ───────────────────────────────────────────────── */
 .student-dashboard .list {
@@ -583,14 +571,6 @@
     gap: 6px;
   }
 
-  .student-dashboard .topbar-right .cta,
-  .student-dashboard .topbar-right .pill {
-    flex: 1 1 calc(50% - 3px);
-    justify-content: center;
-    font-size: 0.82rem;
-    padding: 6px 10px;
-    max-width: 100%;
-  }
 }
 
 /* ── Desktop: sidebar collapsed state ───────────────────── */

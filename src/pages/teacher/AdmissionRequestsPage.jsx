@@ -4,13 +4,10 @@
  * @institution IPCA
  * @project GestArtes - Projeto 50+10 para Entartes
  */
-
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
-import notificationPreviewService from '../../services/notificationPreviewService'
-import { deleteNotification } from '../../services/notificationService'
 import Badge from '../../components/ui/Badge'
 import Button from '../../components/ui/Button'
 import LoadingSkeleton from '../../components/ui/LoadingSkeleton'
@@ -18,15 +15,10 @@ import Modal from '../../components/ui/Modal'
 import Table from '../../components/ui/Table'
 import Toast from '../../components/ui/Toast'
 import NotificationsBell from '../../components/NotificationsBell'
+import '../admin-studios.css'
 import './AdmissionRequestsPage.css'
-
-const NAV_ITEMS = [
-  { label: 'Painel', href: '/teacher/dashboard' },
-  { label: 'Pedidos de admissão', href: '/teacher/admission-requests' },
-  { label: 'Inventário da Escola', href: '/teacher/inventory' },
-  { label: 'Marketplace', href: '/teacher/marketplace' },
-  { label: 'Os meus anúncios', href: '/teacher/marketplace/my-listings' },
-]
+import { TEACHER_NAV_ITEMS as NAV_ITEMS } from './teacherNav'
+import { localizeApiError } from '../../utils/apiErrors'
 
 function toInteger(value, fallback = 0) {
   const parsed = Number(value)
@@ -88,22 +80,6 @@ function getDeadlineLabel(value) {
   return `Até ${formatDateTime(deadline)}`
 }
 
-function formatNotificationDate(value) {
-  if (!value) {
-    return ''
-  }
-
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) {
-    return ''
-  }
-
-  return parsed.toLocaleString('pt-PT', {
-    dateStyle: 'short',
-    timeStyle: 'short',
-  })
-}
-
 function resolveStatusVariant(statusName) {
   const normalized = String(statusName || '').trim().toLowerCase()
 
@@ -130,7 +106,7 @@ function resolveStatusLabel(statusName) {
   }
 
   if (normalized.includes('approve') && normalized.includes('teacher')) {
-    return 'Aguardando gestão'
+    return 'Aguarda gestão'
   }
 
   if (normalized.includes('approve')) {
@@ -141,7 +117,7 @@ function resolveStatusLabel(statusName) {
     return 'Pendente'
   }
 
-  return statusName
+  return 'Estado desconhecido'
 }
 
 function getCapacityState(request) {
@@ -243,15 +219,6 @@ function normalizeRequestsPayload(payload) {
     })
 }
 
-function normalizeSummary(payload) {
-  return {
-    admissionRequests: toInteger(payload?.admissionRequests ?? payload?.pendingRequests, 0),
-    classesToday: toInteger(payload?.classesToday, 0),
-    pendingConfirmations: toInteger(payload?.pendingConfirmations, 0),
-    noShows: toInteger(payload?.noShows, 0),
-  }
-}
-
 function buildSearchIndex(request) {
   return [
     request.requestCode,
@@ -275,7 +242,6 @@ export default function AdmissionRequestsPage() {
   const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false))
   const [mobileOpen, setMobileOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [summary, setSummary] = useState(null)
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -286,15 +252,6 @@ export default function AdmissionRequestsPage() {
   const [reviewError, setReviewError] = useState('')
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(null)
-  const [notificationsOpen, setNotificationsOpen] = useState(false)
-  const [notificationsLoaded, setNotificationsLoaded] = useState(false)
-  const [notificationsLoading, setNotificationsLoading] = useState(false)
-  const [notificationsError, setNotificationsError] = useState('')
-  const [notifications, setNotifications] = useState([])
-  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0)
-
-  const notificationBoxRef = useRef(null)
-  const notificationCloseTimerRef = useRef(null)
 
   const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'Professor'
 
@@ -331,6 +288,11 @@ export default function AdmissionRequestsPage() {
   }, [isMobile])
 
   useEffect(() => {
+    document.body.classList.add('studio-page')
+    return () => document.body.classList.remove('studio-page')
+  }, [])
+
+  useEffect(() => {
     const onResize = () => {
       const mobile = window.innerWidth <= 1024
       setIsMobile(mobile)
@@ -350,80 +312,20 @@ export default function AdmissionRequestsPage() {
     setLoading(true)
     setError('')
 
-    const [summaryResult, requestsResult] = await Promise.allSettled([
-      api.get('/teacher/dashboard'),
-      api.get('/teacher/admission-requests'),
-    ])
-
-    if (summaryResult.status === 'fulfilled') {
-      setSummary(normalizeSummary(summaryResult.value.data))
-    } else {
-      setSummary(null)
-    }
-
-    if (requestsResult.status === 'fulfilled') {
-      setRequests(normalizeRequestsPayload(requestsResult.value.data))
-    } else {
+    try {
+      const response = await api.get('/teacher/admission-requests')
+      setRequests(normalizeRequestsPayload(response.data))
+    } catch (requestsError) {
       setRequests([])
-      setError(requestsResult.reason?.response?.data?.error || 'Não foi possível carregar os pedidos de admissão.')
-    }
-
-    setLoading(false)
-  }, [])
-
-  const refreshNotificationSummary = useCallback(async () => {
-    const preview = await notificationPreviewService.getPreview({ limit: 0, includeUnreadCount: true })
-    setNotificationUnreadCount(preview.unreadCount)
-  }, [])
-
-  const loadNotificationPreview = useCallback(async () => {
-    setNotificationsLoading(true)
-    setNotificationsError('')
-
-    try {
-      const preview = await notificationPreviewService.getPreview({ limit: 4, includeUnreadCount: true })
-      setNotifications(preview.items)
-      setNotificationUnreadCount(preview.unreadCount)
-      setNotificationsLoaded(true)
-    } catch {
-      setNotificationsError('Não foi possível carregar as notificações.')
+      setError(localizeApiError(requestsError, 'Não foi possível carregar os pedidos de admissão.'))
     } finally {
-      setNotificationsLoading(false)
-    }
-  }, [])
-
-  const handleDeleteNotification = useCallback(async (id) => {
-    try {
-      await deleteNotification(id)
-      setNotifications((prev) => prev.filter((n) => n.id !== id))
-      setNotificationUnreadCount((prev) => Math.max(0, prev - 1))
-    } catch (err) {
-      console.error('Error deleting notification', err)
+      setLoading(false)
     }
   }, [])
 
   useEffect(() => {
     void loadData()
   }, [loadData])
-
-  useEffect(() => {
-    void refreshNotificationSummary()
-  }, [refreshNotificationSummary])
-
-  useEffect(() => {
-    if (!notificationsOpen) {
-      return undefined
-    }
-
-    const handleOutsideClick = (event) => {
-      if (notificationBoxRef.current && !notificationBoxRef.current.contains(event.target)) {
-        setNotificationsOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleOutsideClick)
-    return () => document.removeEventListener('mousedown', handleOutsideClick)
-  }, [notificationsOpen])
 
   const filteredRequests = useMemo(() => {
     const term = searchTerm.trim().toLowerCase()
@@ -434,16 +336,6 @@ export default function AdmissionRequestsPage() {
 
     return requests.filter((request) => buildSearchIndex(request).includes(term))
   }, [requests, searchTerm])
-
-  const criticalRequests = useMemo(() => {
-    return filteredRequests.filter((request) => {
-      if (request.maxParticipants == null || request.maxParticipants <= 0) {
-        return false
-      }
-
-      return request.maxParticipants - request.enrolledCount <= 1
-    })
-  }, [filteredRequests])
 
   const selectedCapacityState = useMemo(
     () => (selectedRequest ? getCapacityState(selectedRequest) : null),
@@ -503,10 +395,6 @@ export default function AdmissionRequestsPage() {
       const reviewedId = toInteger(response.data?.request?.joinRequestId ?? selectedRequest.joinRequestId)
 
       setRequests((currentRequests) => currentRequests.filter((request) => request.joinRequestId !== reviewedId))
-      setSummary((currentSummary) => ({
-        ...currentSummary,
-        admissionRequests: Math.max(0, (currentSummary.admissionRequests ?? 0) - 1),
-      }))
       setSelectedRequest(null)
       setObservations('')
       setToast({
@@ -517,48 +405,12 @@ export default function AdmissionRequestsPage() {
             : 'O estudante foi notificado com a tua observação.',
         variant: 'success',
       })
-      await refreshNotificationSummary()
     } catch (requestError) {
-      setReviewError(requestError?.response?.data?.error || 'Não foi possível guardar a decisão.')
+      setReviewError(localizeApiError(requestError, 'Não foi possível guardar a decisão.'))
     } finally {
       setSaving(false)
     }
-  }, [decision, observations, refreshNotificationSummary, selectedRequest, saving])
-
-  const handleNotificationsClick = useCallback(() => {
-    const nextState = !notificationsOpen
-    setNotificationsOpen(nextState)
-
-    if (nextState && !notificationsLoaded) {
-      void loadNotificationPreview()
-    }
-  }, [loadNotificationPreview, notificationsLoaded, notificationsOpen])
-
-  const openNotificationsOnHover = useCallback(() => {
-    if (notificationCloseTimerRef.current) {
-      window.clearTimeout(notificationCloseTimerRef.current)
-      notificationCloseTimerRef.current = null
-    }
-
-    if (!notificationsOpen) {
-      setNotificationsOpen(true)
-    }
-
-    if (!notificationsLoaded) {
-      void loadNotificationPreview()
-    }
-  }, [loadNotificationPreview, notificationsLoaded, notificationsOpen])
-
-  const closeNotificationsOnHover = useCallback(() => {
-    if (notificationCloseTimerRef.current) {
-      window.clearTimeout(notificationCloseTimerRef.current)
-    }
-
-    notificationCloseTimerRef.current = window.setTimeout(() => {
-      setNotificationsOpen(false)
-      notificationCloseTimerRef.current = null
-    }, 120)
-  }, [])
+  }, [decision, observations, selectedRequest, saving])
 
   const tableColumns = useMemo(() => ([
     {
@@ -570,7 +422,6 @@ export default function AdmissionRequestsPage() {
           className="request-link"
           onClick={() => openRequest(request)}
         >
-          <strong>{request.requestCode}</strong>
           <span>{formatDateTime(request.requestedAt)}</span>
         </button>
       ),
@@ -581,7 +432,6 @@ export default function AdmissionRequestsPage() {
       render: (request) => (
         <div className="request-student">
           <strong>{request.studentName}</strong>
-          <span>{request.studentEmail || 'Sem email indicado'}</span>
         </div>
       ),
     },
@@ -590,10 +440,10 @@ export default function AdmissionRequestsPage() {
       header: 'Sessão',
       render: (request) => (
         <div className="request-session">
-          <strong>{request.sessionLabel}</strong>
           <span>
             {request.modalityName} · {request.studioName}
           </span>
+          <br/>
           <small>
             {formatDate(request.sessionDate)} · {formatTime(request.sessionStartTime)}
             {request.sessionEndTime ? `–${formatTime(request.sessionEndTime)}` : ''}
@@ -609,7 +459,6 @@ export default function AdmissionRequestsPage() {
 
         return (
           <div className="request-capacity">
-            <Badge variant={capacityState.badge} size="sm">{capacityState.label}</Badge>
             <span>{capacityState.detail}</span>
           </div>
         )
@@ -694,12 +543,11 @@ export default function AdmissionRequestsPage() {
                 </button>
                 <h2>Pedidos de adesão</h2>
               </div>
-              <p>Validação de pedidos de adesão a sessões privadas</p>
             </div>
 
             <div className="topbar-right">
               <input
-                className="search"
+                className="topbar-search"
                 type="search"
                 placeholder="Pesquisar estudante, sessão ou estúdio"
                 value={searchTerm}
@@ -720,25 +568,6 @@ export default function AdmissionRequestsPage() {
               </div>
             ) : null}
 
-            <div className="kpi-grid">
-              <article className="kpi">
-                <h3>Pedidos pendentes</h3>
-                <strong>{summary?.admissionRequests || requests.length}</strong>
-              </article>
-              <article className="kpi">
-                <h3>Aulas hoje</h3>
-                <strong>{summary?.classesToday ?? 0}</strong>
-              </article>
-              <article className="kpi">
-                <h3>Confirmações pendentes</h3>
-                <strong>{summary?.pendingConfirmations ?? 0}</strong>
-              </article>
-              <article className="kpi">
-                <h3>Pedidos críticos</h3>
-                <strong>{criticalRequests.length}</strong>
-              </article>
-            </div>
-
             <div className="split">
               <article className="panel">
                 <div className="panel-header">
@@ -748,7 +577,7 @@ export default function AdmissionRequestsPage() {
                       Clique num pedido para rever os detalhes, escrever observações e notificar o estudante.
                     </p>
                   </div>
-                  <Badge variant="info" size="sm">{filteredRequests.length} visíveis</Badge>
+                  <Badge variant="info" size="sm">{filteredRequests.length} pendentes</Badge>
                 </div>
 
                 {loading ? (
@@ -774,35 +603,6 @@ export default function AdmissionRequestsPage() {
                     )}
                   />
                 )}
-              </article>
-
-              <article className="panel">
-                <h3>Fluxo de validação</h3>
-                <p className="panel-subtle">
-                  O professor(a) valida primeiro. Se aprovares, o pedido segue para validação final da Direção.
-                </p>
-
-                <ul className="list helper-list">
-                  <li>Verifica a lotação da sessão e a compatibilidade pedagógica.</li>
-                  <li>Escreve observações claras para o estudante.</li>
-                  <li>A notificação é enviada ao estudante assim que guardas a decisão.</li>
-                </ul>
-
-                <div className="quick-actions">
-                  <Link className="cta" to="/teacher/dashboard">
-                    Voltar ao painel
-                  </Link>
-                  <Button variant="ctaSecondary" onClick={loadData}>
-                    Recarregar fila
-                  </Button>
-                </div>
-
-                <div className="soft-box review-note">
-                  <strong>Prazo de resposta</strong>
-                  <p>
-                    Cada pedido deve ser tratado em 48 horas. Quando o pedido fica perto do limite, assinalamos a fila como crítica.
-                  </p>
-                </div>
               </article>
             </div>
           </section>

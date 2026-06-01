@@ -27,6 +27,11 @@ export async function createBooking(data) {
   return response.data.session
 }
 
+export async function requestJoinSession(sessionId) {
+  const response = await api.post(`/coaching/sessions/${sessionId}/join-requests`, {})
+  return response.data
+}
+
 export async function cancelBooking(sessionId, justification) {
   const response = await api.patch(`/coaching/bookings/${sessionId}`, { justification })
   return response.data
@@ -37,7 +42,16 @@ export async function confirmCompletion(sessionId) {
   return response.data
 }
 
+let historyCache = null;
+let historyCacheTime = 0;
+const CACHE_DURATION = 5000;
+
 export async function getSessionHistory() {
+  if (historyCache && Date.now() - historyCacheTime < CACHE_DURATION) {
+    return historyCache;
+  }
   const response = await api.get('/coaching/sessions/history')
-  return response.data.sessions ?? []
+  historyCache = response.data.sessions ?? []
+  historyCacheTime = Date.now()
+  return historyCache
 }

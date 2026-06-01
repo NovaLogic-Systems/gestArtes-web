@@ -4,6 +4,7 @@ import Button from '../ui/Button'
 import LoadingSkeleton from '../ui/LoadingSkeleton'
 import Table from '../ui/Table'
 import { cn } from '../ui/shared'
+import { localizeApiError } from '../../utils/apiErrors'
 
 const feedbackStyles = {
   success: {
@@ -99,7 +100,7 @@ function AdminJoinRequestsSection({
         variant: 'danger',
         title: 'Falha ao processar o pedido',
         description:
-          error?.response?.data?.error ?? error?.message ?? 'Não foi possível concluir a ação administrativa.',
+          localizeApiError(error, 'Não foi possível concluir a ação administrativa.'),
       })
 
       onActionError?.(error, request, action)

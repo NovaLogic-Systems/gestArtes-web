@@ -8,45 +8,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import NotificationsBell from '../../components/NotificationsBell'
 import WithRole from '../../components/WithRole'
-import notificationPreviewService from '../../services/notificationPreviewService'
 import studioManagementService from '../../services/studioManagementService'
 import { uniqueNames } from '../../utils/strings'
 import '../admin-studios.css'
-
-const navigationItems = [
-  { href: '/admin', label: 'Painel' },
-  { href: '/admin/validations', label: 'Validações' },
-  { href: '/admin/studios', label: 'Estúdios' },
-  { href: '/admin/users', label: 'Utilizadores' },
-  { href: '/admin/lostfound', label: 'Perdidos e Achados' },
-  { href: '/admin/inventory', label: 'Inventário da Escola' },
-  { href: '/admin/marketplace', label: 'Marketplace' },
-  { href: '/admin/finance', label: 'Finanças' },
-  { href: '/admin/audit', label: 'Auditoria' },
-]
+import { ADMIN_NAV_ITEMS as navigationItems } from './adminNav'
 
 const emptyForm = {
   name: '',
   capacity: '',
   formats: [],
   modalities: [],
-}
-
-function formatNotificationDate(value) {
-  if (!value) {
-    return ''
-  }
-
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) {
-    return ''
-  }
-
-  return parsed.toLocaleString('pt-PT', {
-    dateStyle: 'short',
-    timeStyle: 'short',
-  })
 }
 
 function MultiSelectDropdown({
@@ -176,15 +149,8 @@ function StudioManagementPage() {
   const [form, setForm] = useState(emptyForm)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
-  const [notificationsOpen, setNotificationsOpen] = useState(false)
-  const [notificationsLoaded, setNotificationsLoaded] = useState(false)
-  const [notificationsLoading, setNotificationsLoading] = useState(false)
-  const [notificationsError, setNotificationsError] = useState('')
-  const [notifications, setNotifications] = useState([])
-  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0)
 
   const formRef = useRef(null)
-  const notificationBoxRef = useRef(null)
 
   const displayName = user?.fullName || user?.name || user?.email || 'Utilizador'
 
@@ -239,36 +205,14 @@ function StudioManagementPage() {
     }
   }, [])
 
-  const refreshNotificationSummary = useCallback(async () => {
-    const preview = await notificationPreviewService.getPreview({ limit: 0, includeUnreadCount: true })
-    setNotificationUnreadCount(preview.unreadCount)
-  }, [])
-
-  const loadNotificationPreview = useCallback(async () => {
-    setNotificationsLoading(true)
-    setNotificationsError('')
-
-    try {
-      const preview = await notificationPreviewService.getPreview({ limit: 4, includeUnreadCount: true })
-      setNotifications(preview.items)
-      setNotificationUnreadCount(preview.unreadCount)
-      setNotificationsLoaded(true)
-    } catch {
-      setNotificationsError('Não foi possível carregar as notificações.')
-    } finally {
-      setNotificationsLoading(false)
-    }
-  }, [])
-
   useEffect(() => {
     void (async () => {
       await Promise.all([
         loadStudios(),
         loadOptions(),
-        refreshNotificationSummary(),
       ])
     })()
-  }, [loadOptions, loadStudios, refreshNotificationSummary])
+  }, [loadOptions, loadStudios])
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 1024px)')
@@ -299,21 +243,6 @@ function StudioManagementPage() {
       document.body.classList.remove('studio-page')
     }
   }, [])
-
-  useEffect(() => {
-    if (!notificationsOpen) {
-      return undefined
-    }
-
-    const handleOutsideClick = (event) => {
-      if (notificationBoxRef.current && !notificationBoxRef.current.contains(event.target)) {
-        setNotificationsOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleOutsideClick)
-    return () => document.removeEventListener('mousedown', handleOutsideClick)
-  }, [notificationsOpen])
 
   const handleSidebarToggle = () => {
     if (isMobile) {
@@ -467,15 +396,6 @@ function StudioManagementPage() {
     }
   }
 
-  const handleNotificationsClick = () => {
-    const nextState = !notificationsOpen
-    setNotificationsOpen(nextState)
-
-    if (nextState && !notificationsLoaded) {
-      void loadNotificationPreview()
-    }
-  }
-
   const handleLogout = async (event) => {
     event.preventDefault()
 
@@ -544,50 +464,8 @@ function StudioManagementPage() {
             <p>Configuração de capacidade, formatos, modalidades e ocupação</p>
           </div>
 
-          <div className="topbar-right" ref={notificationBoxRef}>
-            <button type="button" className="pill notifications-pill" onClick={handleNotificationsClick}>
-              Notificações {notificationUnreadCount}
-            </button>
-
-            {notificationsOpen ? (
-              <div className="notifications-popover">
-                <div className="notifications-popover-header">
-                  <strong>Notificações</strong>
-                </div>
-
-                {notificationsLoading ? (
-                  <p className="notifications-state">A carregar...</p>
-                ) : null}
-
-                {!notificationsLoading && notificationsError ? (
-                  <p className="notifications-state error">{notificationsError}</p>
-                ) : null}
-
-                {!notificationsLoading && !notificationsError && notifications.length === 0 ? (
-                  <p className="notifications-state">Sem notificações.</p>
-                ) : null}
-
-                {!notificationsLoading && notifications.length > 0 ? (
-                  <ul className="notifications-list">
-                    {notifications.map((notification) => (
-                      <li key={notification.id} className="notifications-item">
-                        <strong>{notification.title}</strong>
-                        {notification.message ? <p>{notification.message}</p> : null}
-                        <small>{formatNotificationDate(notification.createdAt)}</small>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-
-                <Link
-                  to="/notifications"
-                  className="notifications-more-link"
-                  onClick={() => setNotificationsOpen(false)}
-                >
-                  Ver Mais
-                </Link>
-              </div>
-            ) : null}
+          <div className="topbar-right">
+            <NotificationsBell pageLink="/admin/notifications" />
           </div>
         </header>
 
