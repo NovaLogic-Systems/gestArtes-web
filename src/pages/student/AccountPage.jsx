@@ -106,6 +106,8 @@ export default function AccountPage() {
 	const trainingPlan = account?.trainingPlan ?? null
 	const statistics = account?.statistics ?? null
 	const modalityDistribution = Array.isArray(trainingPlan?.modalityDistribution) ? trainingPlan.modalityDistribution : []
+	const isModalityLocked = trainingPlan?.isModalityLocked ?? false
+	const allowedModalities = Array.isArray(trainingPlan?.allowedModalities) ? trainingPlan.allowedModalities : []
 	const normalizedPhone = normalizePhoneNumber(profile?.phoneNumber)
 	const phoneDirty = normalizePhoneNumber(phoneNumber) !== normalizedPhone
 	const trainingPlanLabel = splitPlanLabel(trainingPlan?.name)
@@ -463,8 +465,27 @@ export default function AccountPage() {
 											))}
 										</ul>
 									) : (
-										<p className="account-empty">Ainda não há plano formativo associado.</p>
+										<p className="account-empty">Ainda não há sessões registadas.</p>
 									)}
+
+									<div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid var(--border)" }}>
+										<p style={{ margin: "0 0 0.6rem", fontSize: "0.82rem", fontWeight: 600, color: "var(--text-h)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+											Modalidades disponíveis para coaching
+										</p>
+										{isModalityLocked ? (
+											allowedModalities.length > 0 ? (
+												<div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+													{allowedModalities.map((m) => (
+														<Badge key={m.modalityId} variant="neutral" size="sm">{m.modalityName}</Badge>
+													))}
+												</div>
+											) : (
+												<p className="account-empty" style={{ margin: 0 }}>Nenhuma modalidade atribuída.</p>
+											)
+										) : (
+											<p style={{ margin: 0, fontSize: "0.85rem", color: "var(--text-h)" }}>Acesso livre a todas as modalidades.</p>
+										)}
+									</div>
 								</article>
 
 							</div>
