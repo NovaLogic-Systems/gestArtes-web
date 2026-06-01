@@ -16,22 +16,51 @@ const EyeOffIcon = () => (
   </svg>
 );
 
+const PASSWORD_RULES = [
+  { test: (p) => p.length >= 8,    message: 'Mínimo 8 caracteres' },
+  { test: (p) => /[A-Z]/.test(p),  message: 'Pelo menos uma letra maiúscula' },
+  { test: (p) => /[a-z]/.test(p),  message: 'Pelo menos uma letra minúscula' },
+  { test: (p) => /[0-9]/.test(p),  message: 'Pelo menos um número' },
+]
+
+function getPasswordErrors(password) {
+  if (!password) return []
+  return PASSWORD_RULES.filter((r) => !r.test(password)).map((r) => r.message)
+}
+
+function extractApiErrors(err) {
+  const data = err?.response?.data
+  if (data?.errors && Array.isArray(data.errors)) {
+    return data.errors.map((e) => e.msg).filter(Boolean).join(' ')
+  }
+  if (data?.details && Array.isArray(data.details)) {
+    return data.details.map((e) => e.msg).filter(Boolean).join(' ')
+  }
+  return null
+}
+
 export default function ResetPasswordModal({ userId, userName, onClose }) {
   const [newPassword, setNewPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
+  const [touched, setTouched] = useState(false)
+
+  const validationErrors = getPasswordErrors(newPassword)
+  const isValid = validationErrors.length === 0 && newPassword.length > 0
 
   const handleSubmit = async () => {
-    if (newPassword.length < 8) return
+    setTouched(true)
+    if (!isValid) return
     setLoading(true)
     setError('')
     try {
       await api.patch(`/admin/users/${userId}/reset-password`, { newPassword })
       setSuccess(true)
     } catch (err) {
-      setError(localizeApiError(err, 'Falha ao redefinir a senha.'))
+      const apiMsg = extractApiErrors(err)
+      setError(apiMsg || localizeApiError(err, 'Não foi possível redefinir a senha.'))
     } finally {
       setLoading(false)
     }
@@ -46,14 +75,13 @@ export default function ResetPasswordModal({ userId, userName, onClose }) {
       ) : (
         <>
           {error && <div className="soft-box error" style={{ marginBottom: '1rem' }} role="alert">{error}</div>}
-          <div style={{ marginBottom: '1rem' }}>
+          <div style={{ marginBottom: '0.75rem' }}>
             <Input
               label="Nova senha"
               type={showPassword ? 'text' : 'password'}
               placeholder="Mín. 8 caracteres"
               value={newPassword}
-              onChange={e => setNewPassword(e.target.value)}
-              minLength={8}
+              onChange={e => { setNewPassword(e.target.value); setTouched(true) }}
               trailing={
                 <button
                   type="button"
@@ -66,11 +94,23 @@ export default function ResetPasswordModal({ userId, userName, onClose }) {
               }
             />
           </div>
-          <div className="card-actions" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+          {(touched || newPassword.length > 0) && (
+            <ul style={{ margin: '0 0 1rem', padding: '0 0 0 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+              {PASSWORD_RULES.map((rule) => {
+                const ok = rule.test(newPassword)
+                return (
+                  <li key={rule.message} style={{ fontSize: '0.82rem', color: ok ? '#059669' : 'var(--text-danger, #dc2626)', listStyle: 'disc' }}>
+                    {rule.message}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+          <div className="card-actions" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
             <Button variant="secondary" onClick={onClose} disabled={loading} type="button">
               Cancelar
             </Button>
-            <Button variant="cta" onClick={handleSubmit} disabled={loading || newPassword.length < 8} type="button">
+            <Button variant="cta" onClick={handleSubmit} disabled={loading || !isValid} type="button">
               {loading ? 'A processar...' : 'Confirmar'}
             </Button>
           </div>

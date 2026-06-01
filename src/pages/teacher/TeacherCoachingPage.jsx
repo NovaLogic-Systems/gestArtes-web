@@ -570,11 +570,16 @@ export default function TeacherCoachingPage() {
               {groupProposals.map((gp) => (
                 <div key={gp.proposalId} className="group-pending-card">
                   <div className="group-pending-card-info">
-                    <strong>{gp.modalityName || '—'} · {gp.startTime ? new Date(gp.startTime).toLocaleDateString('pt-PT') : '—'}</strong>
+                    <strong>
+                      {gp.modalityName || '—'} · {gp.startTime ? new Date(gp.startTime).toLocaleDateString('pt-PT') : '—'}
+                      {' · '}
+                      <span style={{ color: '#0a7a70' }}>
+                        {gp.participants.length === 2 ? 'Duo' : gp.participants.length === 3 ? 'Trio' : `Ensemble (${gp.participants.length})`}
+                      </span>
+                    </strong>
                     <small>
                       {gp.startTime ? new Date(gp.startTime).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : ''}
                       {gp.endTime ? ` → ${new Date(gp.endTime).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}` : ''}
-                      {' · '}{gp.participants.length} aluno{gp.participants.length !== 1 ? 's' : ''}
                       {' · '}{gp.participants.map((p) => [p.student?.firstName, p.student?.lastName].filter(Boolean).join(' ')).join(', ')}
                     </small>
                   </div>
@@ -625,7 +630,14 @@ export default function TeacherCoachingPage() {
             ) : null}
 
             <div>
-              <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>Alunos no grupo</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.1rem' }}>
+                <label style={{ fontWeight: 600 }}>Alunos no grupo</label>
+                {groupStudents.length >= 2 && (
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '0.15rem 0.55rem', borderRadius: '999px', background: 'rgba(11,157,143,0.12)', color: '#0a7a70' }}>
+                    {groupStudents.length === 2 ? 'Duo' : groupStudents.length === 3 ? 'Trio' : `Ensemble · ${groupStudents.length}`}
+                  </span>
+                )}
+              </div>
               <div className="group-student-list">
                 {groupStudents.map((s) => (
                   <span key={s.userId} className="group-student-chip">
@@ -700,7 +712,7 @@ export default function TeacherCoachingPage() {
             <div className="modal-footer-actions">
               <Button variant="secondary" onClick={closeGroupModal} disabled={groupSaving}>Cancelar</Button>
               <Button variant="cta" onClick={handleGroupSubmit} disabled={groupSaving || groupStudents.length < 2}>
-                {groupSaving ? 'A criar...' : `Criar grupo (${groupStudents.length} aluno${groupStudents.length !== 1 ? 's' : ''})`}
+                {groupSaving ? 'A criar...' : `Criar ${groupStudents.length === 2 ? 'duo' : groupStudents.length === 3 ? 'trio' : groupStudents.length >= 4 ? `ensemble (${groupStudents.length})` : 'grupo'}`}
               </Button>
             </div>
           </div>

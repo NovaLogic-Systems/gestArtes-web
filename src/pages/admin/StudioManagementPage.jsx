@@ -278,7 +278,7 @@ function StudioManagementPage() {
     resetForm()
     setIsStudioFormVisible(true)
     setNotice('')
-    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
   }
 
   const startEditStudio = (studio) => {
@@ -292,7 +292,7 @@ function StudioManagementPage() {
     })
     setError('')
     setNotice(`A editar ${studio.name}.`)
-    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
   }
 
   const toggleFormSelection = (field, value) => {
@@ -336,7 +336,7 @@ function StudioManagementPage() {
 
   const handleDeleteModality = async (modality) => {
     if (deletingModalityId === modality.id) return
-    const confirmed = window.confirm(`Apagar a modalidade "${modality.name}"?\n\nNota: não é possível apagar modalidades que estejam associadas a estúdios, professores ou sessões.`)
+    const confirmed = window.confirm(`Apagar a modalidade "${modality.name}"?\n\nEsta ação irá remover também todas as associações com estúdios, professores e alunos.`)
     if (!confirmed) return
     setDeletingModalityId(modality.id)
     try {
@@ -579,50 +579,8 @@ function StudioManagementPage() {
             </div>
           </article>
 
-          <article className="panel">
-            <div className="panel-header">
-              <h3>Modalidades</h3>
-              <p style={{ margin: 0, color: 'var(--studio-muted)', fontSize: '0.85rem' }}>
-                Para criar uma modalidade, usa o campo "Nova modalidade" no formulário de estúdio.
-              </p>
-            </div>
-            {modalityObjects.length === 0 ? (
-              <div className="soft-box">Sem modalidades registadas.</div>
-            ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Nome</th>
-                      <th style={{ textAlign: 'right' }}>Ação</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {modalityObjects.map((m) => (
-                      <tr key={m.id}>
-                        <td style={{ color: 'var(--studio-muted)', fontSize: '0.85rem' }}>{m.id}</td>
-                        <td><strong>{m.name}</strong></td>
-                        <td style={{ textAlign: 'right' }}>
-                          <button
-                            type="button"
-                            className="danger-btn"
-                            disabled={deletingModalityId === m.id}
-                            onClick={() => handleDeleteModality(m)}
-                          >
-                            {deletingModalityId === m.id ? 'A apagar...' : 'Apagar'}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </article>
-
           {isStudioFormVisible ? (
-            <article ref={formRef} className="panel">
+            <article ref={formRef} className="panel" style={{ overflow: 'visible' }}>
               <div className="panel-header">
                 <h3 style={{ margin: 0 }}>{editingStudioId ? 'Editar estúdio' : 'Novo estúdio'}</h3>
                 <div className="card-actions">
@@ -704,6 +662,48 @@ function StudioManagementPage() {
               </form>
             </article>
           ) : null}
+
+          <article className="panel">
+            <div className="panel-header">
+              <h3>Modalidades</h3>
+              <p style={{ margin: 0, color: 'var(--studio-muted)', fontSize: '0.85rem' }}>
+                Para criar uma modalidade, usa o campo "Nova modalidade" no formulário de estúdio.
+              </p>
+            </div>
+            {modalityObjects.length === 0 ? (
+              <div className="soft-box">Sem modalidades registadas.</div>
+            ) : (
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Nome</th>
+                      <th style={{ textAlign: 'right' }}>Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {modalityObjects.map((m) => (
+                      <tr key={m.id}>
+                        <td style={{ color: 'var(--studio-muted)', fontSize: '0.85rem' }}>{m.id}</td>
+                        <td><strong>{m.name}</strong></td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button
+                            type="button"
+                            className="danger-btn"
+                            disabled={deletingModalityId === m.id}
+                            onClick={() => handleDeleteModality(m)}
+                          >
+                            {deletingModalityId === m.id ? 'A apagar...' : 'Apagar'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </article>
         </section>
       </main>
     </div>

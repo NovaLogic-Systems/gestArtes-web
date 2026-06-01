@@ -61,7 +61,7 @@ const EyeOffIcon = () => (
   </svg>
 );
 
-function UserActionsDropdown({ user, onEdit, onReset }) {
+function UserActionsDropdown({ user, onEdit, onReset, onRevoke }) {
   const [open, setOpen] = useState(false)
   const menuRef = useRef()
 
@@ -73,19 +73,28 @@ function UserActionsDropdown({ user, onEdit, onReset }) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [open])
 
+  const isStudentOrTeacher = (Array.isArray(user.roles) ? user.roles : [user.role]).some(r =>
+    ['student', 'teacher'].includes(String(r).toLowerCase())
+  )
+
   return (
     <div style={{ position: 'relative', display: 'inline-block' }} ref={menuRef}>
       <Button variant="ghost" size="sm" onClick={() => setOpen(!open)} style={{ padding: '0.25rem 0.5rem', minWidth: 'auto', fontSize: '1.25rem', lineHeight: 1 }}>
         ⋮
       </Button>
       {open && (
-        <div style={{ position: 'absolute', right: '100%', top: 0, marginRight: '0.5rem', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '0.5rem', padding: '0.25rem', zIndex: 50, display: 'flex', flexDirection: 'column', gap: '0.15rem', minWidth: '150px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+        <div style={{ position: 'absolute', right: '100%', top: 0, marginRight: '0.5rem', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '0.5rem', padding: '0.25rem', zIndex: 50, display: 'flex', flexDirection: 'column', gap: '0.15rem', minWidth: '160px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
           <Button variant="ghost" size="sm" style={{ justifyContent: 'flex-start' }} onClick={() => { setOpen(false); onEdit(user); }}>
             Editar
           </Button>
           <Button variant="ghost" size="sm" style={{ justifyContent: 'flex-start', color: 'var(--text-danger, #e53e3e)' }} onClick={() => { setOpen(false); onReset(user); }}>
             Redefinir senha
           </Button>
+          {isStudentOrTeacher && (
+            <Button variant="ghost" size="sm" style={{ justifyContent: 'flex-start', color: 'var(--text-danger, #e53e3e)' }} onClick={() => { setOpen(false); onRevoke(user); }}>
+              Revogar sessão
+            </Button>
+          )}
         </div>
       )}
     </div>
@@ -127,6 +136,10 @@ export default function AdminUsersPage() {
   // Reset Password Modal
   const [resetPasswordUser, setResetPasswordUser] = useState(null)
 
+  // Revoke Sessions
+  const [revokeUser, setRevokeUser] = useState(null)
+  const [revoking, setRevoking] = useState(false)
+
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [availableModalities, setAvailableModalities] = useState([])
 
@@ -167,10 +180,12 @@ export default function AdminUsersPage() {
   }, [])
 
   useEffect(() => {
-    if (editForm?.isModalityLocked && availableModalities.length === 0) {
+    const isEditingTeacher = Array.isArray(editForm?.roles) && editForm.roles.includes('teacher')
+    const needsModalities = editForm?.isModalityLocked || isEditingTeacher
+    if (needsModalities && availableModalities.length === 0) {
       void loadModalities()
     }
-  }, [editForm?.isModalityLocked, availableModalities.length, loadModalities])
+  }, [editForm?.isModalityLocked, editForm?.roles, availableModalities.length, loadModalities])
 
   useEffect(() => {
     void loadUsers()
@@ -268,20 +283,37 @@ export default function AdminUsersPage() {
 
   function handleEditClick(u) {
     setEditUser(u)
+    const roles = Array.isArray(u.roles) && u.roles.length ? u.roles : [toAppRole(u.role)]
     setEditForm({
       firstName: u.firstName || '',
       lastName: u.lastName || '',
       email: u.email || '',
       phoneNumber: u.phoneNumber || '',
       isActive: u.isActive,
-      roles: Array.isArray(u.roles) && u.roles.length ? u.roles : [toAppRole(u.role)],
+      roles,
       studentNumber: u.studentNumber || '',
       birthDate: safeISODate(u.birthDate),
       guardianName: u.guardianName || '',
       guardianPhone: u.guardianPhone || '',
       isModalityLocked: u.isModalityLocked || false,
       allowedModalities: Array.isArray(u.allowedModalities) ? u.allowedModalities : [],
+      teacherModalities: Array.isArray(u.teacherModalities) ? u.teacherModalities : [],
     })
+  }
+
+  async function handleRevokeConfirm() {
+    if (!revokeUser || revoking) return
+    setRevoking(true)
+    setError('')
+    try {
+      await adminUsersService.revokeUserSessions(revokeUser.userId)
+      setNotice(`Sessões de ${revokeUser.firstName} revogadas com sucesso.`)
+      setRevokeUser(null)
+    } catch (requestError) {
+      setError(localizeApiError(requestError, 'Não foi possível revogar as sessões.'))
+    } finally {
+      setRevoking(false)
+    }
   }
 
   async function handleEditSubmit(e) {
@@ -293,6 +325,7 @@ export default function AdminUsersPage() {
 
     try {
       const isStudent = Array.isArray(editForm.roles) && editForm.roles.includes('student')
+      const isTeacher = Array.isArray(editForm.roles) && editForm.roles.includes('teacher')
 
       await adminUsersService.updateUser(editUser.userId, {
         firstName: editForm.firstName.trim(),
@@ -306,6 +339,7 @@ export default function AdminUsersPage() {
         guardianPhone: isStudent ? editForm.guardianPhone.trim() : undefined,
         isModalityLocked: isStudent ? editForm.isModalityLocked : undefined,
         allowedModalities: isStudent && editForm.isModalityLocked ? editForm.allowedModalities : undefined,
+        teacherModalities: isTeacher ? editForm.teacherModalities : undefined,
       })
 
       await adminUsersService.updateUserRoles(editUser.userId, {
@@ -397,10 +431,11 @@ export default function AdminUsersPage() {
       key: 'actions',
       header: '',
       render: (u) => (
-        <UserActionsDropdown 
-          user={u} 
-          onEdit={handleEditClick} 
-          onReset={setResetPasswordUser} 
+        <UserActionsDropdown
+          user={u}
+          onEdit={handleEditClick}
+          onReset={setResetPasswordUser}
+          onRevoke={setRevokeUser}
         />
       )
     }
@@ -721,6 +756,36 @@ export default function AdminUsersPage() {
                 </>
               )}
 
+              {Array.isArray(editForm.roles) && editForm.roles.includes('teacher') && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', gridColumn: '1 / -1', marginTop: '0.5rem' }}>
+                  <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Modalidades do professor</span>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-h)' }}>
+                    Quando definidas, o professor apenas pode lecionar nestas modalidades.
+                  </p>
+                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', background: 'var(--bg)', padding: '1rem', borderRadius: '0.875rem', border: '1px solid var(--border)' }}>
+                    {availableModalities.map(mod => (
+                      <label key={mod.modalityId} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 'normal' }}>
+                        <input
+                          type="checkbox"
+                          checked={Array.isArray(editForm.teacherModalities) && editForm.teacherModalities.includes(mod.modalityId)}
+                          onChange={() => {
+                            setEditForm(prev => {
+                              const c = Array.isArray(prev.teacherModalities) ? prev.teacherModalities : []
+                              return {
+                                ...prev,
+                                teacherModalities: c.includes(mod.modalityId) ? c.filter(id => id !== mod.modalityId) : [...c, mod.modalityId]
+                              }
+                            })
+                          }}
+                        />
+                        {mod.modalityName}
+                      </label>
+                    ))}
+                    {availableModalities.length === 0 && <span style={{ fontSize: '0.85rem', color: 'var(--text-h)' }}>Nenhuma modalidade encontrada.</span>}
+                  </div>
+                </div>
+              )}
+
               <div className="card-actions form-actions" style={{ gridColumn: '1 / -1', marginTop: '1rem' }}>
                 <Button variant="cta" type="submit" isLoading={submitting}>
                   Guardar Alterações
@@ -730,6 +795,24 @@ export default function AdminUsersPage() {
                 </Button>
               </div>
             </form>
+          </Modal>
+        )}
+
+        {revokeUser && (
+          <Modal open={true} title="Revogar sessão" size="sm" onClose={() => !revoking && setRevokeUser(null)}>
+            <p style={{ margin: 0 }}>
+              Tens a certeza que queres revogar todas as sessões ativas de{' '}
+              <strong>{[revokeUser.firstName, revokeUser.lastName].filter(Boolean).join(' ')}</strong>?
+              O utilizador será desligado imediatamente e terá de fazer login novamente.
+            </p>
+            <div className="card-actions form-actions" style={{ marginTop: '1.25rem' }}>
+              <Button variant="danger" isLoading={revoking} onClick={handleRevokeConfirm}>
+                {revoking ? 'A revogar...' : 'Revogar sessão'}
+              </Button>
+              <Button variant="ghost" type="button" disabled={revoking} onClick={() => setRevokeUser(null)}>
+                Cancelar
+              </Button>
+            </div>
           </Modal>
         )}
 
