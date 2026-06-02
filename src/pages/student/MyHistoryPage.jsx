@@ -13,7 +13,7 @@ import Button from '../../components/ui/Button'
 import Badge from '../../components/ui/Badge'
 import ConfirmExecutionModal from '../../components/ConfirmExecutionModal'
 import NotificationsBell from '../../components/NotificationsBell'
-import { getSessionHistory } from '../../services/coaching'
+import { cancelBooking, getSessionHistory } from '../../services/coaching'
 import './coaching.css'
 import './history.css'
 import { STUDENT_NAV_ITEMS as NAV_ITEMS } from './studentNav'
@@ -113,13 +113,87 @@ function isAwaitingConfirmationSession(session) {
   return session.canConfirm || resolveStatusBadge(session.status).key === 'awaitingConfirmation'
 }
 
-function SessionDetailModal({ session, open, onClose, onConfirmExecution }) {
+function isCancellableSession(session) {
+  const key = resolveStatusBadge(session.status).key
+  return !['completed', 'cancelled', 'rejected'].includes(key)
+}
+
+function CancelSessionModal({ session, open, onClose, onCancelled }) {
+  const [justification, setJustification] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  function handleClose() {
+    setJustification('')
+    setError('')
+    onClose()
+  }
+
+  async function handleSubmit() {
+    if (!justification.trim()) {
+      setError('É obrigatório indicar o motivo do cancelamento.')
+      return
+    }
+    setSaving(true)
+    setError('')
+    try {
+      await cancelBooking(session.sessionId, justification.trim())
+      setJustification('')
+      onCancelled(session.sessionId)
+      onClose()
+    } catch (err) {
+      setError(localizeApiError(err, 'Não foi possível cancelar a sessão.'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!session) return null
+
+  return (
+    <Modal
+      open={open}
+      onClose={handleClose}
+      title={`Cancelar Sessão #${session.sessionId}`}
+      size="sm"
+      className="coaching-modal"
+      footer={
+        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', width: '100%', flexWrap: 'wrap' }}>
+          <Button variant="secondary" onClick={handleClose} disabled={saving}>Voltar</Button>
+          <Button variant="danger" onClick={() => void handleSubmit()} disabled={saving}>
+            {saving ? 'A cancelar...' : 'Confirmar cancelamento'}
+          </Button>
+        </div>
+      }
+    >
+      <div className="bk-form" style={{ gap: '0.85rem' }}>
+        <p style={{ margin: 0 }}>
+          Tens a certeza que queres cancelar a sessão de <strong>{session.modalityName || 'coaching'}</strong> marcada para <strong>{formatDateTimePT(session.startTime)}</strong>?
+        </p>
+        <label>
+          Motivo do cancelamento <span style={{ color: '#991b1b' }}>*</span>
+          <textarea
+            rows={3}
+            value={justification}
+            onChange={(e) => { setJustification(e.target.value); setError('') }}
+            placeholder="Descreve o motivo pelo qual não podes comparecer..."
+            disabled={saving}
+          />
+        </label>
+        {error ? <p className="error-banner" style={{ margin: 0 }}>{error}</p> : null}
+      </div>
+    </Modal>
+  )
+}
+
+function SessionDetailModal({ session, open, onClose, onConfirmExecution, onCancel }) {
   if (!session) return null
 
   const badge = resolveStatusBadge(session.status)
   const canConfirmExecution =
     session.canConfirm ||
     badge.key === 'awaitingConfirmation'
+  const canCancel = isCancellableSession(session)
 
   return (
     <Modal
@@ -130,6 +204,15 @@ function SessionDetailModal({ session, open, onClose, onConfirmExecution }) {
       className="coaching-modal"
       footer={
         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', width: '100%', flexWrap: 'wrap' }}>
+          {canCancel ? (
+            <Button
+              variant="danger"
+              onClick={() => onCancel(session)}
+              data-testid="detail-cancel-session"
+            >
+              Cancelar sessão
+            </Button>
+          ) : null}
           {canConfirmExecution ? (
             <Button
               variant="cta"
@@ -248,6 +331,10 @@ export default function MyHistoryPage() {
   const [confirmSession, setConfirmSession] = useState(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
 
+  // Cancel session modal
+  const [cancelSession, setCancelSession] = useState(null)
+  const [cancelOpen, setCancelOpen] = useState(false)
+
   const toConfirm = useMemo(
     () => sessions.filter(isAwaitingConfirmationSession),
     [sessions]
@@ -313,11 +400,26 @@ export default function MyHistoryPage() {
   }
 
   function handleConfirmed(sessionId) {
-    // Optimistic update: mark the session status
     setSessions((prev) =>
       prev.map((s) =>
         s.sessionId === sessionId
           ? { ...s, status: 'AwaitingFinalValidation', canConfirm: false }
+          : s
+      )
+    )
+  }
+
+  function handleOpenCancel(session) {
+    setDetailOpen(false)
+    setCancelSession(session)
+    setCancelOpen(true)
+  }
+
+  function handleCancelled(sessionId) {
+    setSessions((prev) =>
+      prev.map((s) =>
+        s.sessionId === sessionId
+          ? { ...s, status: 'Cancelled', canConfirm: false }
           : s
       )
     )
@@ -599,6 +701,7 @@ export default function MyHistoryPage() {
         session={detailSession}
         onClose={() => setDetailOpen(false)}
         onConfirmExecution={handleOpenConfirmExecution}
+        onCancel={handleOpenCancel}
       />
 
       {/* Confirm execution modal */}
@@ -607,6 +710,14 @@ export default function MyHistoryPage() {
         session={confirmSession}
         onClose={() => setConfirmOpen(false)}
         onConfirmed={handleConfirmed}
+      />
+
+      {/* Cancel session modal */}
+      <CancelSessionModal
+        open={cancelOpen}
+        session={cancelSession}
+        onClose={() => setCancelOpen(false)}
+        onCancelled={handleCancelled}
       />
     </div>
   )
