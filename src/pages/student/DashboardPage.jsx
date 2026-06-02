@@ -187,7 +187,7 @@ export default function DashboardPage() {
     { label: 'Nova marcação', to: '/student/coaching' },
     { label: 'Histórico', to: '/student/history' },
     { label: 'Confirmar execução', to: '/student/coaching#confirmacao', secondary: true },
-    { label: 'Gerir cancelamentos', to: '/student/coaching', secondary: true },
+    { label: 'Gerir cancelamentos', to: '/student/history', secondary: true },
   ]
 
   return (
