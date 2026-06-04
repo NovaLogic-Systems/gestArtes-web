@@ -577,11 +577,10 @@
 
   .market-page .topbar-left {
     display: flex;
+    flex-direction: column;
+    flex: none;
     width: 100%;
-  }
-
-  .market-page .topbar-left p {
-    margin-top: 4px;
+    gap: 4px;
   }
 
   .market-page .topbar-right {

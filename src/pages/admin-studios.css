@@ -1150,6 +1150,11 @@ body.studio-page #root {
     gap: 10px;
   }
 
+  .app-shell .topbar-left {
+    flex: none;
+    width: 100%;
+  }
+
   .app-shell .topbar-right {
     width: 100%;
     justify-content: flex-start;
@@ -1157,7 +1162,7 @@ body.studio-page #root {
   }
 
   .app-shell .main {
-  overflow-x: hidden;
+    overflow-x: hidden;
     padding: 18px 16px 20px;
   }
 

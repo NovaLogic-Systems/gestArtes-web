@@ -271,6 +271,18 @@
 
   .teacher-notifications-page .notification-filter {
     border-radius: 14px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .teacher-notifications-page .notification-filter::-webkit-scrollbar {
+    display: none;
+  }
+
+  .teacher-notifications-page .notification-filter button {
+    flex-shrink: 0;
+    white-space: nowrap;
   }
 
   .teacher-notifications-page .notification-delete {
