@@ -39,15 +39,6 @@ export default function RoleSwitcher({ className }) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [open])
 
-  const [pendingNav, setPendingNav] = useState(null)
-
-  useEffect(() => {
-    if (pendingNav && role === pendingNav) {
-      navigate(ROLE_HOME[role] || '/')
-      setPendingNav(null)
-    }
-  }, [role, pendingNav, navigate])
-
   const handleSwitch = useCallback(async (nextRole) => {
     if (busy || nextRole === role) {
       setOpen(false)
@@ -55,13 +46,13 @@ export default function RoleSwitcher({ className }) {
     }
     setBusy(true)
     try {
-      await switchRole(nextRole)
+      const newRole = await switchRole(nextRole)
       setOpen(false)
-      setPendingNav(nextRole)
+      navigate(ROLE_HOME[newRole || nextRole] || '/')
     } finally {
       setBusy(false)
     }
-  }, [busy, role, switchRole])
+  }, [busy, role, switchRole, navigate])
 
   if (!Array.isArray(roles) || roles.length < 2) {
     return null

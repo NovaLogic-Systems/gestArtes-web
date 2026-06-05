@@ -416,6 +416,12 @@ export default function TeacherCoachingPage() {
 
   const requestedStartTime = selectedCoachingReq?.preferredStartTime ?? selectedCoachingReq?.currentStartTime
   const requestedEndTime = selectedCoachingReq?.preferredEndTime ?? selectedCoachingReq?.currentEndTime
+  const isActionable = selectedCoachingReq?.status === 'PENDING_TEACHER_REVIEW'
+  const hasConfirmedNewTime = Boolean(
+    selectedCoachingReq?.currentStartTime &&
+    selectedCoachingReq?.preferredStartTime &&
+    new Date(selectedCoachingReq.currentStartTime).getTime() !== new Date(selectedCoachingReq.preferredStartTime).getTime()
+  )
   const coachingDurationValue = Number(coachingDurationMin) || DEFAULT_COACHING_DURATION_MIN
   const coachingSuggestDurationValue = Number(coachingSuggestDurationMin) || DEFAULT_COACHING_DURATION_MIN
   const coachingEndPreview = selectedCoachingReq?.currentStartTime ? addMinutes(selectedCoachingReq.currentStartTime, coachingDurationValue) : null
@@ -753,106 +759,146 @@ export default function TeacherCoachingPage() {
                     : ' (duração a definir)'}
                 </small>
               </div>
+              {hasConfirmedNewTime ? (
+                <div className="request-meta-card">
+                  <strong>Horário confirmado</strong>
+                  <span>{formatDate(selectedCoachingReq.currentStartTime)}</span>
+                  <small>
+                    {new Date(selectedCoachingReq.currentStartTime).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+                    {selectedCoachingReq.currentEndTime ? ` → ${new Date(selectedCoachingReq.currentEndTime).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}` : ''}
+                  </small>
+                </div>
+              ) : null}
               {selectedCoachingReq.requestNotes ? (
                 <div className="request-meta-card" style={{ gridColumn: '1/-1' }}>
                   <strong>Notas do aluno</strong>
                   <span>{selectedCoachingReq.requestNotes}</span>
                 </div>
               ) : null}
-            </div>
-
-            <div>
-              <label style={{ fontWeight: 600, marginBottom: '0.5rem', display: 'block' }}>Decisão</label>
-              <div className="coaching-decision-toggle">
-                <button type="button" className={coachingDecision === 'approve' ? 'active-approve' : ''} onClick={() => setCoachingDecision('approve')}>Aceitar</button>
-                <button type="button" className={coachingDecision === 'suggest' ? 'active-suggest' : ''} onClick={() => setCoachingDecision('suggest')}>Sugerir horário</button>
-                <button type="button" className={coachingDecision === 'reject' ? 'active-reject' : ''} onClick={() => setCoachingDecision('reject')}>Rejeitar</button>
-              </div>
-            </div>
-
-            {coachingDecision === 'approve' && !selectedCoachingReq.currentEndTime ? (
-              <div className="observations-field">
-                <span>Duração da aula <span style={{ color: '#b91c1c' }}>(obrigatória)</span></span>
-                <p className="coaching-modal-hint">
-                  O aluno não definiu duração. Indica a duração antes de aprovar.
-                </p>
-                <div className="coaching-modal-field">
-                  <label htmlFor="coaching-duration">Duração</label>
-                  <select
-                    id="coaching-duration"
-                    className="coaching-modal-input"
-                    value={coachingDurationMin}
-                    onChange={(e) => setCoachingDurationMin(e.target.value)}
-                  >
-                    {COACHING_DURATIONS.map((duration) => (
-                      <option key={duration} value={duration}>{duration} min</option>
-                    ))}
-                  </select>
+              {selectedCoachingReq.teacherResponseNotes ? (
+                <div className="request-meta-card" style={{ gridColumn: '1/-1' }}>
+                  <strong>Notas do professor</strong>
+                  <span>{selectedCoachingReq.teacherResponseNotes}</span>
                 </div>
-                {coachingEndPreview ? (
-                  <small className="coaching-duration-preview">
-                    Termina às {formatTimeLabel(coachingEndPreview)}.
-                  </small>
-                ) : null}
+              ) : null}
+              {selectedCoachingReq.studentResponseNotes ? (
+                <div className="request-meta-card" style={{ gridColumn: '1/-1' }}>
+                  <strong>Resposta do aluno à sugestão</strong>
+                  <span>{selectedCoachingReq.studentResponseNotes}</span>
+                </div>
+              ) : null}
+            </div>
+
+            {!isActionable ? (
+              <div style={{ padding: '0.75rem 0.9rem', background: 'var(--studio-soft-bg)', border: '1px solid var(--studio-soft-line)', borderRadius: '0.9rem', color: 'var(--studio-muted)', fontSize: '0.88rem' }}>
+                {selectedCoachingReq.status === 'PENDING_ADMIN_APPROVAL'
+                  ? 'Pedido enviado para aprovação da direção.'
+                  : selectedCoachingReq.status === 'PENDING_STUDENT_CONFIRMATION'
+                    ? 'Aguarda resposta do aluno à proposta de horário.'
+                    : 'Este pedido já foi processado.'}
               </div>
             ) : null}
 
-            {coachingDecision === 'suggest' ? (
-              <div className="observations-field">
-                <span>Novo horário sugerido</span>
-                <div className="coaching-modal-grid">
-                  <div className="coaching-modal-field">
-                    <label htmlFor="coaching-suggest-start">Início</label>
-                    <input
-                      id="coaching-suggest-start"
-                      type="datetime-local"
-                      className="coaching-modal-input"
-                      value={coachingSuggestStart}
-                      onChange={(e) => setCoachingSuggestStart(e.target.value)}
-                    />
-                  </div>
-                  <div className="coaching-modal-field">
-                    <label htmlFor="coaching-suggest-duration">Duração</label>
-                    <select
-                      id="coaching-suggest-duration"
-                      className="coaching-modal-input"
-                      value={coachingSuggestDurationMin}
-                      onChange={(e) => setCoachingSuggestDurationMin(e.target.value)}
-                    >
-                      {COACHING_DURATIONS.map((duration) => (
-                        <option key={duration} value={duration}>{duration} min</option>
-                      ))}
-                    </select>
+            {isActionable ? (
+              <>
+                <div>
+                  <label style={{ fontWeight: 600, marginBottom: '0.5rem', display: 'block' }}>Decisão</label>
+                  <div className="coaching-decision-toggle">
+                    <button type="button" className={coachingDecision === 'approve' ? 'active-approve' : ''} onClick={() => setCoachingDecision('approve')}>Aceitar</button>
+                    <button type="button" className={coachingDecision === 'suggest' ? 'active-suggest' : ''} onClick={() => setCoachingDecision('suggest')}>Sugerir horário</button>
+                    <button type="button" className={coachingDecision === 'reject' ? 'active-reject' : ''} onClick={() => setCoachingDecision('reject')}>Rejeitar</button>
                   </div>
                 </div>
-                {coachingSuggestEndPreview ? (
-                  <small className="coaching-duration-preview">
-                    Termina às {formatTimeLabel(coachingSuggestEndPreview)}.
-                  </small>
+
+                {coachingDecision === 'approve' && !selectedCoachingReq.currentEndTime ? (
+                  <div className="observations-field">
+                    <span>Duração da aula <span style={{ color: '#b91c1c' }}>(obrigatória)</span></span>
+                    <p className="coaching-modal-hint">
+                      O aluno não definiu duração. Indica a duração antes de aprovar.
+                    </p>
+                    <div className="coaching-modal-field">
+                      <label htmlFor="coaching-duration">Duração</label>
+                      <select
+                        id="coaching-duration"
+                        className="coaching-modal-input"
+                        value={coachingDurationMin}
+                        onChange={(e) => setCoachingDurationMin(e.target.value)}
+                      >
+                        {COACHING_DURATIONS.map((duration) => (
+                          <option key={duration} value={duration}>{duration} min</option>
+                        ))}
+                      </select>
+                    </div>
+                    {coachingEndPreview ? (
+                      <small className="coaching-duration-preview">
+                        Termina às {formatTimeLabel(coachingEndPreview)}.
+                      </small>
+                    ) : null}
+                  </div>
                 ) : null}
-              </div>
+
+                {coachingDecision === 'suggest' ? (
+                  <div className="observations-field">
+                    <span>Novo horário sugerido</span>
+                    <div className="coaching-modal-grid">
+                      <div className="coaching-modal-field">
+                        <label htmlFor="coaching-suggest-start">Início</label>
+                        <input
+                          id="coaching-suggest-start"
+                          type="datetime-local"
+                          className="coaching-modal-input"
+                          value={coachingSuggestStart}
+                          onChange={(e) => setCoachingSuggestStart(e.target.value)}
+                        />
+                      </div>
+                      <div className="coaching-modal-field">
+                        <label htmlFor="coaching-suggest-duration">Duração</label>
+                        <select
+                          id="coaching-suggest-duration"
+                          className="coaching-modal-input"
+                          value={coachingSuggestDurationMin}
+                          onChange={(e) => setCoachingSuggestDurationMin(e.target.value)}
+                        >
+                          {COACHING_DURATIONS.map((duration) => (
+                            <option key={duration} value={duration}>{duration} min</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    {coachingSuggestEndPreview ? (
+                      <small className="coaching-duration-preview">
+                        Termina às {formatTimeLabel(coachingSuggestEndPreview)}.
+                      </small>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                <div className="observations-field">
+                  <span>Notas {coachingDecision === 'reject' ? <span style={{ color: '#b91c1c' }}>(obrigatórias)</span> : '(opcional)'}</span>
+                  <textarea
+                    value={coachingNotes}
+                    onChange={(e) => setCoachingNotes(e.target.value)}
+                    placeholder={coachingDecision === 'reject' ? 'Indica o motivo da rejeição...' : 'Observações para o aluno...'}
+                  />
+                </div>
+
+                {coachingReviewError ? <div className="modal-error" role="alert">{coachingReviewError}</div> : null}
+              </>
             ) : null}
-
-            <div className="observations-field">
-              <span>Notas {coachingDecision === 'reject' ? <span style={{ color: '#b91c1c' }}>(obrigatórias)</span> : '(opcional)'}</span>
-              <textarea
-                value={coachingNotes}
-                onChange={(e) => setCoachingNotes(e.target.value)}
-                placeholder={coachingDecision === 'reject' ? 'Indica o motivo da rejeição...' : 'Observações para o aluno...'}
-              />
-            </div>
-
-            {coachingReviewError ? <div className="modal-error" role="alert">{coachingReviewError}</div> : null}
 
             <div className="modal-footer-actions">
-              <Button variant="secondary" onClick={closeCoachingModal} disabled={coachingSaving}>Cancelar</Button>
-              <Button
-                variant={coachingDecision === 'reject' ? 'danger' : 'cta'}
-                onClick={handleCoachingReviewSubmit}
-                disabled={coachingSaving}
-              >
-                {coachingSaving ? 'A guardar...' : coachingDecision === 'approve' ? 'Aceitar pedido' : coachingDecision === 'suggest' ? 'Enviar sugestão' : 'Rejeitar pedido'}
+              <Button variant="secondary" onClick={closeCoachingModal} disabled={coachingSaving}>
+                {isActionable ? 'Cancelar' : 'Fechar'}
               </Button>
+              {isActionable ? (
+                <Button
+                  variant={coachingDecision === 'reject' ? 'danger' : 'cta'}
+                  onClick={handleCoachingReviewSubmit}
+                  disabled={coachingSaving}
+                >
+                  {coachingSaving ? 'A guardar...' : coachingDecision === 'approve' ? 'Aceitar pedido' : coachingDecision === 'suggest' ? 'Enviar sugestão' : 'Rejeitar pedido'}
+                </Button>
+              ) : null}
             </div>
           </div>
         </Modal>
