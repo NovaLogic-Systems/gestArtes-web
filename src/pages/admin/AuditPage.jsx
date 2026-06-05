@@ -44,6 +44,7 @@ const ACTION_LABELS = {
   INVENTORY_ITEM_UPDATED: 'Artigo Atualizado',
   INVENTORY_ITEM_DELETED: 'Artigo Removido',
   USER_PASSWORD_RESET: 'Redefinição de Palavra-passe',
+  USER_SESSIONS_REVOKED: 'Sessões Revogadas',
   USER_CREATED: 'Utilizador Criado',
   USER_UPDATED: 'Utilizador Atualizado',
   USER_SUSPENDED: 'Utilizador Suspenso',
