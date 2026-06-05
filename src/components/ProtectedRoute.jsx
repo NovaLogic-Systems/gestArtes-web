@@ -7,7 +7,7 @@
 
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { hasRoleAccess, normalizeRoleList, toAppRole } from '../utils/roles'
+import { getDashboardPath, hasRoleAccess, normalizeRoleList, toAppRole } from '../utils/roles'
 
 export default function ProtectedRoute({ allowedRoles }) {
   const location = useLocation()
@@ -25,7 +25,7 @@ export default function ProtectedRoute({ allowedRoles }) {
   }
 
   if (normalizedAllowedRoles.length && !hasRoleAccess(currentRole, normalizedAllowedRoles)) {
-    return <Navigate to="/unauthorized" replace state={{ from, role: currentRole, allowedRoles: normalizedAllowedRoles }} />
+    return <Navigate to={getDashboardPath(currentRole)} replace state={{ from, role: currentRole, allowedRoles: normalizedAllowedRoles }} />
   }
 
   return <Outlet />
