@@ -251,7 +251,7 @@ export default function ListingForm({
           <span>Descricao</span>
           <textarea
             rows={4}
-            maxLength={255}
+            maxLength={500}
             value={values.description}
             onChange={(event) => handleChange('description', event.target.value)}
           />
