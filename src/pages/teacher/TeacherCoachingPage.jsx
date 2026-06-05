@@ -791,7 +791,7 @@ export default function TeacherCoachingPage() {
                 </div>
                 {coachingEndPreview ? (
                   <small className="coaching-duration-preview">
-                    Termina as {formatTimeLabel(coachingEndPreview)}.
+                    Termina às {formatTimeLabel(coachingEndPreview)}.
                   </small>
                 ) : null}
               </div>
@@ -827,7 +827,7 @@ export default function TeacherCoachingPage() {
                 </div>
                 {coachingSuggestEndPreview ? (
                   <small className="coaching-duration-preview">
-                    Termina as {formatTimeLabel(coachingSuggestEndPreview)}.
+                    Termina às {formatTimeLabel(coachingSuggestEndPreview)}.
                   </small>
                 ) : null}
               </div>
