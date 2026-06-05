@@ -1078,9 +1078,14 @@ function ValidationsPage() {
                 { label: 'Aluno', value: [selectedCoachingRequest.student?.firstName, selectedCoachingRequest.student?.lastName].filter(Boolean).join(' ') || '—' },
                 { label: 'Professor', value: [selectedCoachingRequest.teacher?.firstName, selectedCoachingRequest.teacher?.lastName].filter(Boolean).join(' ') || '—' },
                 { label: 'Modalidade', value: selectedCoachingRequest.modalityName || '—' },
-                { label: 'Horário', value: selectedCoachingRequest.currentStartTime
+                { label: 'Horário confirmado', value: selectedCoachingRequest.currentStartTime
                   ? `${new Date(selectedCoachingRequest.currentStartTime).toLocaleDateString('pt-PT')} · ${new Date(selectedCoachingRequest.currentStartTime).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}${selectedCoachingRequest.currentEndTime ? ` → ${new Date(selectedCoachingRequest.currentEndTime).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}` : ''}`
                   : '—' },
+                ...(selectedCoachingRequest.preferredStartTime &&
+                  selectedCoachingRequest.currentStartTime &&
+                  new Date(selectedCoachingRequest.preferredStartTime).getTime() !== new Date(selectedCoachingRequest.currentStartTime).getTime()
+                  ? [{ label: 'Pedido originalmente', value: `${new Date(selectedCoachingRequest.preferredStartTime).toLocaleDateString('pt-PT')} · ${new Date(selectedCoachingRequest.preferredStartTime).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}${selectedCoachingRequest.preferredEndTime ? ` → ${new Date(selectedCoachingRequest.preferredEndTime).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}` : ''}` }]
+                  : []),
               ].map(({ label, value }) => (
                 <div key={label} style={{ background: 'var(--studio-soft-bg)', border: '1px solid var(--studio-soft-line)', borderRadius: '0.9rem', padding: '0.7rem 0.85rem' }}>
                   <div style={{ fontSize: '0.73rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--studio-muted)' }}>{label}</div>
@@ -1088,6 +1093,29 @@ function ValidationsPage() {
                 </div>
               ))}
             </div>
+
+            {selectedCoachingRequest.requestNotes || selectedCoachingRequest.teacherResponseNotes || selectedCoachingRequest.studentResponseNotes ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {selectedCoachingRequest.requestNotes ? (
+                  <div style={{ background: 'var(--studio-soft-bg)', border: '1px solid var(--studio-soft-line)', borderRadius: '0.9rem', padding: '0.7rem 0.85rem' }}>
+                    <div style={{ fontSize: '0.73rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--studio-muted)', marginBottom: '0.2rem' }}>Notas do aluno</div>
+                    <div style={{ color: 'var(--studio-ink)' }}>{selectedCoachingRequest.requestNotes}</div>
+                  </div>
+                ) : null}
+                {selectedCoachingRequest.teacherResponseNotes ? (
+                  <div style={{ background: 'var(--studio-soft-bg)', border: '1px solid var(--studio-soft-line)', borderRadius: '0.9rem', padding: '0.7rem 0.85rem' }}>
+                    <div style={{ fontSize: '0.73rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--studio-muted)', marginBottom: '0.2rem' }}>Resposta do professor</div>
+                    <div style={{ color: 'var(--studio-ink)' }}>{selectedCoachingRequest.teacherResponseNotes}</div>
+                  </div>
+                ) : null}
+                {selectedCoachingRequest.studentResponseNotes ? (
+                  <div style={{ background: 'var(--studio-soft-bg)', border: '1px solid var(--studio-soft-line)', borderRadius: '0.9rem', padding: '0.7rem 0.85rem' }}>
+                    <div style={{ fontSize: '0.73rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--studio-muted)', marginBottom: '0.2rem' }}>Resposta do aluno à sugestão</div>
+                    <div style={{ color: 'var(--studio-ink)' }}>{selectedCoachingRequest.studentResponseNotes}</div>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
 
             <div>
               <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.35rem' }}>Decisão</label>

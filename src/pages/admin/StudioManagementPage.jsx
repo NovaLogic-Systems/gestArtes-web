@@ -151,6 +151,9 @@ function StudioManagementPage() {
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
   const [deletingModalityId, setDeletingModalityId] = useState(null)
+  const [creatingModality, setCreatingModality] = useState(false)
+  const [newModalityName, setNewModalityName] = useState('')
+  const [savingModality, setSavingModality] = useState(false)
 
   const formRef = useRef(null)
 
@@ -317,11 +320,15 @@ function StudioManagementPage() {
     const type = field === 'formats' ? 'formats' : 'modalities'
 
     try {
-      const createdName = await studioManagementService.createStudioOption({ type, name: value })
+      const created = await studioManagementService.createStudioOption({ type, name: value })
+      const createdName = typeof created === 'object' ? created.name : created
 
       if (field === 'formats') {
         setFormatOptions((current) => uniqueNames([...current, createdName]))
       } else {
+        if (typeof created === 'object' && created.id) {
+          setModalityObjects((current) => [...current, created])
+        }
         setModalityOptions((current) => uniqueNames([...current, createdName]))
       }
 
@@ -350,6 +357,29 @@ function StudioManagementPage() {
       setError(msg)
     } finally {
       setDeletingModalityId(null)
+    }
+  }
+
+  const handleCreateModality = async () => {
+    const name = newModalityName.trim()
+    if (!name || savingModality) return
+    setSavingModality(true)
+    try {
+      const created = await studioManagementService.createStudioOption({ type: 'modalities', name })
+      const createdName = typeof created === 'object' ? created.name : created
+      if (typeof created === 'object' && created.id) {
+        setModalityObjects((current) => [...current, created])
+      }
+      setModalityOptions((current) => uniqueNames([...current, createdName]))
+      setNewModalityName('')
+      setCreatingModality(false)
+      setNotice(`Modalidade "${createdName}" criada.`)
+      setError('')
+    } catch (err) {
+      const msg = err?.message || 'Não foi possível criar a modalidade.'
+      setError(msg)
+    } finally {
+      setSavingModality(false)
     }
   }
 
@@ -666,11 +696,16 @@ function StudioManagementPage() {
           <article className="panel">
             <div className="panel-header">
               <h3>Modalidades</h3>
-              <p style={{ margin: 0, color: 'var(--studio-muted)', fontSize: '0.85rem' }}>
-                Para criar uma modalidade, usa o campo "Nova modalidade" no formulário de estúdio.
-              </p>
+              <button
+                type="button"
+                className="ghost-btn"
+                onClick={() => { setCreatingModality(true); setNewModalityName('') }}
+                disabled={creatingModality}
+              >
+                Criar modalidade
+              </button>
             </div>
-            {modalityObjects.length === 0 ? (
+            {modalityObjects.length === 0 && !creatingModality ? (
               <div className="soft-box">Sem modalidades registadas.</div>
             ) : (
               <div className="table-wrap">
@@ -699,6 +734,44 @@ function StudioManagementPage() {
                         </td>
                       </tr>
                     ))}
+                    {creatingModality ? (
+                      <tr>
+                        <td style={{ color: 'var(--studio-muted)', fontSize: '0.85rem' }}>—</td>
+                        <td>
+                          <input
+                            type="text"
+                            value={newModalityName}
+                            onChange={(e) => setNewModalityName(e.target.value)}
+                            placeholder="Nome da modalidade"
+                            autoFocus
+                            autoComplete="off"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleCreateModality()
+                              if (e.key === 'Escape') { setCreatingModality(false); setNewModalityName('') }
+                            }}
+                          />
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <div className="card-actions">
+                            <button
+                              type="button"
+                              className="cta"
+                              disabled={savingModality || !newModalityName.trim()}
+                              onClick={handleCreateModality}
+                            >
+                              {savingModality ? 'A guardar...' : 'Guardar'}
+                            </button>
+                            <button
+                              type="button"
+                              className="ghost-btn"
+                              onClick={() => { setCreatingModality(false); setNewModalityName('') }}
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : null}
                   </tbody>
                 </table>
               </div>

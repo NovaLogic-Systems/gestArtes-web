@@ -1340,7 +1340,7 @@ export default function AdminInventoryPage() {
                 value={itemForm.description}
                 onChange={(event) => updateItemForm('description', event.target.value)}
                 placeholder="Descrição interna do artigo, uso recomendado e observações."
-                maxLength={255}
+                maxLength={500}
               />
             </label>
 
@@ -1476,7 +1476,7 @@ export default function AdminInventoryPage() {
                 conditionNotes: event.target.value,
               }))}
               placeholder="Descreve estado, danos ou observações da devolução."
-              maxLength={255}
+              maxLength={500}
             />
           </label>
         </div>
